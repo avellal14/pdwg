@@ -1,0 +1,1534 @@
+"""Random variable transformation classes."""
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+import tensorflow as tf
+import helper 
+import pdb 
+import numpy as np
+import math 
+from random import shuffle 
+
+class PlanarFlow():
+    """
+    Planar Flow class.
+    Args:
+      parameters: parameters of transformation all appended.
+      input_dim : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+    def __init__(self, input_dim, parameters, name='planar_transform'):   
+        self._parameter_scale = 1
+        self._parameters = self._parameter_scale*parameters
+        self._input_dim = input_dim
+        assert (self._input_dim > 1)
+
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim
+
+    @staticmethod
+    def required_num_parameters(input_dim):
+        return input_dim+input_dim+1
+
+    def transform(self, z0, log_pdf_z0):
+        verify_size(z0, log_pdf_z0)
+        self._parameters.get_shape().assert_is_compatible_with([None, PlanarFlow.required_num_parameters(self._input_dim)])
+
+        w = tf.slice(self._parameters, [0, 0], [-1, self._input_dim])
+        u = tf.slice(self._parameters, [0, self._input_dim], [-1, self._input_dim])
+        b = tf.slice(self._parameters, [0, 2*self._input_dim], [-1, 1])
+        w_t_u = tf.reduce_sum(w*u, axis=[1], keep_dims=True)
+        w_t_w = tf.reduce_sum(w*w, axis=[1], keep_dims=True)
+        u_tilde = (u+(((tf.log(1e-7+1+tf.exp(w_t_u))-1)+w_t_u)/w_t_w)*w)
+
+        affine = tf.reduce_sum(z0*w, axis=[1], keep_dims=True) + b
+        h = tf.tanh(affine)
+        z = z0+u_tilde*h
+
+        h_prime_w = (1-tf.pow(h, 2))*w
+        log_abs_det_jacobian = tf.log(1e-7+tf.abs(1+tf.reduce_sum(h_prime_w*u_tilde, axis=[1], keep_dims=True)))
+        log_pdf_z = log_pdf_z0 - log_abs_det_jacobian
+        return z, log_pdf_z
+
+class RadialFlow():
+    """
+    Radial Flow class.
+    Args:
+      parameters: parameters of transformation all appended.
+      input_dim : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+    def __init__(self, input_dim, parameters, name='radial_transform'):   
+        self._parameter_scale = 1#0.1
+        self._parameters = self._parameter_scale*parameters
+        self._input_dim = input_dim
+        assert (self._input_dim > 1)
+
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim
+
+    @staticmethod
+    def required_num_parameters(input_dim):
+        return 1+1+input_dim
+
+    def transform(self, z0, log_pdf_z0):
+        verify_size(z0, log_pdf_z0)
+        self._parameters.get_shape().assert_is_compatible_with([None, RadialFlow.required_num_parameters(self._input_dim)])
+
+        alpha = tf.slice(self._parameters, [0, 0], [-1, 1])
+        beta = tf.slice(self._parameters, [0, 1], [-1, 1])
+        z_ref = tf.slice(self._parameters, [0, 2], [-1, self._input_dim])
+        alpha_tilde = tf.log(1e-7+1+tf.exp(alpha))
+        beta_tilde = tf.log(1e-7+1+tf.exp(beta)) - alpha_tilde
+
+        z_diff = z0 - z_ref
+        r = tf.sqrt(tf.reduce_sum(tf.square(z_diff), axis=[1], keep_dims=True))
+        h = 1/(alpha_tilde + r)
+        scale = beta_tilde * h
+        z = z0 + scale * z_diff
+
+        log_abs_det_jacobian = tf.log(1e-7+tf.abs(tf.pow(1 + scale, self._input_dim - 1) * (1 + scale * (1 - h * r))))
+        log_pdf_z = log_pdf_z0 - log_abs_det_jacobian
+        return z, log_pdf_z
+
+class SpecificOrderDimensionFlow():
+    """
+    Specific Order Dimension Flow class.
+    Args:
+      parameters: parameters of transformation all appended.
+      input_dim : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+    def __init__(self, input_dim, order=None, parameters=None, name='specific_order_dimension_transform'):   
+        self._input_dim = input_dim 
+        if order is None: # a specific but random order
+            self._order = [*range(self._input_dim)]
+            shuffle(self._order) 
+        else: self._order = order
+        self._inverse_order = [-1]*self._input_dim
+        for i in range(self._input_dim): self._inverse_order[self._order[i]] = i
+        assert (len(self._order) == self._input_dim)
+        assert (len(self._inverse_order) == self._input_dim)
+        assert (parameters is None)
+        assert (self._input_dim > 1)
+
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim
+
+    @staticmethod
+    def required_num_parameters(input_dim):  
+        return 0
+
+    def transform(self, z0, log_pdf_z0):
+        verify_size(z0, log_pdf_z0)
+        z = helper.tf_differentiable_specific_shuffle_with_axis(z0, self._order, axis=1)
+        log_pdf_z = log_pdf_z0
+        return z, log_pdf_z
+
+    def inverse_transform(self, z, log_pdf_z):
+        verify_size(z, log_pdf_z)
+        z0 = helper.tf_differentiable_specific_shuffle_with_axis(z, self._inverse_order, axis=1)
+        log_pdf_z0 = log_pdf_z
+        return z0, log_pdf_z0
+
+class CustomSpecificOrderDimensionFlow():
+    """
+    Custom Specific Order Dimension Flow class.
+    Args:
+      parameters: parameters of transformation all appended.
+      input_dim : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+    def __init__(self, input_dim, order=None, parameters=None, name='custom_specific_order_dimension_transform'):   
+        self._input_dim = input_dim 
+        self._sodf_1 = SpecificOrderDimensionFlow(input_dim=int(self._input_dim/2.))
+        self._sodf_2 = SpecificOrderDimensionFlow(input_dim=int(self._input_dim/2.))
+        assert (self._input_dim % 2 == 0)
+        assert (parameters is None)
+        assert (self._input_dim > 1)
+
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim
+
+    @staticmethod
+    def required_num_parameters(input_dim):  
+        return 0
+
+    def transform(self, z0, log_pdf_z0):
+        verify_size(z0, log_pdf_z0)
+        z0_1 = z0[:, :int(self._input_dim/2.)] 
+        z0_2 = z0[:, int(self._input_dim/2.):]
+        # z_1, _ = self._sodf_1.transform(z0_1, tf.zeros(shape=[tf.shape(z0_1)[0], 1]))
+        z_1 = z0_1
+        z_2, _ = self._sodf_2.transform(z0_2, tf.zeros(shape=[tf.shape(z0_2)[0], 1]))
+        z = tf.concat([z_1, z_2], axis=1)
+        log_pdf_z = log_pdf_z0
+        return z, log_pdf_z
+
+    def inverse_transform(self, z, log_pdf_z):
+        verify_size(z, log_pdf_z)
+        z_1 = z[:, :int(self._input_dim/2.)] 
+        z_2 = z[:, int(self._input_dim/2.):]
+        # z0_1, _ = self._sodf_1.inverse_transform(z_1, tf.zeros(shape=[tf.shape(z_1)[0], 1]))
+        z0_1 = z_1
+        z0_2, _ = self._sodf_2.inverse_transform(z_2, tf.zeros(shape=[tf.shape(z_2)[0], 1]))
+        z0 = tf.concat([z0_1, z0_2], axis=1)
+        log_pdf_z0 = log_pdf_z
+        return z0, log_pdf_z0
+
+class InverseOrderDimensionFlow():
+    """
+    Inverse Order Dimension Flow class.
+    Args:
+      parameters: parameters of transformation all appended.
+      input_dim : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+    def __init__(self, input_dim, parameters=None, name='inverse_order_dimension_transform'):   
+        self._input_dim = input_dim
+        assert (parameters is None)
+        assert (self._input_dim > 1)
+
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim
+
+    @staticmethod
+    def required_num_parameters(input_dim):  
+        return 0
+
+    def transform(self, z0, log_pdf_z0):
+        verify_size(z0, log_pdf_z0)
+        z = tf.reverse(z0, axis=[-1,])
+        log_pdf_z = log_pdf_z0
+        return z, log_pdf_z
+
+class PermuteDimensionFlow():
+    """
+    Permute Dimension Flow class.
+    Args:
+      parameters: parameters of transformation all appended.
+      input_dim : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+    def __init__(self, input_dim, parameters=None, slide_to_higher=True, name='permute_dimension_transform'):   
+        self._input_dim = input_dim
+        self._slide_to_higher = slide_to_higher
+        self._n_slide_dims = int(float(self._input_dim)/3.)+1
+        assert (self._n_slide_dims != 0)
+        assert (parameters is None)
+        assert (self._input_dim > 1)
+
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim
+
+    @staticmethod
+    def required_num_parameters(input_dim):  
+        return 0
+
+    def transform(self, z0, log_pdf_z0):
+        verify_size(z0, log_pdf_z0)
+        if self._slide_to_higher:
+            z = tf.concat([tf.slice(z0, [0, self._n_slide_dims], [-1, self._input_dim-self._n_slide_dims]), tf.slice(z0, [0, 0], [-1, self._n_slide_dims])], axis=1)
+        else:
+            z = tf.concat([tf.slice(z0, [0, self._input_dim-self._n_slide_dims], [-1, self._n_slide_dims]), tf.slice(z0, [0, 0], [-1, self._input_dim-self._n_slide_dims])], axis=1)
+        log_pdf_z = log_pdf_z0
+        return z, log_pdf_z
+
+class ScaleDimensionFlow():
+    """
+    Scale Dimension Flow class.
+    Args:
+      parameters: parameters of transformation all appended.
+      input_dim : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+    def __init__(self, input_dim, parameters=None, scale=1/5., name='scale_dimension_transform'):   
+        self._input_dim = input_dim
+        self._scale = scale
+        assert (parameters is None)
+        assert (self._input_dim > 1)
+
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim
+
+    @staticmethod
+    def required_num_parameters(input_dim):  
+        return 0
+
+    def transform(self, z0, log_pdf_z0):
+        verify_size(z0, log_pdf_z0)
+        z = z0*self._scale
+        
+        log_abs_det_jacobian = self._input_dim*tf.log(1e-7+self._scale)
+        log_pdf_z = log_pdf_z0 - log_abs_det_jacobian
+        return z, log_pdf_z
+
+class OpenIntervalDimensionFlow():
+    """
+    Open Interval Dimension Flow class.
+    Args:
+      parameters: parameters of transformation all appended.
+      input_dim : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+    def __init__(self, input_dim, parameters=None, zero_one=True, name='open_interval_dimension_transform'):  #real
+        self._input_dim = input_dim
+        self._zero_one = zero_one
+        assert (parameters is None)
+        assert (self._input_dim > 1)
+
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim
+
+    @staticmethod
+    def required_num_parameters(input_dim):  
+        return 0
+
+    def transform(self, z0, log_pdf_z0):
+        verify_size(z0, log_pdf_z0)
+        if self._zero_one:
+            # z = tf.nn.sigmoid(z0)
+            z = tf.nn.sigmoid(5.*z0)
+            # log_abs_det_jacobian = tf.reduce_sum(z0-2*tf.log(1e-7+tf.exp(z0)+1), axis=[1], keep_dims=True)
+            # log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+z)+tf.log(1e-7+(1-z)), axis=[1], keep_dims=True)
+            log_abs_det_jacobian = tf.reduce_sum(np.log(5.)+(tf.log(1e-7+z)+tf.log(1e-7+(1-z))), axis=[1], keep_dims=True)
+        else:
+            # z = tf.nn.tanh(z0)
+            z = tf.nn.tanh(2.5*z0)
+            # log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+(1-z))+tf.log(1e-7+(1+z)), axis=[1], keep_dims=True)
+            log_abs_det_jacobian = tf.reduce_sum(np.log(2.5)+tf.log(1e-7+(1-z))+tf.log(1e-7+(1+z)), axis=[1], keep_dims=True)
+        
+        log_pdf_z = log_pdf_z0 - log_abs_det_jacobian
+        return z, log_pdf_z
+
+    def inverse_transform(self, z, log_pdf_z):
+        verify_size(z, log_pdf_z)
+        if self._zero_one:
+            # z0 = (tf.log(z)-tf.log(1-z))
+            z0 = (tf.log(z)-tf.log(1-z))/5.
+            # log_abs_det_jacobian = -tf.reduce_sum(z0-2*tf.log(1e-7+tf.exp(z0)+1), axis=[1], keep_dims=True)
+            log_abs_det_jacobian = -tf.reduce_sum(np.log(5.)+tf.log(1e-7+z)+tf.log(1e-7+(1-z)), axis=[1], keep_dims=True)
+        else:
+            # z0 = (0.5*(tf.log(1+z)-tf.log(1-z)))
+            z0 = (0.5*(tf.log(1+z)-tf.log(1-z)))/2.5
+            # log_abs_det_jacobian = -tf.reduce_sum(tf.log(1e-7+1-z)+tf.log(1e-7+1+z), axis=[1], keep_dims=True)
+            log_abs_det_jacobian = -tf.reduce_sum(np.log(2.5)+tf.log(1e-7+1-z)+tf.log(1e-7+1+z), axis=[1], keep_dims=True)
+        
+        log_pdf_z0 = log_pdf_z - log_abs_det_jacobian
+        return z0, log_pdf_z0
+
+class InverseOpenIntervalDimensionFlow():
+    """
+    Inverse Open Interval Dimension Flow class.
+    Args:
+      parameters: parameters of transformation all appended.
+      input_dim : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+    def __init__(self, input_dim, parameters=None, name='InverseOpenIntervalDimensionFlow'):  #real
+        self._input_dim = input_dim
+        self._inverse_flow_object = OpenIntervalDimensionFlow(self._input_dim)
+        assert (parameters is None)
+        assert (self._input_dim > 1)
+    
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim
+
+    @staticmethod
+    def required_num_parameters(input_dim):  
+        return 0
+
+    def transform(self, z0, log_pdf_z0):
+        verify_size(z0, log_pdf_z0)
+        z, log_pdf_z = self._inverse_flow_object.inverse_transform(z0, log_pdf_z0)
+        return z, log_pdf_z
+
+    def inverse_transform(self, z, log_pdf_z):
+        verify_size(z, log_pdf_z)
+        z0, log_pdf_z0 = self._inverse_flow_object.transform(z, log_pdf_z)
+        return z0, log_pdf_z0
+
+class RiemannianFlow():
+    """
+    Projective Flow class.
+    Args:
+      parameters: parameters of transformation all appended.
+      input_dim : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+    def __init__(self, input_dim, parameters, additional_dim=3, k_start=1, init_reflection=1, manifold_nonlinearity=tf.nn.tanh, polinomial_degree=3, name='riemannian_transform'):   
+        self._parameter_scale = 1.
+        self._parameters = self._parameter_scale*parameters
+        self._input_dim = input_dim
+        self._additional_dim = additional_dim
+        self._k_start = k_start
+        self._init_reflection = init_reflection
+        self._polinomial_degree = polinomial_degree
+        self._manifold_nonlinearity = manifold_nonlinearity
+        assert (additional_dim > 0)
+        assert (self._input_dim > additional_dim)
+
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim+self._additional_dim
+
+    def apply_manifold_nonlin(self, x_k, NonlinK_param):
+        if self._manifold_nonlinearity == tf.nn.tanh: return tf.nn.tanh(x_k), helper.tanh_J(x_k)
+        if self._manifold_nonlinearity == tf.nn.sigmoid: return tf.nn.sigmoid(x_k), helper.sigmoid_J(x_k)
+        if self._manifold_nonlinearity == tf.nn.relu: return tf.nn.relu(x_k), helper.relu_J(x_k)
+        if self._manifold_nonlinearity == helper.parametric_relu:
+            param_index = 0
+            positive, param_index = helper.slice_parameters(NonlinK_param, param_index, self._additional_dim)
+            negative, param_index = helper.slice_parameters(NonlinK_param, param_index, self._additional_dim)
+            return helper.parametric_relu(x_k, positive, negative), helper.parametric_relu_J(x_k, positive, negative)
+        if self._manifold_nonlinearity == helper.polinomial_nonlin:
+            param_index = 0
+            positive, param_index = helper.slice_parameters(NonlinK_param, param_index, self._additional_dim)
+            negative, param_index = helper.slice_parameters(NonlinK_param, param_index, self._additional_dim)            
+            pdb.set_trace()
+            return y_k, manifold_nonlinearity_J
+
+    def get_rotation_tensor(self, dim, rot_params):
+        rot_tensor = helper.householder_rotations_tf(n=dim, batch=tf.shape(rot_params)[0], k_start=self._k_start, init_reflection=self._init_reflection, params=rot_params)
+        return rot_tensor
+
+    @staticmethod
+    def required_num_parameters(input_dim, additional_dim=3, k_start=1, manifold_nonlinearity=tf.nn.tanh, polinomial_degree=3): 
+        if additional_dim == 1:
+            n_C_param = input_dim
+            n_RK_1_param = 1
+            n_RK_2_param = 1
+        else:
+            n_C_param = HouseholdRotationFlow.required_num_parameters(input_dim, k_start)
+            n_RK_1_param = HouseholdRotationFlow.required_num_parameters(additional_dim, k_start)
+            n_RK_2_param = HouseholdRotationFlow.required_num_parameters(additional_dim, k_start)
+            
+        n_pre_bias_param = additional_dim
+        n_pre_scale_param = additional_dim
+        if manifold_nonlinearity == tf.nn.tanh or manifold_nonlinearity == tf.nn.sigmoid or manifold_nonlinearity == tf.nn.relu :
+            n_NonlinK_param = 0
+        elif manifold_nonlinearity == helpe.parametric_relu:
+            n_NonlinK_param = 2*additional_dim
+        elif manifold_nonlinearity == RiemannianFlow.polinomial_nonlin:
+            n_NonlinK_param = (polinomial_degree+1)*additional_dim
+        n_post_bias_param = additional_dim
+        n_post_scale_param = additional_dim
+
+        n_RN_param = HouseholdRotationFlow.required_num_parameters(input_dim, k_start)
+        n_RG_param = HouseholdRotationFlow.required_num_parameters(input_dim+additional_dim, k_start)
+        
+        return n_C_param+n_RK_1_param+n_RK_2_param+ \
+               n_pre_bias_param+n_pre_scale_param+n_NonlinK_param+ \
+               n_post_bias_param+n_post_scale_param+ \
+               n_RN_param+n_RG_param
+
+    def transform(self, z0, log_pdf_z0):
+        verify_size(z0, log_pdf_z0)
+        self._parameters.get_shape().assert_is_compatible_with([None, RiemannianFlow.required_num_parameters(
+            self._input_dim, self._additional_dim, self._k_start, self._manifold_nonlinearity, self._polinomial_degree)])
+
+        param_index = 0
+        if self._additional_dim == 1:             
+            C_param, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim)
+            RK_1_param, param_index = helper.slice_parameters(self._parameters, param_index, 1)
+            RK_2_param, param_index = helper.slice_parameters(self._parameters, param_index, 1)
+        else: 
+            C_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._input_dim, self._k_start))
+            RK_1_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._additional_dim, self._k_start))
+            RK_2_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._additional_dim, self._k_start))
+
+        pre_bias, param_index = helper.slice_parameters(self._parameters, param_index, self._additional_dim)
+        pre_scale, param_index = helper.slice_parameters(self._parameters, param_index, self._additional_dim)
+        if self._manifold_nonlinearity == tf.nn.tanh or self._manifold_nonlinearity == tf.nn.sigmoid or self._manifold_nonlinearity == tf.nn.relu :
+            NonlinK_param = None
+        elif manifold_nonlinearity == helper.parametric_relu:
+            NonlinK_param, param_index = helper.slice_parameters(self._parameters, param_index, 2*self._additional_dim)
+        elif manifold_nonlinearity == helper.polinomial_nonlin:
+            NonlinK_param, param_index = helper.slice_parameters(self._parameters, param_index, (self._polinomial_degree+1)*self._additional_dim)   
+        post_bias, param_index = helper.slice_parameters(self._parameters, param_index, self._additional_dim)
+        post_scale, param_index = helper.slice_parameters(self._parameters, param_index, self._additional_dim)
+        
+        RN_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._input_dim, self._k_start))
+        RG_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._input_dim+self._additional_dim, self._k_start))
+        
+        if self._additional_dim == 1:             
+            C = C_param[:,np.newaxis,:]
+            RK_1 = RK_1_param[:,np.newaxis,:]
+            RK_2 = RK_2_param[:,np.newaxis,:]
+        else: 
+            C = self.get_rotation_tensor(self._input_dim, C_param)[:,-self._additional_dim:,:]
+            RK_1 = self.get_rotation_tensor(self._additional_dim, RK_1_param)
+            RK_2 = self.get_rotation_tensor(self._additional_dim, RK_2_param)
+        
+        RN = self.get_rotation_tensor(self._input_dim, RN_param)
+        RG = self.get_rotation_tensor(self._input_dim+self._additional_dim, RG_param)
+
+        if self._manifold_nonlinearity == tf.nn.tanh or self._manifold_nonlinearity == tf.nn.sigmoid or self._manifold_nonlinearity == tf.nn.relu :
+            NonlinK_param = None
+        elif manifold_nonlinearity == helper.parametric_relu:
+            NonlinK_param, param_index = helper.slice_parameters(self._parameters, param_index, 2*self._additional_dim)
+        elif manifold_nonlinearity == helper.polinomial_nonlin:
+            NonlinK_param, param_index = helper.slice_parameters(self._parameters, param_index, (self._polinomial_degree+1)*self._additional_dim)
+        
+        # C*z
+        if C.get_shape()[0].value == 1: #one set of parameters
+            Cz = tf.matmul(z0, C[0, :, :], transpose_a=False, transpose_b=True)
+        else: # batched parameters
+            Cz = tf.matmul(C, z0[:,:,np.newaxis])[:, :, 0]
+
+        # RK1*C*z
+        if RK_1.get_shape()[0].value == 1: #one set of parameters
+            RK1Cz = tf.matmul(Cz, RK_1[0, :, :], transpose_a=False, transpose_b=True)
+        else: # batched parameters
+            RK1Cz = tf.matmul(RK_1, Cz[:,:,np.newaxis])[:, :, 0]
+
+        pre_nonlinK = pre_bias+pre_scale*RK1Cz
+        nonlinK, nonlinK_J = self.apply_manifold_nonlin(pre_nonlinK, NonlinK_param)
+        post_nonlinK = post_bias+post_scale*nonlinK
+
+        # RK2*nonlin(a(C*z)+b)
+        if RK_2.get_shape()[0].value == 1: #one set of parameters
+            y_k = tf.matmul(post_nonlinK, RK_2[0, :, :], transpose_a=False, transpose_b=True)
+        else: # batched parameters
+            y_k = tf.matmul(RK_2, post_nonlinK[:,:,np.newaxis])[:, :, 0]
+        
+        # RK2*nonlin(a(C*z)+b)
+        if RN.get_shape()[0].value == 1: #one set of parameters
+            y_n = tf.matmul(z0, RN[0, :, :], transpose_a=False, transpose_b=True)
+        else: # batched parameters
+            y_n = tf.matmul(RN, z0[:,:,np.newaxis])[:, :, 0]
+        y = tf.concat([y_n, y_k], axis=-1)
+        
+        # full rotation
+        if RK_2.get_shape()[0].value == 1: #one set of parameters
+            z = tf.matmul(y, RG[0, :, :], transpose_a=False, transpose_b=True)
+        else: # batched parameters
+            z = tf.matmul(RG, y[:,:,np.newaxis])[:, :, 0]
+
+        log_volume_increase_ratio = tf.reduce_sum(0.5*tf.log(1e-7+(nonlinK_J*pre_scale*post_scale)**2+1), axis=[1], keep_dims=True)
+        log_pdf_z = log_pdf_z0 - log_volume_increase_ratio
+        return z, log_pdf_z
+
+class HouseholdRotationFlow():
+    """
+    Household Rotation Flow class.
+    Args:
+      parameters: parameters of transformation all appended.
+      input_dim : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+    # k_start=512-100
+    k_start=512-10
+
+    def __init__(self, input_dim, parameters, init_reflection=1, name='household_rotation_transform'):   
+        self._parameter_scale = 1.
+        self._parameters = self._parameter_scale*parameters
+        self._input_dim = input_dim
+        self._k_start = HouseholdRotationFlow.k_start
+        self._init_reflection = init_reflection
+        assert (self._input_dim > 1)
+
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim
+
+    @staticmethod
+    def required_num_parameters(input_dim, k_start=None): 
+        if k_start is None: k_start = HouseholdRotationFlow.k_start 
+        return sum(list(range(max(2, k_start), input_dim+1)))
+
+    def transform(self, z0, log_pdf_z0):
+        verify_size(z0, log_pdf_z0)
+        self._parameters.get_shape().assert_is_compatible_with([None, HouseholdRotationFlow.required_num_parameters(self._input_dim, self._k_start)])
+
+        batched_rot_matrix = helper.householder_rotations_tf(n=self.input_dim, batch=tf.shape(self._parameters)[0], k_start=self._k_start, init_reflection=self._init_reflection, params=self._parameters)        
+        if batched_rot_matrix.get_shape()[0].value == 1: #one set of parameters
+            z = tf.matmul(z0, batched_rot_matrix[0, :, :], transpose_a=False, transpose_b=True)
+        else: # batched parameters
+            z = tf.matmul(batched_rot_matrix, z0[:,:,np.newaxis])[:, :, 0]
+
+        log_pdf_z = log_pdf_z0 
+        return z, log_pdf_z
+
+    def inverse_transform(self, z, log_pdf_z):
+        verify_size(z, log_pdf_z)
+        self._parameters.get_shape().assert_is_compatible_with([None, HouseholdRotationFlow.required_num_parameters(self._input_dim, self._k_start)])
+
+        batched_rot_matrix = helper.householder_rotations_tf(n=self.input_dim, batch=tf.shape(self._parameters)[0], k_start=self._k_start, init_reflection=self._init_reflection, params=self._parameters)        
+        batched_rot_inv_matrix = tf.transpose(batched_rot_matrix, [0, 2, 1])
+        if batched_rot_matrix.get_shape()[0].value == 1: #one set of parameters
+            z0 = tf.matmul(z, batched_rot_inv_matrix[0, :, :], transpose_a=False, transpose_b=True)
+        else: # batched parameters
+            print('Parameters depend on unknown z0. Therefore, there is no analytical inverse.')
+            quit()
+
+        log_pdf_z0 = log_pdf_z 
+        return z0, log_pdf_z0
+
+class LinearIARFlow():
+    """
+    Linear Inverse Autoregressive Flow class. (not really, why does it not change the density? It is a subset version of it namely volume preserving skewing.)
+
+    This is only to be used with a non-centered diagonal-covariance gaussian to archive the full
+    flexibility since it does the minimal, which is volume preserving skewing (and no scaling or translation).
+    Args:
+      parameters: parameters of transformation all appended.
+      input_dim : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+    def __init__(self, input_dim, parameters, name='linearIAR_transform'):   
+        self._parameter_scale = 1.
+        self._parameters = self._parameter_scale*parameters
+        self._input_dim = input_dim
+        self._mask_mat_ones = helper.triangular_ones([self._input_dim, self._input_dim], trilmode=-1)
+        self._diag_mat_ones = helper.block_diagonal_ones([self._input_dim, self._input_dim], [1, 1])
+        assert (self._input_dim > 1)
+
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim
+
+    @staticmethod
+    def required_num_parameters(input_dim):
+        return input_dim*input_dim
+
+    def transform(self, z0, log_pdf_z0):
+        verify_size(z0, log_pdf_z0)
+        self._parameters.get_shape().assert_is_compatible_with([None, LinearIARFlow.required_num_parameters(self._input_dim)])
+        param_matrix = tf.reshape(self._parameters, [-1, self._input_dim, self._input_dim])
+        mask_matrix = tf.reshape(self._mask_mat_ones, [1, self._input_dim, self._input_dim]) 
+        diag_matrix = tf.reshape(self._diag_mat_ones, [1, self._input_dim, self._input_dim]) 
+        cho = mask_matrix*param_matrix+diag_matrix
+        if cho.get_shape()[0].value == 1: #one set of parameters
+            z = tf.matmul(z0, cho[0, :, :], transpose_a=False, transpose_b=True)
+        else: # batched parameters
+            z = tf.matmul(cho, z0[:,:,np.newaxis])[:, :, 0]
+        log_pdf_z = log_pdf_z0 
+        return z, log_pdf_z
+
+class NonLinearIARFlow():
+    """
+    Non-Linear Inverse Autoregressive Flow class.
+
+    Args:
+      parameters: parameters of transformation all appended.
+      input_dim : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+    layer_expansions=[2,]
+
+    def __init__(self, input_dim, parameters, mode='VolumePreserving', name='nonlinearIAR_transform'):   #real
+        self._parameter_scale = 1
+        self._parameters = self._parameter_scale*parameters
+        self._input_dim = input_dim
+        self._layer_expansions = NonLinearIARFlow.layer_expansions
+        self._nonlinearity = helper.LeakyReLU
+        # self._nonlinearity = tf.nn.tanh
+        self._mode = mode
+        assert (self._input_dim > 1)
+
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim
+
+    @staticmethod
+    def required_num_parameters(input_dim, layer_expansions=None):
+        if layer_expansions is None: layer_expansions = NonLinearIARFlow.layer_expansions
+        n_parameters = 0
+        concat_layer_expansions = [1, *layer_expansions, 2]
+        for l in range(len(concat_layer_expansions)-1):
+            n_parameters += concat_layer_expansions[l]*(input_dim-1)*concat_layer_expansions[l+1]*(input_dim-1) # matrix
+            n_parameters += concat_layer_expansions[l+1]*(input_dim-1) # bias
+        n_parameters += 2
+        return n_parameters
+    
+    def MADE(self, input_x, layerwise_parameters, masks, nonlinearity):
+        input_dim = input_x.get_shape().as_list()[1]
+        curr_input = input_x
+        for l in range(len(layerwise_parameters)):
+            W, bias = layerwise_parameters[l]
+            mask = masks[l]
+            W_masked = W*mask
+            if W.get_shape()[0].value == 1: #one set of parameters
+                affine = tf.matmul(curr_input, W_masked[0, :, :], transpose_a=False, transpose_b=True)
+            else: # batched parameters
+                affine = tf.matmul(W_masked, curr_input[:,:,np.newaxis])[:, :, 0]
+            if l < len(layerwise_parameters)-1: curr_input = nonlinearity(affine+bias)
+            else: curr_input = (affine+bias)
+
+        pre_mu = tf.slice(curr_input, [0, 0], [-1, input_dim])
+        pre_scale = tf.slice(curr_input, [0, input_dim], [-1, input_dim])
+        return pre_mu, pre_scale
+
+    def MADE_single(self, input_x, layerwise_parameters, masks, nonlinearity):
+        original_input_dim = layerwise_parameters[0][0].get_shape().as_list()[-1]
+        input_dim = input_x.get_shape().as_list()[1]
+        curr_input = input_x
+
+        for l in range(len(layerwise_parameters)):
+            W, bias = layerwise_parameters[l]
+            mask = masks[l]
+            curr_input_dim = curr_input.get_shape().as_list()[1]
+            if l < len(layerwise_parameters)-1: 
+                W = tf.slice(W, [0, 0, 0], [-1, input_dim*self._layer_expansions[l], curr_input_dim])
+                mask = tf.slice(mask, [0, 0, 0], [-1, input_dim*self._layer_expansions[l], curr_input_dim])
+                bias = tf.slice(bias, [0, 0], [-1, input_dim*self._layer_expansions[l]])
+            else: 
+                W = tf.concat([tf.slice(W, [0, input_dim-1, 0], [-1, 1, curr_input_dim]), tf.slice(W, [0, original_input_dim+input_dim-1, 0], [-1, 1, curr_input_dim])] , axis=1)
+                mask = tf.concat([tf.slice(mask, [0, input_dim-1, 0], [-1, 1, curr_input_dim]), tf.slice(mask, [0, original_input_dim+input_dim-1, 0], [-1, 1, curr_input_dim])] , axis=1)
+                bias = tf.concat([tf.slice(bias, [0, input_dim-1], [-1, 1]), tf.slice(bias, [0, original_input_dim+input_dim-1], [-1, 1])] , axis=1)
+                                
+            W_masked = W*mask
+            if W.get_shape()[0].value == 1: #one set of parameters
+                affine = tf.matmul(curr_input, W_masked[0, :, :], transpose_a=False, transpose_b=True)
+            else: # batched parameters
+                affine = tf.matmul(W_masked, curr_input[:,:,np.newaxis])[:, :, 0]
+            if l < len(layerwise_parameters)-1: curr_input = nonlinearity(affine+bias)
+            else: curr_input = (affine+bias)
+        
+        pre_mu = tf.slice(curr_input, [0, 0], [-1, 1])
+        pre_scale = tf.slice(curr_input, [0, 1], [-1, 1])                
+        return pre_mu, pre_scale
+
+    def transform(self, z0, log_pdf_z0):
+        verify_size(z0, log_pdf_z0)
+        self._parameters.get_shape().assert_is_compatible_with([None, NonLinearIARFlow.required_num_parameters(self._input_dim, self._layer_expansions)])
+        mask_tensors = helper.tf_get_mask_list_for_MADE(self._input_dim-1, self._layer_expansions, add_mu_log_sigma_layer=True)
+        
+        pre_mu_for_1 = self._parameters[:, 0, np.newaxis]
+        pre_scale_for_1 = self._parameters[:, 1, np.newaxis]
+        start_ind = 2
+        concat_layer_expansions = [1, *self._layer_expansions, 2]
+        layerwise_parameters = []
+
+        for l in range(len(concat_layer_expansions)-1):
+            W_num_param = concat_layer_expansions[l]*(self._input_dim-1)*concat_layer_expansions[l+1]*(self._input_dim-1) # matrix
+            B_num_param = concat_layer_expansions[l+1]*(self._input_dim-1) # bias
+            W_l_flat = tf.slice(self._parameters, [0, start_ind], [-1, W_num_param])
+            B_l_flat = tf.slice(self._parameters, [0, start_ind+W_num_param], [-1, B_num_param])
+            W_l = tf.reshape(W_l_flat, [-1, concat_layer_expansions[l+1]*(self._input_dim-1), concat_layer_expansions[l]*(self._input_dim-1)])              
+            B_l = tf.reshape(B_l_flat, [-1, concat_layer_expansions[l+1]*(self._input_dim-1)])
+            layerwise_parameters.append((W_l, B_l))  
+            start_ind += (W_num_param+B_num_param)
+
+        pre_mu_for_2toD, pre_scale_for_2toD = self.MADE(z0[:, :-1], layerwise_parameters, mask_tensors, self._nonlinearity)
+        if pre_mu_for_1.get_shape().as_list()[0] == 1:            
+            pre_mu = tf.concat([tf.tile(pre_mu_for_1, [tf.shape(z0)[0],1]), pre_mu_for_2toD], axis=1)
+            pre_scale = tf.concat([tf.tile(pre_scale_for_1, [tf.shape(z0)[0], 1]), pre_scale_for_2toD], axis=1)
+        else:    
+            pre_mu = tf.concat([pre_mu_for_1, pre_mu_for_2toD], axis=1)
+            pre_scale = tf.concat([pre_scale_for_1, pre_scale_for_2toD], axis=1)
+
+        if self._mode == 'RNN':
+            mu = pre_mu
+            scale = tf.nn.sigmoid(pre_scale)
+            z = scale*z0+(1-scale)*mu
+            log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
+        elif self._mode == 'ScaleShift':
+            mu = pre_mu
+            scale = (10./6.)*tf.nn.softplus(pre_scale)
+            z = mu+scale*z0
+            log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
+        elif self._mode == 'ExponentialScaleShift':
+            mu = pre_mu
+            scale = tf.exp(pre_scale)
+            z = mu+scale*z0
+            log_abs_det_jacobian = tf.reduce_sum(pre_scale, axis=[1], keep_dims=True)
+        elif self._mode == 'BoundedScaleShift':
+            mu = tf.nn.tanh(pre_mu)*5
+            scale = 0.1+tf.nn.sigmoid(pre_scale)*5
+            z_change = mu+scale*z0_change
+            log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
+        elif self._mode == 'VolumePreserving':
+            mu = pre_mu
+            scale = tf.ones(shape=tf.shape(pre_scale))
+            z = mu+z0
+            log_abs_det_jacobian = 0
+        elif self._mode == 'BoundedVolumePreserving':
+            mu = tf.nn.tanh(pre_mu)*5
+            scale = tf.ones(shape=tf.shape(pre_scale))
+            z = mu+z0
+            log_abs_det_jacobian = 0
+        else: quit()
+
+        log_pdf_z = log_pdf_z0 - log_abs_det_jacobian
+        return z, log_pdf_z
+    
+    def inverse_transform(self, z, log_pdf_z):
+        verify_size(z, log_pdf_z)
+        self._parameters.get_shape().assert_is_compatible_with([None, NonLinearIARFlow.required_num_parameters(self._input_dim, self._layer_expansions)])
+        mask_tensors = helper.tf_get_mask_list_for_MADE(self._input_dim-1, self._layer_expansions, add_mu_log_sigma_layer=True)
+
+        pre_mu_for_1 = self._parameters[:, 0, np.newaxis]
+        pre_scale_for_1 = self._parameters[:, 1, np.newaxis]
+        start_ind = 2
+        concat_layer_expansions = [1, *self._layer_expansions, 2]
+        layerwise_parameters = []
+        for l in range(len(concat_layer_expansions)-1):
+            W_num_param = concat_layer_expansions[l]*(self._input_dim-1)*concat_layer_expansions[l+1]*(self._input_dim-1) # matrix
+            B_num_param = concat_layer_expansions[l+1]*(self._input_dim-1) # bias
+            W_l_flat = tf.slice(self._parameters, [0, start_ind], [-1, W_num_param])
+            B_l_flat = tf.slice(self._parameters, [0, start_ind+W_num_param], [-1, B_num_param])
+            W_l = tf.reshape(W_l_flat, [-1, concat_layer_expansions[l+1]*(self._input_dim-1), concat_layer_expansions[l]*(self._input_dim-1)])              
+            B_l = tf.reshape(B_l_flat, [-1, concat_layer_expansions[l+1]*(self._input_dim-1)])
+            layerwise_parameters.append((W_l, B_l))  
+            start_ind += (W_num_param+B_num_param)
+
+        pre_mu_list = []
+        pre_scale_list = []
+        if pre_mu_for_1.get_shape().as_list()[0] == 1:
+            pre_mu_list.append(tf.tile(pre_mu_for_1, [tf.shape(z)[0], 1]))
+            pre_scale_list.append(tf.tile(pre_scale_for_1, [tf.shape(z)[0], 1]))
+        else:    
+            pre_mu_list.append(pre_mu_for_1)
+            pre_scale_list.append(pre_scale_for_1)
+        
+        mu_list = []
+        scale_list = []
+        z0_list = []
+        for i in range(self._input_dim):
+            if i % 20 == 0: print('Inverse transform progress: '+ str(i) + '/' + str(self._input_dim))                
+            if i == 0:
+                pre_mu_i, pre_scale_i = pre_mu_list[i], pre_scale_list[i]
+            else:
+                pre_mu_i, pre_scale_i = self.MADE_single(tf.concat(z0_list[:i], axis=1), layerwise_parameters, mask_tensors, self._nonlinearity)
+                pre_mu_list.append(pre_mu_i)
+                pre_scale_list.append(pre_scale_i)
+
+            if self._mode == 'RNN':
+                mu_i = pre_mu_i
+                scale_i = tf.nn.sigmoid(pre_scale_i)
+                z0_i = (z[:, i, np.newaxis]-(1-scale_i)*mu_i)/(1e-7+scale_i)
+            elif self._mode == 'ScaleShift':
+                mu_i = pre_mu_i
+                scale_i = (10./6.)*tf.nn.softplus(pre_scale_i)
+                z0_i = (z[:, i, np.newaxis]-mu_i)/(1e-7+scale_i)
+            elif self._mode == 'ExponentialScaleShift':
+                mu_i = pre_mu_i
+                scale_i = tf.exp(pre_scale_i)
+                z0_i = (z[:, i, np.newaxis]-mu_i)/(1e-7+scale_i)
+            elif self._mode == 'BoundedScaleShift':
+                mu_i = tf.nn.tanh(pre_mu_i)*5
+                scale_i = 0.1+tf.nn.sigmoid(pre_scale_i)*5
+                z0_i = (z[:, i, np.newaxis]-mu_i)/(1e-7+scale_i)
+            elif self._mode == 'VolumePreserving':
+                mu_i = pre_mu_i
+                scale_i = tf.ones(shape=tf.shape(pre_scale_i))
+                z0_i = (z[:, i, np.newaxis]-mu_i)
+            elif self._mode == 'BoundedVolumePreserving':
+                mu_i = tf.nn.tanh(pre_mu_i)*5
+                scale_i = tf.ones(shape=tf.shape(pre_scale_i))
+                z0_i = (z[:, i, np.newaxis]-mu_i)
+            else: quit()
+            
+            mu_list.append(mu_i)
+            scale_list.append(scale_i)
+            z0_list.append(z0_i)  
+
+        if self._mode == 'RNN': log_abs_det_jacobian = -tf.reduce_sum(tf.log(1e-7+tf.concat(scale_list, axis=1)), axis=[1], keep_dims=True)
+        elif self._mode == 'ScaleShift': log_abs_det_jacobian = -tf.reduce_sum(tf.log(1e-7+tf.concat(scale_list, axis=1)), axis=[1], keep_dims=True)
+        elif self._mode == 'ExponentialScaleShift': log_abs_det_jacobian = -tf.reduce_sum(tf.concat(pre_scale_list, axis=1), axis=[1], keep_dims=True)
+        elif self._mode == 'BoundedScaleShift': log_abs_det_jacobian = -tf.reduce_sum(tf.log(1e-7+tf.concat(scale_list, axis=1)), axis=[1], keep_dims=True)
+        elif self._mode == 'VolumePreserving': log_abs_det_jacobian = 0
+        elif self._mode == 'BoundedVolumePreserving': log_abs_det_jacobian = 0
+
+        z0 = tf.concat(z0_list, axis=1)
+        log_pdf_z0 = log_pdf_z - log_abs_det_jacobian
+        return z0, log_pdf_z0
+
+class RealNVPFlow():
+    """
+    Real NVP Flow class.
+
+    Args:
+      parameters: parameters of transformation all appended.
+      input_dim : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+    layer_expansions=[2,]
+    same_dim=None
+
+    def __init__(self, input_dim, parameters, mode='BoundedScaleShift', name='realNVP_transform'):   #real
+        self._parameter_scale = 1
+        self._parameters = self._parameter_scale*parameters
+        self._input_dim = input_dim
+        self._layer_expansions = RealNVPFlow.layer_expansions
+        self._nonlinearity = helper.LeakyReLU
+        # self._nonlinearity = tf.nn.tanh
+        self._mode = mode
+        if RealNVPFlow.same_dim is None: self._same_dim = int(float(self._input_dim)/2.)
+        else: self._same_dim = RealNVPFlow.same_dim
+        self._change_dim = self._input_dim - self._same_dim
+        assert (self._input_dim > 1)
+
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim
+
+    @staticmethod
+    def required_num_parameters(input_dim, layer_expansions=None):
+        if RealNVPFlow.same_dim is None: same_dim = int(float(input_dim)/2.)
+        else: same_dim = RealNVPFlow.same_dim
+        change_dim = input_dim-same_dim
+
+        if layer_expansions is None: layer_expansions = RealNVPFlow.layer_expansions
+        n_parameters = 0
+        concat_layer_expansions = [1, *layer_expansions, 2]
+        for l in range(len(concat_layer_expansions)-1):
+            if l == 0: n_parameters += concat_layer_expansions[l]*(same_dim)*concat_layer_expansions[l+1]*(change_dim) # matrix
+            else: n_parameters += concat_layer_expansions[l]*(change_dim)*concat_layer_expansions[l+1]*(change_dim) # matrix
+            n_parameters += concat_layer_expansions[l+1]*(change_dim) # bias
+        return n_parameters
+
+    def transformFunction(self, input_x, layerwise_parameters, nonlinearity):
+        input_dim = input_x.get_shape().as_list()[1]
+        curr_input = input_x
+        for l in range(len(layerwise_parameters)):
+            W, bias = layerwise_parameters[l]
+            if W.get_shape()[0].value == 1: #one set of parameters
+                affine = tf.matmul(curr_input, W[0, :, :], transpose_a=False, transpose_b=True)
+            else: # batched parameters
+                affine = tf.matmul(W, curr_input[:,:,np.newaxis])[:, :, 0]
+            if l < len(layerwise_parameters)-1: curr_input = nonlinearity(affine+bias)
+            else: curr_input = (affine+bias)
+
+        pre_mu = tf.slice(curr_input, [0, 0], [-1, input_dim])
+        pre_scale = tf.slice(curr_input, [0, input_dim], [-1, input_dim])
+        return pre_mu, pre_scale
+
+    def transform(self, z0, log_pdf_z0):
+        verify_size(z0, log_pdf_z0)
+        self._parameters.get_shape().assert_is_compatible_with([None, RealNVPFlow.required_num_parameters(self._input_dim, self._layer_expansions)])
+        
+        start_ind = 0
+        concat_layer_expansions = [1, *self._layer_expansions, 2]
+        layerwise_parameters = []
+
+        for l in range(len(concat_layer_expansions)-1):
+            if l == 0: W_num_param = concat_layer_expansions[l]*(self._same_dim)*concat_layer_expansions[l+1]*(self._change_dim) # matrix
+            else: W_num_param = concat_layer_expansions[l]*(self._change_dim)*concat_layer_expansions[l+1]*(self._change_dim) # matrix
+            B_num_param = concat_layer_expansions[l+1]*(self._change_dim) # bias
+            W_l_flat = tf.slice(self._parameters, [0, start_ind], [-1, W_num_param])
+            B_l_flat = tf.slice(self._parameters, [0, start_ind+W_num_param], [-1, B_num_param])
+            if l == 0: W_l = tf.reshape(W_l_flat, [-1, concat_layer_expansions[l+1]*(self._change_dim), concat_layer_expansions[l]*(self._same_dim)])              
+            else: W_l = tf.reshape(W_l_flat, [-1, concat_layer_expansions[l+1]*(self._change_dim), concat_layer_expansions[l]*(self._change_dim)])              
+            B_l = tf.reshape(B_l_flat, [-1, concat_layer_expansions[l+1]*(self._change_dim)])
+            layerwise_parameters.append((W_l, B_l))  
+            start_ind += (W_num_param+B_num_param)
+
+        z0_same = z0[:, :self._same_dim]
+        z0_change = z0[:, self._same_dim:]
+        pre_mu, pre_scale = self.transformFunction(z0_same, layerwise_parameters, self._nonlinearity)
+
+        if self._mode == 'RNN':
+            mu = pre_mu
+            scale = tf.nn.sigmoid(pre_scale)
+            z_change = scale*z0_change+(1-scale)*mu
+            log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
+        elif self._mode == 'ScaleShift':
+            mu = pre_mu
+            scale = (10./6.)*tf.nn.softplus(pre_scale)
+            z_change = mu+scale*z0_change
+            log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
+        elif self._mode == 'ExponentialScaleShift':
+            mu = pre_mu
+            scale = tf.exp(pre_scale)
+            z_change = mu+scale*z0_change
+            log_abs_det_jacobian = tf.reduce_sum(pre_scale, axis=[1], keep_dims=True)
+        elif self._mode == 'BoundedScaleShift':
+            mu = tf.nn.tanh(pre_mu)*5
+            scale = 0.1+tf.nn.sigmoid(pre_scale)*5
+            z_change = mu+scale*z0_change
+            log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
+        elif self._mode == 'VolumePreserving':
+            mu = pre_mu
+            scale = tf.ones(shape=tf.shape(pre_scale))
+            z_change = mu+z0_change
+            log_abs_det_jacobian = 0
+        elif self._mode == 'BoundedVolumePreserving':
+            mu = tf.nn.tanh(pre_mu)*5
+            scale = tf.ones(shape=tf.shape(pre_scale))
+            z_change = mu+z0_change
+            log_abs_det_jacobian = 0
+        else: quit()
+
+        z = tf.concat([z0_same, z_change], axis=1)
+        log_pdf_z = log_pdf_z0 - log_abs_det_jacobian
+        return z, log_pdf_z
+    
+    def inverse_transform(self, z, log_pdf_z):
+        verify_size(z, log_pdf_z)
+        self._parameters.get_shape().assert_is_compatible_with([None, RealNVPFlow.required_num_parameters(self._input_dim, self._layer_expansions)])
+        
+        start_ind = 0
+        concat_layer_expansions = [1, *self._layer_expansions, 2]
+        layerwise_parameters = []
+
+        for l in range(len(concat_layer_expansions)-1):
+            if l == 0: W_num_param = concat_layer_expansions[l]*(self._same_dim)*concat_layer_expansions[l+1]*(self._change_dim) # matrix
+            else: W_num_param = concat_layer_expansions[l]*(self._change_dim)*concat_layer_expansions[l+1]*(self._change_dim) # matrix
+            B_num_param = concat_layer_expansions[l+1]*(self._change_dim) # bias
+            W_l_flat = tf.slice(self._parameters, [0, start_ind], [-1, W_num_param])
+            B_l_flat = tf.slice(self._parameters, [0, start_ind+W_num_param], [-1, B_num_param])
+            if l == 0: W_l = tf.reshape(W_l_flat, [-1, concat_layer_expansions[l+1]*(self._change_dim), concat_layer_expansions[l]*(self._same_dim)])              
+            else: W_l = tf.reshape(W_l_flat, [-1, concat_layer_expansions[l+1]*(self._change_dim), concat_layer_expansions[l]*(self._change_dim)])              
+            B_l = tf.reshape(B_l_flat, [-1, concat_layer_expansions[l+1]*(self._change_dim)])
+            layerwise_parameters.append((W_l, B_l))  
+            start_ind += (W_num_param+B_num_param)
+
+        z_same = z[:, :self._same_dim]
+        z_change = z[:, self._same_dim:]
+        pre_mu, pre_scale = self.transformFunction(z_same, layerwise_parameters, self._nonlinearity)
+
+        if self._mode == 'RNN':
+            mu = pre_mu
+            scale = tf.nn.sigmoid(pre_scale)
+            z0_change = (z_change-(1-scale)*mu)/(1e-7+scale)
+            log_abs_det_jacobian = -tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
+        elif self._mode == 'ScaleShift':
+            mu = pre_mu
+            scale = (10./6.)*tf.nn.softplus(pre_scale)
+            z0_change = (z_change-mu)/(1e-7+scale)
+            log_abs_det_jacobian = -tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
+        elif self._mode == 'ExponentialScaleShift':
+            mu = pre_mu
+            scale = tf.exp(pre_scale)
+            z0_change = (z_change-mu)/(1e-7+scale)
+            log_abs_det_jacobian = -tf.reduce_sum(pre_scale, axis=[1], keep_dims=True)
+        elif self._mode == 'BoundedScaleShift':
+            mu = tf.nn.tanh(pre_mu)*5
+            scale =  0.1+tf.nn.sigmoid(pre_scale)*5 
+            z0_change = (z_change-mu)/(1e-7+scale)
+            log_abs_det_jacobian = -tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
+        elif self._mode == 'VolumePreserving':
+            mu = pre_mu
+            scale = tf.ones(shape=tf.shape(pre_scale))
+            z0_change = (z_change-mu)
+            log_abs_det_jacobian = 0
+        elif self._mode == 'BoundedVolumePreserving':
+            mu = tf.nn.tanh(pre_mu)*5
+            scale = tf.ones(shape=tf.shape(pre_scale))
+            z0_change = (z_change-mu)
+            log_abs_det_jacobian = 0
+        else: quit()
+
+        z0 = tf.concat([z_same, z0_change], axis=1)
+        log_pdf_z0 = log_pdf_z - log_abs_det_jacobian
+        return z0, log_pdf_z0
+
+class SerialFlow():
+    def __init__(self, transforms, name='SerialFlow_transform'): 
+        self._transforms = transforms
+    
+    def transform(self, z0, log_pdf_z0):
+        verify_size(z0, log_pdf_z0)
+        curr_z, curr_log_pdf_z = z0, log_pdf_z0
+        for i in range(len(self._transforms)):
+            curr_z, curr_log_pdf_z = self._transforms[i].transform(curr_z, curr_log_pdf_z)
+        return curr_z, curr_log_pdf_z
+    
+    def inverse_transform(self, z, log_pdf_z):
+        verify_size(z, log_pdf_z)
+        curr_z0, curr_log_pdf_z0 = z, log_pdf_z
+        for i in range(len(self._transforms)):
+            curr_z0, curr_log_pdf_z0 = self._transforms[-i-1].inverse_transform(curr_z0, curr_log_pdf_z0)
+        return curr_z0, curr_log_pdf_z0
+
+def verify_size(z0, log_pdf_z0):
+  z0.get_shape().assert_is_compatible_with([None, None])
+  if log_pdf_z0 is not None:
+    log_pdf_z0.get_shape().assert_is_compatible_with([None, 1])
+
+def _jacobian(y, x):
+    batch_size = y.get_shape()[0].value
+    flat_y = tf.reshape(y, [batch_size, -1])
+    num_y = flat_y.get_shape()[1].value
+    one_hot = np.zeros((batch_size, num_y))
+    jacobian_rows = []
+    for i in range(num_y):
+        one_hot.fill(0)
+        one_hot[:, i] = 1
+        grad_flat_y = tf.constant(one_hot, dtype=y.dtype)
+
+        grad_x, = tf.gradients(flat_y, [x], grad_flat_y, gate_gradients=True)
+        assert grad_x is not None, "Variable `y` is not computed from `x`."
+
+        row = tf.reshape(grad_x, [batch_size, 1, -1])
+        jacobian_rows.append(row)
+
+    return tf.concat(jacobian_rows, 1)
+
+def _log_determinant(matrices):
+    _, logdet = np.linalg.slogdet(matrices)
+    return logdet.reshape(len(matrices), 1)
+
+def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
+    z1, log_pdf_z1 = flow.transform(z0, log_pdf_z0)
+    jacobian = _jacobian(z1, z0)
+    
+    init = tf.initialize_all_variables()
+    sess = tf.InteractiveSession()  
+    sess.run(init)
+    out_jacobian, out_log_pdf_z0, out_log_pdf_z1 = sess.run([jacobian, log_pdf_z0, log_pdf_z1])
+
+    # The logdet will be ln|det(dz1/dz0)|.
+    logdet_expected = _log_determinant(out_jacobian)
+    logdet = out_log_pdf_z0 - out_log_pdf_z1
+
+    # if np.allclose(logdet_expected, logdet, rtol=rtol):
+    if np.all(np.abs(logdet_expected-logdet)<rtol):
+        print('Transform update correct.')
+        print('logdet_expected: ', logdet_expected)
+        print('logdet: ', logdet)
+    else: 
+        print('Transform update incorrect!!!!!!!!!!!!!!!!')
+        print('logdet_expected: ', logdet_expected)
+        print('logdet: ', logdet)
+        # np.abs(logdet_expected-logdet) 1e-08+rtol*np.abs(logdet)
+
+# batch_size = 3
+# n_latent = 512
+# name = 'transform'
+# transform_to_check = SpecificOrderDimensionFlow
+# n_parameter = transform_to_check.required_num_parameters(n_latent)
+
+# parameters = None
+# if n_parameter > 0:
+#     parameters = 10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
+
+# z0 = tf.random_normal((batch_size, n_latent), 0, 1, dtype=tf.float32)
+# log_pdf_z0 = tf.zeros(shape=(batch_size, 1), dtype=tf.float32)
+# transform1 = transform_to_check(input_dim=n_latent, parameters=parameters)
+# z, log_pdf_z = transform1.transform(z0, log_pdf_z0)
+# z0_inv, log_pdf_z0_inv = transform1.inverse_transform(z, log_pdf_z)
+
+# init = tf.initialize_all_variables()
+# sess = tf.InteractiveSession()  
+# sess.run(init)
+# z0_np, log_pdf_z0_np, z_np, log_pdf_z_np, z0_inv_np, log_pdf_z0_inv_np = sess.run([z0, log_pdf_z0, z, log_pdf_z, z0_inv, log_pdf_z0_inv])
+# print(np.max(np.abs(z0_np-z0_inv_np)))
+# print(np.max(np.abs(log_pdf_z0_np-log_pdf_z0_inv_np)))
+# pdb.set_trace()
+
+
+# n_tests = 1
+# batch_size = 5
+# n_latent = 50
+# name = 'transform'
+# for transform_to_check in [\
+#                            # PlanarFlow, \
+#                            # RadialFlow, \
+#                            SpecificOrderDimensionFlow, \
+#                            # InverseOrderDimensionFlow, \
+#                            # PermuteDimensionFlow, \
+#                            # ScaleDimensionFlow, \
+#                            # OpenIntervalDimensionFlow, \
+#                            # InverseOpenIntervalDimensionFlow, \
+#                            # HouseholdRotationFlow, \
+#                            # LinearIARFlow, \
+#                            # NonLinearIARFlow, \
+#                            # RealNVPFlow, \
+#                            ]:
+#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+#     print('\n\n\n')
+#     print('            '+str(transform_to_check)+'               ')
+#     print('\n\n\n')    
+#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+
+#     n_parameter = transform_to_check.required_num_parameters(n_latent)
+
+#     for parameter_scale in [1, 10]:
+#         parameters = None
+#         if n_parameter > 0: parameters = parameter_scale*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
+#         transform_object =  transform_to_check(input_dim=n_latent, parameters=parameters)
+
+#         # z0 = tf.random_normal((batch_size, n_latent), 0, 1, dtype=tf.float32)
+#         z0 = tf.random_uniform(shape=(batch_size, n_latent), dtype=tf.float32)
+#         log_pdf_z0 = tf.zeros(shape=(batch_size, 1), dtype=tf.float32)
+#         for repeat in range(n_tests): _check_logdet(transform_object, z0, log_pdf_z0)
+
+# pdb.set_trace()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# batch_size = 3
+# n_latent = 20
+# name = 'transform'
+# transform_to_check = HouseholdRotationFlow
+# n_parameter = transform_to_check.required_num_parameters(n_latent)
+
+# parameters = 10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
+# z0 = tf.random_normal((batch_size, n_latent), 0, 1, dtype=tf.float32)
+# log_pdf_z0 = tf.random_normal((batch_size, 1), 0, 1, dtype=tf.float32)
+
+# transform1 = transform_to_check(parameters, n_latent)
+# z, log_pdf_z = transform1.transform(z0, log_pdf_z0)
+# z0_inv, log_pdf_z0_inv = transform1.inverse_transform(z, log_pdf_z)
+
+# init = tf.initialize_all_variables()
+# sess = tf.InteractiveSession()  
+# sess.run(init)
+# parameters_np, z0_np, log_pdf_z0_np, z_np, log_pdf_z_np, z0_inv_np, log_pdf_z0_inv_np = sess.run([parameters, z0, log_pdf_z0, z, log_pdf_z, z0_inv, log_pdf_z0_inv])
+# np.mean(np.abs(parameters_np))   
+# np.max(np.abs(z0_np-z0_inv_np)) 
+# np.max(np.abs(log_pdf_z0_np-log_pdf_z0_inv_np)) 
+
+# pdb.set_trace()
+
+
+# batch_size = 100
+# n_latent = 20
+# name = 'transform'
+# transform_to_check = NonLinearIARFlow
+# n_parameter = transform_to_check.required_num_parameters(n_latent)
+
+# with tf.Graph().as_default():
+#     with tf.variable_scope("Diverger", reuse=False):
+#         parameters = tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
+#         parameters_2 = tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
+#         # parameters = 10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
+#         # parameters = tf.Variable(tf.random_normal([1, n_parameter], 0, 1, dtype=tf.float32))
+
+#     z0 = tf.random_normal((batch_size, n_latent), 0, 1, dtype=tf.float32)
+#     log_pdf_z0 = tf.random_normal((batch_size, 1), 0, 1, dtype=tf.float32)
+
+#     distrib = distributions.DiagonalGaussianDistribution(params = tf.zeros(shape=(batch_size, 2*n_latent)) )
+#     sample = distrib.sample()
+
+#     nonlinearIAF_transform1 = NonLinearIARFlow(parameters, n_latent)
+#     # nonlinearIAF_transform2 = NonLinearIARFlow(parameters_2, n_latent)
+#     # z1, log_pdf_z1, forw_mu1, forw_scale1 = nonlinearIAF_transform1.transform(z0, log_pdf_z0)
+#     z, log_pdf_z, forw_mu, forw_scale = nonlinearIAF_transform1.transform(z1, log_pdf_z1)
+#     z0_inv, log_pdf_z0_inv, back_mu, back_scale = nonlinearIAF_transform1.inverse_transform(z, log_pdf_z)
+
+#     should_be_zero = z[:, :int(n_latent/2)]
+#     should_be_normal = z[:, int(n_latent/2):]
+#     should_be_zero_cost = tf.reduce_mean(tf.reduce_sum((should_be_zero**2), axis=1))
+#     cost = should_be_zero_cost
+#     # cost = tf.reduce_mean(tf.reduce_sum((z-z0)**2, axis=1))
+
+#     div_vars = [v for v in tf.trainable_variables() if 'Diverger' in v.name]
+#     optimizer = tf.train.AdamOptimizer(learning_rate=0.0001, beta1=0.9, beta2=0.999, epsilon=1e-08)
+#     div_step = optimizer.minimize(cost, var_list=div_vars)
+
+#     init = tf.global_variables_initializer()
+#     sess = tf.InteractiveSession()
+#     sess.run(init)
+
+# for i in range(0, 100000):
+#     _, parameters_np, cost_np, forw_mu_np, forw_scale_np, sample_np = sess.run([div_step, parameters, cost, forw_mu, forw_scale, sample])
+#     if i % 500 == 0:
+
+#         print("Cost: ", cost_np)
+#         # print("parameters: ", parameters_np)
+#         # print("forw_mu: ", forw_mu_np[0,:])
+#         # print("forw_scale: ", forw_scale_np[0,:])
+#         print("sample: ", sample_np[0,:])
+
+
+# batch_size = 1
+# n_latent = 20
+# name = 'transform'
+# transform_to_check = NonLinearIARFlow
+# n_parameter = transform_to_check.required_num_parameters(n_latent)
+
+# parameters = 10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
+# try: transform_object =  transform_to_check(parameters, n_latent)
+# except: transform_object =  transform_to_check(None, n_latent)
+# z0 = tf.random_normal((batch_size, n_latent), 0, 1, dtype=tf.float32)
+# log_pdf_z0 = tf.random_normal((batch_size, 1), 0, 1, dtype=tf.float32)
+
+# nonlinearIAF_transform1 = NonLinearIARFlow(parameters, n_latent)
+# z, log_pdf_z, forw_mu, forw_scale = nonlinearIAF_transform1.transform(z0, log_pdf_z0)
+# z0_inv, log_pdf_z0_inv, back_mu, back_scale = nonlinearIAF_transform1.inverse_transform(z, log_pdf_z)
+
+# init = tf.initialize_all_variables()
+# sess = tf.InteractiveSession()  
+# sess.run(init)
+# parameters_np, z0_np, log_pdf_z0_np, z_np, log_pdf_z_np, z0_inv_np, log_pdf_z0_inv_np, forw_mu_np, forw_scale_np, back_mu_np, back_scale_np = sess.run([parameters, z0, log_pdf_z0, z, log_pdf_z, z0_inv, log_pdf_z0_inv, forw_mu, forw_scale, back_mu, back_scale])
+# # np.mean(np.abs(parameters_np))   
+# # np.min(np.abs(z0_np-z0_inv_np)) 
+# # np.min(np.abs(log_pdf_z0_np-log_pdf_z0_inv_np)) 
+
+
+
+# dim = 3
+# batch = 1000 
+# k_start = 1
+
+# params = tf.random_normal((batch, sum(list(range(max(2, k_start), dim+1)))), 0, 1, dtype=tf.float32)
+# # params = tf.ones((batch, sum(list(range(max(2, k_start), dim+1)))))
+# # params = None
+
+# z0 = tf.tile(np.asarray([[1., 1., 1.]]).astype(np.float32), [batch, 1])
+# log_pdf_z0 = tf.random_normal((batch, 1), 0, 1, dtype=tf.float32)
+
+# rotation_transform1 = HouseholdRotationFlow(params, dim, k_start=k_start, init_reflection=1)
+# rotation_transform2 = HouseholdRotationFlow(params, dim, k_start=k_start, init_reflection=-1)
+# z1, log_pdf_z1 = rotation_transform1.transform(z0, log_pdf_z0)
+# z2, log_pdf_z2 = rotation_transform2.transform(z0, log_pdf_z0)
+
+# init = tf.initialize_all_variables()
+# sess = tf.InteractiveSession()  
+# sess.run(init)
+# z1_np, log_pdf_z1_np, z2_np, log_pdf_z2_np = sess.run([z1, log_pdf_z1, z2, log_pdf_z2])
+# helper.dataset_plotter([z1_np, z2_np], show_also=True)
+# pdb.set_trace()
+
+
+
+# # self.prior_map = f_p(n_latent | n_state, n_context). f_p(z_t | h<t, e(c_t))
+# class TransformMap():
+#     def __init__(self, config, name = '/TransformMap'):
+#         self.name = name
+#         self.config = config
+#         self.constructed = False
+ 
+#     def forward(self, transform_class_list, name = ''):
+#         with tf.variable_scope("TransformMap", reuse=self.constructed):
+#             input_dim = self.config['n_latent']
+#             transforms_list = []
+#             for transform_to_use in transform_class_list:  
+#                 n_parameter = transform_to_use.required_num_parameters(input_dim)
+#                 if n_parameter>0:
+#                     parameters = tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
+#                 else: parameters = None
+#                 transforms_list.append(transform_to_use(parameters, input_dim))
+#             self.constructed = True
+#             return transforms_list
+
+
+
+# class ProjectiveFlow():
+#     """
+#     Projective Flow class.
+#     Args:
+#       parameters: parameters of transformation all appended.
+#       input_dim : input dimensionality of the transformation. 
+#     Raises:
+#       ValueError: 
+#     """
+#     def __init__(self, parameters, input_dim, additional_dim=3, k_start=1, init_reflection=1, name='projective_transform'):   
+#         self._parameter_scale = 1.
+#         self._parameters = self._parameter_scale*parameters
+#         self._input_dim = input_dim
+#         self._additional_dim = additional_dim
+#         self._k_start = k_start
+#         self._init_reflection = init_reflection
+#         self._manifold_nonlinearity = tf.nn.tanh
+
+#     @property
+#     def input_dim(self):
+#         return self._input_dim
+
+#     @property
+#     def output_dim(self):
+#         return self._input_dim+self._additional_dim
+
+#     @staticmethod
+#     def required_num_parameters(input_dim, additional_dim=3, k_start=1):  
+#         if input_dim>=additional_dim: #row independent
+#             if additional_dim == 1: n_basis_param = input_dim 
+#             else: n_basis_param = sum(list(range(max(2, k_start), input_dim+1)))
+#             return additional_dim+n_basis_param
+#         else: #additional_dim > input_dim, column independent
+#             if input_dim == 1: n_basis_param = additional_dim 
+#             else: n_basis_param = sum(list(range(max(2, k_start), additional_dim+1)))
+#             return input_dim+n_basis_param
+
+#     def transform(self, z0, log_pdf_z0):
+#         verify_size(z0, log_pdf_z0)
+#         self._parameters.get_shape().assert_is_compatible_with([None, ProjectiveFlow.required_num_parameters(self._input_dim, self._additional_dim, self._k_start)])
+
+#         if self._input_dim>=self._additional_dim: 
+#             shear_param = tf.slice(self._parameters, [0, 0], [-1, self._additional_dim])
+#             basis_param = tf.slice(self._parameters, [0, self._additional_dim], [-1, -1])
+#         else: 
+#             shear_param = tf.slice(self._parameters, [0, 0], [-1, self._input_dim])
+#             basis_param = tf.slice(self._parameters, [0, self._input_dim], [-1, -1])
+
+#         shear_matrix = (10./6.)*tf.nn.softplus(shear_param)
+#         if self._input_dim>=self._additional_dim: 
+#             if self._additional_dim == 1: basis_tensor = (basis_param/tf.sqrt(tf.reduce_sum(basis_param**2, axis=[-1], keep_dims=True)))[:,np.newaxis,:]
+#             else: basis_tensor = helper.householder_rotations_tf(n=self.input_dim, batch=tf.shape(basis_param)[0], k_start=self._k_start, 
+#                                                                  init_reflection=self._init_reflection, params=basis_param)[:,-self._additional_dim:,:]
+#         else: 
+#             if self._input_dim == 1: basis_tensor = (basis_param/tf.sqrt(tf.reduce_sum(basis_param**2, axis=[-1], keep_dims=True)))[:,:,np.newaxis]
+#             else: basis_tensor = helper.householder_rotations_tf(n=self._additional_dim, batch=tf.shape(basis_param)[0], k_start=self._k_start, 
+#                                                                  init_reflection=self._init_reflection, params=basis_param)[:,:,-self.input_dim:]
+#         # Transformation
+#         if self._input_dim>=self._additional_dim: z_project_input = z0
+#         else: z_project_input = shear_matrix*z0
+
+#         if basis_tensor.get_shape()[0].value == 1: #one set of parameters
+#             z_project = tf.matmul(z_project_input, basis_tensor[0, :, :], transpose_a=False, transpose_b=True)
+#         else: # batched parameters
+#             z_project = tf.matmul(basis_tensor, z_project_input[:,:,np.newaxis])[:, :, 0]
+        
+#         if self._input_dim>=self._additional_dim: z_project_sheared = tf.concat([z0, shear_matrix*z_project], axis=1)  
+#         else: z_project_sheared = tf.concat([z0, z_project], axis=1)           
+#         z = self._manifold_nonlinearity(z_project_sheared)
+
+#         # Density Update
+#         if self._manifold_nonlinearity == tf.nn.tanh:
+#             diagonal_nonlinearity_jacobian = 1-z**2
+#         else: pdb.set_trace()
+
+#         diagonal_nonlinearity_jacobian_1 = tf.slice(diagonal_nonlinearity_jacobian, [0, 0], [-1, self._input_dim])
+#         diagonal_nonlinearity_jacobian_2 = tf.slice(diagonal_nonlinearity_jacobian, [0, self._input_dim], [-1, -1])
+#         pdb.set_trace()
+
+        
+#         log_abs_det_jacobian = 0
+#         log_pdf_z = log_pdf_z0 - log_abs_det_jacobian
+#         return z, log_pdf_z
+

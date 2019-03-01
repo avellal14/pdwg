@@ -1,0 +1,184 @@
+import sys
+
+import sys
+import inspect
+import traceback
+
+import os
+import pdb
+import time
+import shutil
+import argparse
+
+# # MNIST
+parser = argparse.ArgumentParser(description='Tensorflow Gan Models')
+parser.add_argument('--global_exp_dir', type=str, default='./experimentsZeroShot', help='Directory to put the experiments.')
+parser.add_argument('--exp_dir_postfix', type=str, default='', help='Directory to put the experiment postfix.')
+parser.add_argument('--dataset_dir', type=str, default='../dataset/dataset_both2/scripted/*.npz', help='Directory of data.')
+parser.add_argument('--restore_dir', type=str, default='/7cb1611a0a584269a019dc8342aee213/checkpoint/', help='Directory of restore experiment.')
+parser.add_argument('--restore', type=bool, default=False, help='Restore model.')
+
+parser.add_argument('--analyticKL', type=bool, default=True, help='Type of KL divergence to use.')
+parser.add_argument('--transformedQ', type=bool, default=False, help='Use posterior Transform.')
+parser.add_argument('--epochs', type=int, default=100000, help='Number of epochs to train.')
+parser.add_argument('--batch_size', type=int, default=50, help='Input batch size for training.')
+parser.add_argument('--time_steps', type=int, default=1, help='Number of timesteps')
+parser.add_argument('--hierarchy_rate', type=int, default=1, help='Number of timesteps')
+
+parser.add_argument('--optimizer_class', type=str, default='Adam', help='Optimizer type.')
+parser.add_argument('--learning_rate', type=float, default=0.0001, help='Initial learning rate.')
+parser.add_argument('--momentum', type=float, default=0.9, help='Initial momentum.')
+parser.add_argument('--weight_decay', type=float, default=0, help='Initial weight decay.')
+parser.add_argument('--initial_temp', type=float, default=1, help='Initial temperature for KL divergence.')
+parser.add_argument('--max_step_temp', type=float, default=15000, help='Starting step for temp=1.')
+
+parser.add_argument('--cuda', action='store_true', default=False, help='enables CUDA training')
+parser.add_argument('--seed', type=int, default=1, help='random seed')
+parser.add_argument('--log_interval', type=int, default=100, help='how many batches to wait before logging training status')
+
+parser.add_argument('--n_encoder', type=int, default=400, help='n_encoder.')
+parser.add_argument('--n_decoder', type=int, default=400, help='n_decoder.')
+parser.add_argument('--n_context', type=int, default=1, help='n_context.')
+parser.add_argument('--n_state', type=int, default=1, help='n_state.')
+parser.add_argument('--n_latent', type=int, default=784, help='n_latent.')
+global_args = parser.parse_args()
+global_args.curr_epoch = 1
+
+from datasetLoaders.FeatureAttributeLoader import DataLoader
+data_loader = DataLoader(batch_size = global_args.batch_size, time_steps = global_args.time_steps)
+
+from models.MULTIREGRESSION2.Model import Model
+import distributions 
+import helper
+
+import random
+import numpy as np
+import tensorflow as tf
+random.seed(global_args.seed)
+np.random.seed(global_args.seed)
+tf.set_random_seed(global_args.seed)
+
+global_args.exp_dir = helper.get_exp_dir(global_args)
+
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+print("os.environ['CUDA_VISIBLE_DEVICES'], ", os.environ['CUDA_VISIBLE_DEVICES'])
+print("TENSORBOARD: Linux:\npython -m tensorflow.tensorboard --logdir=model1:"+\
+    os.path.realpath(global_args.exp_dir)+" --port="+str(20000+int(global_args.exp_dir[-4:-1], 16))+" &")
+print("TENSORBOARD: Mac:\nhttp://0.0.0.0:"+str(20000+int(global_args.exp_dir[-4:-1], 16)))
+print("\n\n\n")
+
+# shutil.copyfile('./models/SLVM.py', global_args.exp_dir+'SLVM.py')
+# shutil.copyfile('./models/ModelGTM.py', global_args.exp_dir+'ModelGTM.py')
+
+_, _, batch = next(data_loader)
+with tf.Graph().as_default():
+    tf.set_random_seed(global_args.seed)
+    model = Model(vars(global_args))
+
+    global_step = tf.Variable(0.0, name='global_step', trainable=False)
+    with tf.variable_scope("training"):
+        tf.set_random_seed(global_args.seed)
+        
+        additional_inputs_tf = tf.placeholder(tf.bool, [1])
+        batch_tf, input_dict_func = helper.tf_batch_and_input_dict(batch, additional_inputs_tf)
+        train_outs_dict, test_outs_dict = model.inference(batch_tf, additional_inputs_tf)
+
+        discriminator_vars = [v for v in tf.trainable_variables() if 'Discriminator' in v.name]
+
+    train_discriminator_step_tf = tf.train.AdamOptimizer(learning_rate=0.0001, 
+        beta1=0.9, beta2=0.999, epsilon=1e-08).minimize(train_outs_dict['discriminator_cost'], var_list=discriminator_vars, global_step=global_step)
+
+    helper.variable_summaries(train_outs_dict['discriminator_cost'], '/discriminator_cost')
+    init = tf.global_variables_initializer()
+    saver = tf.train.Saver()
+    sess = tf.InteractiveSession()
+    merged_summaries = tf.summary.merge_all()
+    summary_writer = tf.summary.FileWriter(global_args.exp_dir+'/summaries', sess.graph)
+    sess.run(init)
+
+    if global_args.restore:
+        print("=> Loading checkpoint: '{}'".format(global_args.global_exp_dir+global_args.restore_dir))
+        try: 
+            helper.load_checkpoint(saver, sess, global_args.global_exp_dir+global_args.restore_dir)  
+            print("=> Loaded checkpoint: '{}'".format(global_args.global_exp_dir+global_args.restore_dir))
+        except: print("=> FAILED to load checkpoint: '{}'".format(global_args.global_exp_dir+global_args.restore_dir))
+
+    def train(epoch):
+        data_loader.train()
+        model.train()
+        train_gen_loss_accum, train_dis_loss_accum, train_likelihood_accum, train_kl_accum, batch_size_accum = 0, 0, 0, 0, 0
+        start = time.time();
+        for batch_idx, curr_batch_size, batch in data_loader: 
+
+            disc_train_step_np, discriminator_cost_np = \
+                sess.run([train_discriminator_step_tf, train_outs_dict['discriminator_cost']], feed_dict = input_dict_func(batch, np.asarray([model.train_mode,])))
+
+            train_dis_loss_accum += curr_batch_size*discriminator_cost_np
+            batch_size_accum += curr_batch_size
+
+            if batch_idx % global_args.log_interval == 0:
+                end = time.time();
+                print('Train: Epoch {} [{:7d} ()]\tDiscriminator Cost: {:.6f}\tTime: {:.3f}'.format(
+                      epoch, batch_idx * curr_batch_size, discriminator_cost_np, (end - start)))
+
+                with open(global_args.exp_dir+"training_traces.txt", "a") as text_file:
+                    text_file.write(str(discriminator_cost_np) + '\n')
+                start = time.time()
+    
+        summary_str = sess.run(merged_summaries, feed_dict = input_dict_func(batch, np.asarray([0,])))
+        summary_writer.add_summary(summary_str, (tf.train.global_step(sess, global_step)))
+        
+        checkpoint_time = 20
+        if epoch % checkpoint_time == 0:
+            print('====> Average Train: Epoch: {}\tDiscriminator Cost: {:.6f}'.format(epoch, train_dis_loss_accum/batch_size_accum))
+
+            distributions.visualizeProductDistribution2(sess, input_dict_func(batch, np.asarray([model.train_mode,])), batch, model.obs_dist,
+            save_dir=global_args.exp_dir+'Visualization/Train/', postfix='train')
+
+            checkpoint_path1 = global_args.exp_dir+'checkpoint/'
+            checkpoint_path2 = global_args.exp_dir+'checkpoint2/'
+            print('====> Saving checkpoint. Epoch: ', epoch); start_tmp = time.time()
+            helper.save_checkpoint(saver, sess, global_step, checkpoint_path1) 
+            end_tmp = time.time(); print('Checkpoint path: '+checkpoint_path1+'   ====> It took: ', end_tmp - start_tmp)
+            if epoch % 60 == 0: 
+                print('====> Saving checkpoint backup. Epoch: ', epoch); start_tmp = time.time()
+                helper.save_checkpoint(saver, sess, global_step, checkpoint_path2) 
+                end_tmp = time.time(); print('Checkpoint path: '+checkpoint_path2+'   ====> It took: ', end_tmp - start_tmp)
+
+    def test(epoch):
+        data_loader.eval()
+        model.eval()
+        test_gen_loss_accum, test_dis_loss_accum, test_likelihood_accum, test_kl_accum, batch_size_accum = 0, 0, 0, 0, 0
+        start = time.time()
+
+        for batch_idx, curr_batch_size, batch in data_loader: 
+            test_discriminator_cost_np = sess.run(test_outs_dict['discriminator_cost'], feed_dict = input_dict_func(batch, np.asarray([model.train_mode,])))            
+            test_dis_loss_accum += curr_batch_size*test_discriminator_cost_np
+            batch_size_accum += curr_batch_size
+
+        end = time.time();
+        print('\n\n====> Average Test: Epoch {}\tDiscriminator Cost: {:.6f}\tTime: {:.3f}\n\n'.format(
+              epoch, test_dis_loss_accum/batch_size_accum, (end - start)))
+
+        with open(global_args.exp_dir+"test_traces.txt", "a") as text_file: 
+            text_file.write(str(test_dis_loss_accum/batch_size_accum) + '\n')
+
+        distributions.visualizeProductDistribution2(sess, input_dict_func(batch, np.asarray([model.train_mode,])), batch, model.obs_dist,
+        save_dir=global_args.exp_dir+'Visualization/Test/', postfix='test')
+
+    print('Starting training.')
+    while global_args.curr_epoch < global_args.epochs + 1:
+        train(global_args.curr_epoch)
+        if global_args.curr_epoch % 20 == 0: 
+            test(global_args.curr_epoch)
+        global_args.curr_epoch += 1
+       
+
+
+
+
+
+
+
+
+            
