@@ -35,7 +35,7 @@ my_dpi = 200
 fig_width = 9*200
 fig_height = 6*200
 
-file_path = str(Path.home())+'/datasets/MMD_test/results.txt'
+file_path = str(Path.home())+'/ExperimentalResults/MMD_test/results.txt'
 
 # save_index = -1
 # # mode = 'LeastEpochs'
@@ -100,8 +100,8 @@ plt.grid()
 plt.legend(frameon=True)
 plt.ylim((min_y_val-0.1*y_range, max_y_val+0.1*y_range ))
 plt.xlim((0,1000))
-plt.savefig(str(Path.home())+'/datasets/MMD_test/results.png', bbox_inches='tight', format='png', dpi=my_dpi, transparent=False)
-print('Saving to path: ', str(Path.home())+'/datasets/MMD_test/results.png')
+plt.savefig(str(Path.home())+'/ExperimentalResults/MMD_test/results.png', bbox_inches='tight', format='png', dpi=my_dpi, transparent=False)
+print('Saving to path: ', str(Path.home())+'/ExperimentalResults/MMD_test/results.png')
 
 # # plt.figure(figsize=(fig_width/my_dpi, fig_height/my_dpi), dpi=my_dpi)
 # plt.figure(figsize=(fig_width/(2*my_dpi), fig_height/my_dpi), dpi=my_dpi)

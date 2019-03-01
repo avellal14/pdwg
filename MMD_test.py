@@ -55,12 +55,12 @@ init = tf.initialize_all_variables()
 sess = tf.InteractiveSession()  
 sess.run(init)
 
-if not os.path.exists(str(Path.home())+'/datasets/MMD_test/'): os.makedirs(str(Path.home())+'/datasets/MMD_test/')
-file_path = str(Path.home())+'/datasets/MMD_test/results.txt'
+if not os.path.exists(str(Path.home())+'/ExperimentalResults/MMD_test/'): os.makedirs(str(Path.home())+'/ExperimentalResults/MMD_test/')
+file_path = str(Path.home())+'/ExperimentalResults/MMD_test/results.txt'
 with open(file_path, "w") as text_file:
     text_file.write('')
 
-for i in range(0, 100000):
+for i in range(0, 3000):
     fd = {iter_tf: i, lambda_z: 1, x: np.random.randn(batch_size, input_dim), epsilon: np.random.randn(batch_size, latent_dim), z_prior: np.random.randn(batch_size, latent_dim)}
     _, cost_np, MMD_np, rec_cost_np, lambda_z_comp_np, z_np, z_prior_np = sess.run([cost_step, cost, MMD, rec_cost, lambda_z_comp, z, z_prior], feed_dict = fd)
     if i % 50 == 0:
@@ -71,8 +71,12 @@ for i in range(0, 100000):
     if i % 100 == 0:
         fd = {iter_tf: i, lambda_z: 1, x: np.random.randn(10000, input_dim), epsilon: np.random.randn(10000, latent_dim), z_prior: np.random.randn(10000, latent_dim)}
         z_np, z_prior_np = sess.run([z, z_prior], feed_dict = fd)
-        helper.dataset_plotter([z_np,], colors=['r',], point_thickness = 4, save_dir = str(Path.home())+'/datasets/MMD_test/MMD_posterior/', postfix = '_MMD_posterior_'+str(i)+'_e', postfix2 = '_MMD_posterior'+'_m')
-        helper.dataset_plotter([z_prior_np,], colors=['g',], point_thickness = 4, save_dir = str(Path.home())+'/datasets/MMD_test/MMD_prior/', postfix = '_MMD_prior_'+str(i)+'_e', postfix2 = '_MMD_prior'+'_m')
-        helper.dataset_plotter([z_np, z_prior_np], point_thickness = 4, save_dir = str(Path.home())+'/datasets/MMD_test/MMD_prior_posterior/', postfix = '_MMD_prior_posterior_'+str(i)+'_e', postfix2 = '_MMD_prior_posterior'+'_m')
+        helper.dataset_plotter([z_np,], colors=['r',], point_thickness = 4, save_dir = str(Path.home())+'/ExperimentalResults/MMD_test/MMD_posterior/', postfix = '_MMD_posterior_'+str(i)+'_e', postfix2 = '_MMD_posterior'+'_m')
+        helper.dataset_plotter([z_prior_np,], colors=['g',], point_thickness = 4, save_dir = str(Path.home())+'/ExperimentalResults/MMD_test/MMD_prior/', postfix = '_MMD_prior_'+str(i)+'_e', postfix2 = '_MMD_prior'+'_m')
+        helper.dataset_plotter([z_np, z_prior_np], point_thickness = 4, save_dir = str(Path.home())+'/ExperimentalResults/MMD_test/MMD_prior_posterior/', postfix = '_MMD_prior_posterior_'+str(i)+'_e', postfix2 = '_MMD_prior_posterior'+'_m')
 
-pdb.set_trace()
+
+
+
+
+
