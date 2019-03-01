@@ -84,6 +84,8 @@ plt.figure(figsize=(fig_width/(2*my_dpi), fig_height/my_dpi), dpi=my_dpi)
 plt.cla()
 y_label = 'MMD Test'
 x_label = 'Training Iterations'
+# min_y_val = 100000000000000
+# max_y_val = -100000000000000
 min_y_val = 100000000000000
 max_y_val = -100000000000000
 for i, identifier in enumerate(identifiers):
@@ -98,7 +100,8 @@ plt.ylabel(y_label, fontsize=16)
 plt.xlabel(x_label, fontsize=16)
 plt.grid()
 plt.legend(frameon=True)
-plt.ylim((min_y_val-0.1*y_range, max_y_val+0.1*y_range ))
+# plt.ylim((min_y_val-0.1*y_range, max_y_val+0.1*y_range ))
+plt.ylim((min_y_val-0.1*y_range, min(5, max_y_val+0.1*y_range) ))
 plt.xlim((0,3000))
 plt.savefig(str(Path.home())+'/ExperimentalResults/MMD_test/results.png', bbox_inches='tight', format='png', dpi=my_dpi, transparent=False)
 print('Saving to path: ', str(Path.home())+'/ExperimentalResults/MMD_test/results.png')
