@@ -63,12 +63,12 @@ with open(file_path, "w") as text_file:
 for i in range(0, 15000):
     fd = {iter_tf: i, lambda_z: 1, x: np.random.randn(batch_size, input_dim), epsilon: np.random.randn(batch_size, latent_dim), z_prior: np.random.randn(batch_size, latent_dim)}
     _, cost_np, MMD_np, rec_cost_np, lambda_z_comp_np, z_np, z_prior_np = sess.run([cost_step, cost, MMD, rec_cost, lambda_z_comp, z, z_prior], feed_dict = fd)
-    if i % 100 == 0:
+    if i % 500 == 0:
         print("Iteration: "+str(i) + " Cost: "+str(cost_np) + " MMD_np: "+str(MMD_np) + " lambda_z_comp_np: "+str(lambda_z_comp_np) + " rec_cost_np: "+str(rec_cost_np))
         with open(file_path, "a") as text_file:
             text_file.write(str(i) + ', '+ str(cost_np) + ', ' +str(MMD_np) + ', ' + str(rec_cost_np) + ', ' + str(lambda_z_comp_np)+'\n')
 
-    if i % 500 == 0:
+    if i % 3000 == 0:
         fd = {iter_tf: i, lambda_z: 1, x: np.random.randn(10000, input_dim), epsilon: np.random.randn(10000, latent_dim), z_prior: np.random.randn(10000, latent_dim)}
         z_np, z_prior_np = sess.run([z, z_prior], feed_dict = fd)
         helper.dataset_plotter([z_np,], colors=['r',], point_thickness = 4, save_dir = str(Path.home())+'/ExperimentalResults/MMD_test/MMD_posterior/', postfix = '_MMD_posterior_'+str(i)+'_e', postfix2 = '_MMD_posterior'+'_m')
