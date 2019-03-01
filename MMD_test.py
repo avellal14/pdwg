@@ -43,8 +43,8 @@ x_rec = tf.layers.dense(inputs = layer_3_rec, units = input_dim*tile_rate, use_b
 rec_cost = tf.reduce_mean(helper.safe_tf_sqrt(tf.reduce_sum((x_rec-x_input)**2, axis=1)))
 MMD = helper.compute_MMD(z, z_prior, positive_only=True)
 
-start, timescale = 200, 1500
-# start, timescale = 0, 1
+# start, timescale = 200, 1500
+start, timescale = 0, 1
 lambda_z_comp = helper.hardstep((iter_tf-float(start))/float(timescale))
 cost = MMD+lambda_z_comp*rec_cost
 
