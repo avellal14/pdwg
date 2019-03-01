@@ -102,7 +102,7 @@ plt.grid()
 plt.legend(frameon=True)
 # plt.ylim((min_y_val-0.1*y_range, max_y_val+0.1*y_range ))
 plt.ylim((min_y_val-0.1*y_range, min(5, max_y_val+0.1*y_range) ))
-plt.xlim((0, 5000))
+plt.xlim((0, 15000))
 plt.savefig(str(Path.home())+'/ExperimentalResults/MMD_test/results.png', bbox_inches='tight', format='png', dpi=my_dpi, transparent=False)
 print('Saving to path: ', str(Path.home())+'/ExperimentalResults/MMD_test/results.png')
 
