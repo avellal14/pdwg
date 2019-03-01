@@ -74,7 +74,7 @@ for i in range(0, 3000):
         helper.dataset_plotter([z_np,], colors=['r',], point_thickness = 4, save_dir = str(Path.home())+'/ExperimentalResults/MMD_test/MMD_posterior/', postfix = '_MMD_posterior_'+str(i)+'_e', postfix2 = '_MMD_posterior'+'_m')
         helper.dataset_plotter([z_prior_np,], colors=['g',], point_thickness = 4, save_dir = str(Path.home())+'/ExperimentalResults/MMD_test/MMD_prior/', postfix = '_MMD_prior_'+str(i)+'_e', postfix2 = '_MMD_prior'+'_m')
         helper.dataset_plotter([z_np, z_prior_np], point_thickness = 4, save_dir = str(Path.home())+'/ExperimentalResults/MMD_test/MMD_prior_posterior/', postfix = '_MMD_prior_posterior_'+str(i)+'_e', postfix2 = '_MMD_prior_posterior'+'_m')
-
+        os.system("python ploter_mmd.py")
 
 
 
