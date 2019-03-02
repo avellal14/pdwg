@@ -12,6 +12,16 @@ from random import shuffle
 from pathlib import Path
 import os
 
+import platform
+if platform.dist()[0] == 'centos':
+    matplotlib.use('Agg')
+elif platform.dist()[0] == 'debian': 
+    matplotlib.use('Agg')
+elif platform.dist()[0] == 'Ubuntu': 
+    print('On Collab')
+else: 
+    matplotlib.use('TkAgg')
+
 batch_size = 1000
 input_dim = 1
 latent_dim = 2
@@ -45,7 +55,7 @@ MMD = helper.compute_MMD(z, z_prior, positive_only=True)
 
 # start, timescale = 200, 1500
 start, timescale = 0, 1
-lambda_z_comp = helper.hardstep((iter_tf-float(start))/float(timescale))
+lambda_z_comp = 100*helper.hardstep((iter_tf-float(start))/float(timescale))
 cost = MMD+lambda_z_comp*rec_cost
 
 optimizer = tf.train.AdamOptimizer(learning_rate=0.0001, beta1=0.9, beta2=0.999, epsilon=1e-08)

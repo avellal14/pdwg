@@ -1,6 +1,5 @@
 import math
 import matplotlib
-matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import numpy as np
 import random
@@ -15,6 +14,16 @@ import subprocess
 import re
 from pathlib import Path
 import csv
+
+import platform
+if platform.dist()[0] == 'centos':
+    matplotlib.use('Agg')
+elif platform.dist()[0] == 'debian': 
+    matplotlib.use('Agg')
+elif platform.dist()[0] == 'Ubuntu': 
+    print('On Collab')
+else: 
+    matplotlib.use('TkAgg')
 
 plt.style.use('seaborn-white')
 plt.rcParams['font.family'] = 'serif'
