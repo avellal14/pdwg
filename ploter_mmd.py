@@ -41,7 +41,7 @@ plt.rcParams['legend.fontsize'] = 16
 # plt.rcParams['figure.titlesize'] = 12
 
 my_dpi = 200
-fig_width = 9*200
+fig_width = 20*200
 fig_height = 6*200
 
 file_path = str(Path.home())+'/ExperimentalResults/MMD_test/results.txt'
