@@ -70,7 +70,7 @@ file_path = str(Path.home())+'/ExperimentalResults/MMD_test/results.txt'
 with open(file_path, "w") as text_file:
     text_file.write('')
 
-for i in range(0, 15000+1):
+for i in range(1, 15000+1):
     fd = {iter_tf: i, lambda_z: 1, x: np.random.randn(batch_size, input_dim), epsilon: np.random.randn(batch_size, latent_dim), z_prior: np.random.randn(batch_size, latent_dim)}
     _, cost_np, MMD_np, rec_cost_np, lambda_z_comp_np, z_np, z_prior_np = sess.run([cost_step, cost, MMD, rec_cost, lambda_z_comp, z, z_prior], feed_dict = fd)
     if i % 500 == 0:
