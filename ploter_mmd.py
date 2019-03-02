@@ -26,7 +26,7 @@ else:
     matplotlib.use('TkAgg')
 
 plt.style.use('seaborn-white')
-plt.rcParams['font.family'] = 'Serif'
+plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = 'Times New Roman'
 plt.rcParams['font.monospace'] = 'Ubuntu Mono'
 plt.rcParams['font.size'] = 16
