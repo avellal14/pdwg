@@ -32,8 +32,8 @@ else:
 # dataset_to_use = 'IMAGENET'
 # dataset_to_use = 'BEDROOM'
 # dataset_to_use = 'CELEB'
-# dataset_to_use = 'CIFAR10'
-dataset_to_use = 'MNIST'
+dataset_to_use = 'CIFAR10'
+# dataset_to_use = 'MNIST'
 # dataset_to_use = 'CAT'
 # dataset_to_use = 'FLOWERS'
 # dataset_to_use = 'CUB'
@@ -67,7 +67,7 @@ elif Algorithm == 'WAEInfoFlowMMD':
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 256, 'n_flat': 400, 
                              'encoder_mode': 'UnivApproxNoSpatial', 'divergence_mode': 'FLOW-MMD', 'dual_dist_mode': '',  'infomax_mode': 'GaussianFixedForAll',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
-                             'enc_reg_strength': 5, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 1., 
+                             'enc_reg_strength': 10, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 1., 
                              # 'enc_reg_strength': 100, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.15, 
                              'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 10}}  }
 elif Algorithm == 'WAESubmanifold':
@@ -392,7 +392,7 @@ elif dataset_to_use == 'CIFAR10':
     parser.add_argument('--vis_interval', type=int, default=1, help='how many batches to wait before visualizing training status')
     parser.add_argument('--in_between_vis', type=int, default=0, help='how many reports to wait before visualizing training status')
     parser.add_argument('--test_epoch_rate', type=list, default=[500,1], help='test epoch repeat')
-    parser.add_argument('--latent_vis_TSNE_epoch_rate', type=list, default=[100,0], help='latent epoch repeat')
+    parser.add_argument('--latent_vis_TSNE_epoch_rate', type=list, default=[300,0], help='latent epoch repeat')
     parser.add_argument('--latent_vis_UMAP_epoch_rate', type=list, default=[25,5], help='latent epoch repeat')
     parser.add_argument('--reconst_vis_epoch_rate', type=list, default=[3,1], help='reconst epoch repeat')
     parser.add_argument('--interpolate_vis_epoch_rate', type=list, default=[3,1], help='interpolation epoch repeat')
