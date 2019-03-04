@@ -68,7 +68,7 @@ elif Algorithm == 'WAEInfoFlowMMD':
                              'encoder_mode': 'UnivApproxNoSpatial', 'divergence_mode': 'FLOW-MMD', 'dual_dist_mode': '',  'infomax_mode': 'GaussianFixedForAll',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              # 'enc_reg_strength': 10, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 1., # MNIST
-                             'enc_reg_strength': 10, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.05, # CIFAR
+                             'enc_reg_strength': 20, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.025, # CIFAR
                              'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 20}}  }
 elif Algorithm == 'WAESubmanifold':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
