@@ -32,8 +32,8 @@ else:
 # dataset_to_use = 'IMAGENET'
 # dataset_to_use = 'BEDROOM'
 # dataset_to_use = 'CELEB'
-dataset_to_use = 'CIFAR10'
-# dataset_to_use = 'MNIST'
+# dataset_to_use = 'CIFAR10'
+dataset_to_use = 'MNIST'
 # dataset_to_use = 'CAT'
 # dataset_to_use = 'FLOWERS'
 # dataset_to_use = 'CUB'
@@ -67,8 +67,8 @@ elif Algorithm == 'WAEInfoFlowMMD':
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 256, 'n_flat': 400, 
                              'encoder_mode': 'UnivApproxNoSpatial', 'divergence_mode': 'FLOW-MMD', 'dual_dist_mode': '',  'infomax_mode': 'GaussianFixedForAll',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
-                             # 'enc_reg_strength': 10, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 1., # MNIST
-                             'enc_reg_strength': 20, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.025, # CIFAR
+                             'enc_reg_strength': 10, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 1., # MNIST
+                             # 'enc_reg_strength': 20, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.025, # CIFAR
                              'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 20}}  }
 elif Algorithm == 'WAESubmanifold':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
@@ -182,8 +182,8 @@ global_experiment_name = str(Path.home())+'/ExperimentalResults/EEEexperimentsSt
 parser = argparse.ArgumentParser(description='Tensorflow Gan Models')
 parser.add_argument('--exp_dir_postfix', type=str, default='', help='Directory to put the experiment postfix.')
 parser.add_argument('--save_checkpoints_epoch_rate', type=list, default=[50,1], help='epoch rate for storing checkpoints')
-parser.add_argument('--restore_dir', type=str, default='/70b086adb42149039b3a6a2305f55726/', help='Directory of restore experiment.')
-parser.add_argument('--restore', type=bool, default=False, help='Restore model.')
+parser.add_argument('--restore_dir', type=str, default='/f0f769982cf54a9aa2671923823f85e7/', help='Directory of restore experiment.')
+parser.add_argument('--restore', type=bool, default=True, help='Restore model.')
 parser.add_argument('--gpu', type=str, default='0', help='gpu to use.')
 parser.add_argument('--epochs', type=int, default=1000000000, help='Number of epochs to train.')
 parser.add_argument('--batch_size', type=int, default=100, help='Input batch size for training.')
