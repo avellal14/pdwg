@@ -342,30 +342,6 @@ class Encoder():
 					latent_image = tf.layers.conv2d(inputs=lay3_image, filters=self.config['n_filter'], kernel_size=[3, 3], strides=[1, 1], padding="valid", use_bias=True, activation=self.activation_function)
 					latent_image_flat = tf.reshape(latent_image, [-1, np.prod(latent_image.get_shape().as_list()[1:])])	
 
-				# # # # 32x32xn_channels
-				# if image_shape == (32, 32): ## works with 512
-				# 	lay1_image = tf.layers.conv2d(inputs=image_input, filters=int(self.config['n_filter']), kernel_size=[4, 4], strides=[2, 2], padding="valid", use_bias=True, activation=None)
-				# 	if self.normalization_mode == 'Layer Norm': 
-				# 		lay1_image = helper.conv_layer_norm_layer(lay1_image, channel_index=3)
-				# 	elif self.normalization_mode == 'Batch Norm': 
-				# 		lay1_image = lib.ops.batchnorm.Batchnorm('Encoder.BN1', [0,1,2], lay1_image)
-				# 	lay1_image = self.activation_function(lay1_image)
-				# 	lay2_image = tf.layers.conv2d(inputs=lay1_image, filters=int(self.config['n_filter']), kernel_size=[4, 4], strides=[1, 1], padding="valid", use_bias=True, activation=None)
-				# 	if self.normalization_mode == 'Layer Norm': 
-				# 		lay2_image = helper.conv_layer_norm_layer(lay2_image, channel_index=3)
-				# 	elif self.normalization_mode == 'Batch Norm': 
-				# 		lay2_image = lib.ops.batchnorm.Batchnorm('Encoder.BN2', [0,1,2], lay2_image)
-				# 	lay2_image = self.activation_function(lay2_image)
-				# 	lay3_image = tf.layers.conv2d(inputs=lay2_image, filters=int(self.config['n_filter']), kernel_size=[3, 3], strides=[1, 1], padding="valid", use_bias=True, activation=None)
-				# 	if self.normalization_mode == 'Layer Norm': 
-				# 		lay3_image = helper.conv_layer_norm_layer(lay3_image, channel_index=3)
-				# 	elif self.normalization_mode == 'Batch Norm': 
-				# 		lay3_image = lib.ops.batchnorm.Batchnorm('Encoder.BN3', [0,1,2], lay3_image)
-				# 	lay3_image = self.activation_function(lay3_image)
-				# 	latent_image = tf.layers.conv2d(inputs=lay3_image, filters=self.config['n_filter'], kernel_size=[3, 3], strides=[1, 1], padding="valid", use_bias=True, activation=self.activation_function)
-				# 	latent_image_flat = tf.reshape(latent_image, [-1, np.prod(latent_image.get_shape().as_list()[1:])])	
-
-
 				# # # 64x64xn_channels
 				if image_shape == (64, 64): 
 					lay1_image = tf.layers.conv2d(inputs=image_input, filters=int(self.config['n_filter']/32), kernel_size=[4, 4], strides=[1, 1], padding="valid", use_bias=True, activation=None)
@@ -548,32 +524,6 @@ class Generator():
 					layer_4 = self.activation_function(layer_4)
 					output = tf.layers.conv2d_transpose(inputs=layer_4, filters=n_output_channels, kernel_size=[5, 5], strides=[2,2], padding="valid", use_bias=True, activation=tf.nn.sigmoid)
 					image_param = helper.tf_center_crop_image(output, resize_ratios=[32,32])
-
-				# # # # 32x32xn_channels
-				# if image_shape == (32, 32): ## works with 128 ? 
-				# 	layer_1_flat = tf.layers.dense(inputs = x_batched_inp_flat, units = 8*8*self.config['n_filter'], activation = self.activation_function, use_bias = True)
-				# 	layer_1 = tf.reshape(layer_1_flat, [-1, 8, 8, self.config['n_filter']])
-				# 	layer_2 = tf.layers.conv2d_transpose(inputs=layer_1, filters=int(self.config['n_filter']), kernel_size=[4, 4], strides=[1,1], padding="valid", use_bias=True, activation=None)
-				# 	if self.normalization_mode == 'Layer Norm': 
-				# 		layer_2 = helper.conv_layer_norm_layer(layer_2, channel_index=3)
-				# 	elif self.normalization_mode == 'Batch Norm': 
-				# 		layer_2 = lib.ops.batchnorm.Batchnorm('Generator.BN2', [0,1,2], layer_2)
-				# 	layer_2 = self.activation_function(layer_2)
-				# 	layer_3 = tf.layers.conv2d_transpose(inputs=layer_2, filters=int(self.config['n_filter']), kernel_size=[4, 4], strides=[1,1], padding="valid", use_bias=True, activation=None)
-				# 	if self.normalization_mode == 'Layer Norm': 
-				# 		layer_3 = helper.conv_layer_norm_layer(layer_3, channel_index=3)
-				# 	elif self.normalization_mode == 'Batch Norm': 
-				# 		layer_3 = lib.ops.batchnorm.Batchnorm('Generator.BN3', [0,1,2], layer_3)
-				# 	layer_3 = self.activation_function(layer_3)
-				# 	layer_4 = tf.layers.conv2d_transpose(inputs=layer_3, filters=int(self.config['n_filter']), kernel_size=[4, 4], strides=[1,1], padding="valid", use_bias=True, activation=None)
-				# 	if self.normalization_mode == 'Layer Norm': 
-				# 		layer_4 = helper.conv_layer_norm_layer(layer_4, channel_index=3)
-				# 	elif self.normalization_mode == 'Batch Norm': 
-				# 		layer_4 = lib.ops.batchnorm.Batchnorm('Generator.BN4', [0,1,2], layer_4)
-				# 	layer_4 = self.activation_function(layer_4)
-				# 	output = tf.layers.conv2d_transpose(inputs=layer_4, filters=n_output_channels, kernel_size=[5, 5], strides=[2,2], padding="valid", use_bias=True, activation=tf.nn.sigmoid)
-				# 	image_param = helper.tf_center_crop_image(output, resize_ratios=[32,32])
-
 
 				# # # 64x64xn_channels
 				if image_shape == (64, 64):
