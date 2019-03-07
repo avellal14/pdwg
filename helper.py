@@ -4,10 +4,10 @@ import numpy as np
 import math
 import scipy
 import scipy.misc
-import platform
 import matplotlib
 from scipy.misc import imsave
 
+import platform
 if platform.dist()[0] == 'centos':
 	matplotlib.use('Agg')
 elif platform.dist()[0] == 'debian': 
