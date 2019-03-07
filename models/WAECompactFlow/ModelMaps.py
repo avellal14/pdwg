@@ -412,8 +412,8 @@ class Encoder():
 					# lay2_concat = helper.FCResnetLayer(lay1_concat, units = 2*self.config['n_latent'], activation = self.activation_function)
 					# lay3_concat = helper.FCResnetLayer(lay2_concat, units = 2*self.config['n_latent'], activation = self.activation_function)
 					latent_flat_stoch = tf.layers.dense(inputs = lay3_concat, units = self.config['n_latent'], use_bias = False, activation = None)
-					# latent_flat = latent_flat_det+latent_flat_stoch
-					latent_flat = latent_flat_stoch
+					latent_flat = latent_flat_det+latent_flat_stoch
+					# latent_flat = latent_flat_stoch
 				if self.config['encoder_mode'] == 'UnivApproxSine':
 					lay1_reduced = tf.layers.dense(inputs = latent_image_flat, units = 2*self.config['n_latent'], use_bias = True, activation = self.activation_function)
 					latent_flat_det = tf.layers.dense(inputs = lay1_reduced, units = self.config['n_latent'], use_bias = True, activation = None)
