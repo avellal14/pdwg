@@ -40,7 +40,7 @@ dataset_to_use = 'CIFAR10'
 # dataset_to_use = 'TOY'
 # dataset_to_use = 'INTENSITY'
 
-Algorithm = 'AE'
+Algorithm = 'WAEInfoFlowMMD'
 if Algorithm == 'AE':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 512, 'n_flat': 400, 
@@ -190,8 +190,8 @@ global_experiment_name = str(Path.home())+'/ExperimentalResults/EEEexperimentsSt
 
 parser = argparse.ArgumentParser(description='Tensorflow Gan Models')
 parser.add_argument('--exp_dir_postfix', type=str, default='', help='Directory to put the experiment postfix.')
-# parser.add_argument('--save_checkpoints_epoch_rate', type=list, default=[50,1], help='epoch rate for storing checkpoints')
-parser.add_argument('--save_checkpoints_epoch_rate', type=list, default=[0,1], help='epoch rate for storing checkpoints')
+parser.add_argument('--save_checkpoints_epoch_rate', type=list, default=[50,1], help='epoch rate for storing checkpoints')
+# parser.add_argument('--save_checkpoints_epoch_rate', type=list, default=[0,1], help='epoch rate for storing checkpoints')
 parser.add_argument('--restore_dir', type=str, default='/0c147431b75544a8be130c28f021f3b6/', help='Directory of restore experiment.')
 parser.add_argument('--restore', type=bool, default=False, help='Restore model.')
 parser.add_argument('--gpu', type=str, default='0', help='gpu to use.')
