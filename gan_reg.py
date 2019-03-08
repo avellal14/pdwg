@@ -1,3 +1,4 @@
+# # git add -A; git commit -m 'bv'; git push origin master
 import numpy as np 
 np.set_printoptions(suppress=True)
 
