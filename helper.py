@@ -962,6 +962,7 @@ def FCResnetLayer_v2(x, units, reduce_units=None, activation=None, reduce_activa
 		elif normalization_mode == 'Batch Norm': 
 			shortcut = batch_norm()(shortcut)
 
+	if reduce_units is None: reduce_units = units
 	reduce_layer = tf.layers.dense(inputs = x, units = reduce_units, activation = reduce_activation, use_bias=True)
 	if normalization_mode == 'Layer Norm': 
 		reduce_layer = conv_layer_norm_layer(reduce_layer[:,np.newaxis,np.newaxis,:], channel_index=3)[:,0,0,:]
