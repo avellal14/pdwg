@@ -76,7 +76,7 @@ elif Algorithm == 'WAEInfoFlowMMD':
                              'encoder_mode': 'UnivApproxNoSpatial', 'divergence_mode': 'FLOW-MMD', 'dual_dist_mode': '',  'infomax_mode': 'GaussianFixedForAll',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              # 'enc_reg_strength': 10, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 1., # MNIST
-                             'enc_reg_strength': 50, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.25, # CIFAR
+                             'enc_reg_strength': 25, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.25, # CIFAR
                              # 'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 10}}  }# MNIST
                              'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 10, 'start': 20}}  }# CIFAR
 elif Algorithm == 'WAESubmanifold':
