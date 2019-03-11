@@ -392,15 +392,21 @@ class Encoder():
 					# lay3_concat = helper.FCResnetLayer_v2(lay2_concat, units = 2*self.config['n_latent'], reduce_activation = self.activation_function)
 					# latent_flat_stoch = helper.FCResnetLayer_v2(lay3_concat, units = self.config['n_latent'], reduce_activation = self.activation_function)
 
+					# latent_flat_det = tf.layers.dense(inputs = latent_image_flat, units = self.config['n_latent'], use_bias = True, activation = None)
+					# lay1_concat = helper.FCResnetLayer_v2(tf.concat([latent_flat_det, noise],axis=-1), units = 2*self.config['n_latent'], reduce_activation = self.activation_function)
+					# lay2_concat = helper.FCResnetLayer_v2(lay1_concat, units = 2*self.config['n_latent'], reduce_activation = self.activation_function)
+					# lay3_concat = helper.FCResnetLayer_v2(lay2_concat, units = 2*self.config['n_latent'], reduce_activation = self.activation_function)
+					# latent_flat_stoch_gate = tf.nn.sigmoid(helper.FCResnetLayer_v2(lay3_concat, units = self.config['n_latent'], reduce_activation = self.activation_function))
+					# latent_flat_stoch = latent_flat_stoch_gate*lay3_concat[:, :self.config['n_latent']]+(1-latent_flat_stoch_gate)*lay3_concat[:, self.config['n_latent']:]
+
 					latent_flat_det = tf.layers.dense(inputs = latent_image_flat, units = self.config['n_latent'], use_bias = True, activation = None)
 					lay1_concat = helper.FCResnetLayer_v2(tf.concat([latent_flat_det, noise],axis=-1), units = 2*self.config['n_latent'], reduce_activation = self.activation_function)
 					lay2_concat = helper.FCResnetLayer_v2(lay1_concat, units = 2*self.config['n_latent'], reduce_activation = self.activation_function)
 					lay3_concat = helper.FCResnetLayer_v2(lay2_concat, units = 2*self.config['n_latent'], reduce_activation = self.activation_function)
-					latent_flat_stoch_gate = tf.nn.sigmoid(helper.FCResnetLayer_v2(lay3_concat, units = self.config['n_latent'], reduce_activation = self.activation_function))
-					latent_flat_stoch = latent_flat_stoch_gate*lay3_concat[:, :self.config['n_latent']]+(1-latent_flat_stoch_gate)*lay3_concat[:, self.config['n_latent']:]
-					
-					# latent_flat = latent_flat_det+latent_flat_stoch
-					latent_flat = latent_flat_stoch
+					latent_flat_stoch = helper.FCResnetLayer_v2(lay3_concat, units = self.config['n_latent'], reduce_activation = self.activation_function)
+
+					latent_flat = latent_flat_det+latent_flat_stoch
+					# latent_flat = latent_flat_stoch
 				if self.config['encoder_mode'] == 'UnivApproxSine':
 					lay1_reduced = tf.layers.dense(inputs = latent_image_flat, units = 2*self.config['n_latent'], use_bias = True, activation = self.activation_function)
 					latent_flat_det = tf.layers.dense(inputs = lay1_reduced, units = self.config['n_latent'], use_bias = True, activation = None)
