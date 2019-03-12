@@ -77,7 +77,7 @@ elif Algorithm == 'WAEInfoFlowMMD':
                              'encoder_mode': 'UnivApproxNoSpatial', 'divergence_mode': 'FLOW-MMD', 'dual_dist_mode': '',  'infomax_mode': 'GaussianFixedForAll',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              # 'enc_reg_strength': 10, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 1., # MNIST Non-Additive Encoder
-                             'enc_reg_strength': 10, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.1, # CIFAR
+                             'enc_reg_strength': 10, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.05, # CIFAR
                              # 'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 10}}  }# MNIST
                              'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 30, 'start': 0}}  }# CIFAR
 elif Algorithm == 'WAESubmanifold':
@@ -192,7 +192,7 @@ global_experiment_name = str(Path.home())+'/ExperimentalResults/EEEexperimentsSt
 parser = argparse.ArgumentParser(description='Tensorflow Gan Models')
 parser.add_argument('--exp_dir_postfix', type=str, default='', help='Directory to put the experiment postfix.')
 parser.add_argument('--save_checkpoints_epoch_rate', type=list, default=[50,1], help='epoch rate for storing checkpoints')
-parser.add_argument('--restore_dir', type=str, default='/443e53c87dc9462e9d222f9e40c54e37/', help='Directory of restore experiment.')
+parser.add_argument('--restore_dir', type=str, default='/f90a938529084811925b570ca422e2c8/', help='Directory of restore experiment.')
 parser.add_argument('--restore', type=bool, default=True, help='Restore model.')
 parser.add_argument('--gpu', type=str, default='0', help='gpu to use.')
 parser.add_argument('--epochs', type=int, default=1000000000, help='Number of epochs to train.')
