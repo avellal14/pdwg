@@ -298,6 +298,30 @@ def layer_norm(x, norm_axes, channel_index, channel_offset, channel_scale):
     scale = tf.reshape(channel_scale, frame)
     return tf.nn.batch_normalization(x, mean, var, offset, scale+1, 1e-5)
 
+def wasserstein_metric_1D_gaussian_columns(x_samples, y_samples, mode='Metric Squared'):
+    assert (len(x_samples.get_shape().as_list()) == 2)
+    assert (len(y_samples.get_shape().as_list()) == 2)
+
+    x_mean = tf.reduce_mean(x_samples, axis=0)[np.newaxis,:]
+    y_mean = tf.reduce_mean(y_samples, axis=0)[np.newaxis,:]
+    x_var = tf.reduce_mean((x_samples-x_mean)**2, axis=0)[np.newaxis,:]
+    x_std = safe_tf_sqrt(x_var)
+    y_var = tf.reduce_mean((y_samples-y_mean)**2, axis=0)[np.newaxis,:]
+    y_std = safe_tf_sqrt(y_var)
+
+    # THEY ARE THE SAME Fretchet and 2-Wasserstein 
+    # d^2 = ||mu_1 - mu_2||^2 + Tr(C_1 + C_2 - 2*sqrt(C_1*C_2)). FID score paper
+    # d^2 = ||mu_1 - mu_2||^2 + ||C_1^(1/2) - C_2^(1/2)||^2_Frobenius. http://djalil.chafai.net/blog/2010/04/30/wasserstein-distance-between-two-gaussians/
+    # if mode == 'Metric Squared':
+    #     return (x_mean-y_mean)**2+(x_var+y_var-2*safe_tf_sqrt(x_var*y_var))
+    # elif mode == 'Metric':
+    #     return safe_tf_sqrt((x_mean-y_mean)**2+(x_var+y_var-2*safe_tf_sqrt(x_var*y_var)))
+    if mode == 'Metric Squared':
+        return (x_mean-y_mean)**2+(x_std-y_std)**2        
+    elif mode == 'Metric':
+        return safe_tf_sqrt((x_mean-y_mean)**2+(x_std-y_std)**2)
+
+
 def get_object_from_collection(object_type, name):
     if object_type is list:
         out = []

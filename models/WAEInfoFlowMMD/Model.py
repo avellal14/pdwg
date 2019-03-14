@@ -249,6 +249,14 @@ class Model():
             self.transformed_posterior_latent_code, _ = self.flow_object.transform(self.posterior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
             self.transformed_prior_latent_code, _ = self.flow_object.transform(self.prior_dist.sample(), tf.zeros(shape=(self.batch_size_tf, 1)))
             self.MMD_transformed = helper.compute_MMD(self.transformed_posterior_latent_code, self.transformed_prior_latent_code)
+        elif self.config['divergence_mode'] == 'SLICED-WASSERSTEIN':
+            uniform_sphere_dist = distributions.UniformSphereDistribution(params = tf.concat([tf.zeros(shape=(self.config['enc_n_slice_dir'], self.config['n_latent'])), tf.ones(shape=(self.config['enc_n_slice_dir'], 1))], axis=1))
+            uniform_directions = uniform_sphere_dist.sample()
+            self.posterior_random_projections = tf.matmul(self.posterior_latent_code, uniform_directions, transpose_a=False, transpose_b=True)
+            self.prior_random_projections = tf.matmul(self.prior_dist.sample(), uniform_directions, transpose_a=False, transpose_b=True)
+            dist_per_direction = helper.wasserstein_metric_1D_gaussian_columns(self.posterior_random_projections, self.prior_random_projections)
+            self.MMD = tf.reduce_mean(dist_per_direction)
+
 
         #############################################################################
         # REGULARIZER

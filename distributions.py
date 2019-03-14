@@ -163,6 +163,36 @@ class UniformDistribution():
 		log_volume = tf.reduce_sum(tf.log(self.high-self.low), axis=1, keep_dims=True)
 		return 0-log_volume
 
+
+####  UNIFORM n-SPHERE DISTRIBUTION
+
+class UniformSphereDistribution():
+	def __init__(self, params=None, shape=None, name='UniformSphereDistribution'):
+		if len(params.get_shape().as_list()) == 2: 
+			self.centers = params[:, :-1]
+			self.radius = params[:, -1, np.newaxis]		
+		self.name = name
+		self.dim = self.centers.get_shape().as_list()[1]
+
+	def num_params(num_dim):
+		return num_dim+1
+
+	def get_interpretable_params(self):
+		return [self.centers, self.radius]
+
+	def sample(self):
+		dir_normal = tf.random_normal(shape=tf.shape(self.centers))
+		dir_normal_norm = helper.safe_tf_sqrt(tf.reduce_sum(dir_normal**2, axis=1, keep_dims=True))
+		sample_dir = dir_normal/dir_normal_norm
+		sample = self.radius*sample_dir+self.centers
+		return sample
+
+	def log_pdf(self, sample):
+		pdb.set_trace()
+		assert (len(sample.get_shape())==2)
+		log_volume = (self.dim/2)*np.log(np.pi)-(scipy.special.gammaln(1+self.dim/2))+self.dim*tf.log(self.radius)
+		return 0-log_volume
+
 ####  UNIFORM n-BALL DISTRIBUTION
 
 class UniformBallDistribution():
