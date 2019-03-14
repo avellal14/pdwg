@@ -294,7 +294,7 @@ class Model():
             self.div_reg_cost = tf.reduce_mean(self.trivial_line_grad_norm_1_penalties)
             self.div_cost = -(tf.reduce_mean(self.div_posterior)-tf.reduce_mean(self.div_prior))+10*self.div_reg_cost
 
-        if self.config['divergence_mode'] == 'MMD' or self.config['divergence_mode'] == 'SLICED-WASSERSTEIN':
+        if self.config['divergence_mode'] == 'MMD' or self.config['divergence_mode'] == 'SLICED-WASSERSTEIN' or self.config['divergence_mode'] == 'SLICED-SORTED-WASSERSTEIN':
             self.enc_reg_cost = self.MMD
         elif self.config['divergence_mode'] == 'FLOW-MMD': 
             self.enc_reg_cost = self.MMD_transformed+self.MMD
