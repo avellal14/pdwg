@@ -230,7 +230,8 @@ class Model():
         self.info_dist = distributions.DiagonalGaussianDistribution(params = self.info_param)
         # self.info_dist = distributions.BernoulliDistribution(params = self.info_param)
         self.epsilon_info_log_pdf = self.info_dist.log_pdf(self.epsilon)
-        self.info_cost = -(self.config['n_latent']/2)*(1+np.log(2*np.pi))-tf.reduce_mean(self.epsilon_info_log_pdf)
+        # self.info_cost = -(self.config['n_latent']/2)*(1+np.log(2*np.pi))-tf.reduce_mean(self.epsilon_info_log_pdf)
+        self.info_cost = 0
 
         self.interpolated_posterior_latent_code = helper.interpolate_latent_codes(self.posterior_latent_code, size=self.batch_size_tf//2)
         self.interpolated_obs = self.Generator.forward(self.interpolated_posterior_latent_code) 
@@ -305,9 +306,9 @@ class Model():
         elif self.config['divergence_mode'] == 'WGAN-GP': 
             self.enc_reg_cost = -tf.reduce_mean(self.div_prior)
         
-        ### Critic
-        self.cri_reg_cost = self.info_cost
-        self.cri_cost = self.cri_reg_cost
+        # ### Critic
+        # self.cri_reg_cost = self.info_cost
+        # self.cri_cost = self.cri_reg_cost
 
         ### Encoder
         self.OT_primal = self.sample_distance_function(self.input_sample, self.reconst_sample)
