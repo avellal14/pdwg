@@ -257,7 +257,6 @@ class Model():
             dist_per_direction = helper.wasserstein_metric_1D_gaussian_columns(self.posterior_random_projections, self.prior_random_projections, mode='Metric')
             self.MMD = helper.compute_MMD(self.posterior_latent_code, self.prior_dist.sample())+tf.reduce_mean(dist_per_direction)
 
-
         #############################################################################
         # REGULARIZER
 
