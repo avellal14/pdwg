@@ -254,7 +254,7 @@ class Model():
             uniform_directions = uniform_sphere_dist.sample()
             self.posterior_random_projections = tf.matmul(self.posterior_latent_code, uniform_directions, transpose_a=False, transpose_b=True)
             self.prior_random_projections = tf.matmul(self.prior_dist.sample(), uniform_directions, transpose_a=False, transpose_b=True)
-            dist_per_direction = helper.wasserstein_metric_1D_gaussian_columns(self.posterior_random_projections, self.prior_random_projections)
+            dist_per_direction = helper.wasserstein_metric_1D_gaussian_columns(self.posterior_random_projections, self.prior_random_projections, mode='Metric')
             self.MMD = tf.reduce_mean(dist_per_direction)
 
 
