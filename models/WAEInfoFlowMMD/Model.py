@@ -263,7 +263,7 @@ class Model():
             prior_random_projections = tf.matmul(self.prior_dist.sample(), uniform_directions, transpose_a=False, transpose_b=True)
             sorted_posterior_random_projections = tf.sort(posterior_random_projections, axis=0, direction='ASCENDING')
             sorted_prior_random_projections = tf.sort(prior_random_projections, axis=0, direction='ASCENDING')
-            dist_per_direction = tf.reduce_sum(helper.relu_abs(sorted_posterior_random_projections-sorted_prior_random_projections), axis=0)
+            dist_per_direction = tf.reduce_mean(helper.relu_abs(sorted_posterior_random_projections-sorted_prior_random_projections), axis=0)
             self.MMD = tf.reduce_mean(dist_per_direction)
 
         #############################################################################
