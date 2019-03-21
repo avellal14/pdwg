@@ -34,14 +34,14 @@ import tensorflow as tf
 import string 
 import pdb
 import copy
+import skimage
+from scipy import signal
+from skimage import color
 
 plt.rcParams['axes.linewidth'] = 2
 
 # from tensorflow.python.tools.inspect_checkpoint import print_tensors_in_checkpoint_file
 # print_tensors_in_checkpoint_file(file_name=global_args.global_exp_dir+global_args.restore_dir+'/checkpoints/checkpoint', tensor_name='',all_tensors='')
-
-
-
 
 class MyAxes3D(axes3d.Axes3D):
 
@@ -540,6 +540,15 @@ def visualize_flat(visualized_list, batch_size = 10, save_dir = './', postfix = 
 		if not os.path.exists(save_dir): os.makedirs(save_dir)
 		plt.savefig(save_dir+'flatMatrix_'+str(b)+'_'+str(time_step)+'_'+postfix+'.png')
 		plt.close('all')
+
+def sharpness_eval_np(input_images): ## B x W x H x 3
+	filter_mat = np.array([[0, 1, 0], [1, -4 ,1], [0, 1, 0]])[np.newaxis, :, :, np.newaxis]	
+	grey_input_images = color.rgb2grey(input_images[:,0,:,:,:])[:,:,:,np.newaxis]
+	all_vars = np.zeros((grey_input_images.shape[0]))
+	for i in range(grey_input_images.shape[0]):
+		curr_edges = signal.convolve2d(grey_input_images[i,:,:,0], filter_mat[0,:,:,0], mode='valid')
+		all_vars[i] = np.var(curr_edges.flatten())
+	return all_vars #np.mean(all_vars) # scalar
 
 def visualize_flat2(visualized_list, batch_size = 10, save_dir = './', postfix = ''):
 	time_step = -1

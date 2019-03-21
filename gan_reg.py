@@ -33,18 +33,18 @@ else:
 # dataset_to_use = 'IMAGENET'
 # dataset_to_use = 'BEDROOM'
 # dataset_to_use = 'CELEB'
-# dataset_to_use = 'CIFAR10'
-dataset_to_use = 'MNIST'
+dataset_to_use = 'CIFAR10'
+# dataset_to_use = 'MNIST'
 # dataset_to_use = 'CAT'
 # dataset_to_use = 'FLOWERS'
 # dataset_to_use = 'CUB'
 # dataset_to_use = 'TOY'
 # dataset_to_use = 'INTENSITY'
 
-Algorithm = 'WAEInfoFlowMMD'
+Algorithm = 'AE'
 if Algorithm == 'AE':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
-                             'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 512, 'n_flat': 400, 
+                             'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 256, 'n_flat': 400, 
                              'encoder_mode': 'UnivApproxNoSpatial', 'divergence_mode': 'None', 'dual_dist_mode': '',  'infomax_mode': 'None',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 0, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 0, 'enc_inv_MMD_n_trans': 0, 'enc_inv_MMD_strength': 0,
@@ -72,16 +72,15 @@ elif Algorithm == 'WAEInfo':
                              'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
 elif Algorithm == 'WAEInfoFlowMMD':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
-                             'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 256, 'n_flat': 400, # MNIST 
-                             # 'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 512, 'n_flat': 400, # CIFAR
-                             # 'encoder_mode': 'UnivApproxNoSpatial', 'divergence_mode': 'FLOW-MMD', 'dual_dist_mode': '',  'infomax_mode': 'GaussianFixedForAll',
-                             'encoder_mode': 'UnivApproxNoSpatial', 'divergence_mode': 'SLICED-SORTED-WASSERSTEIN', 'dual_dist_mode': '',  'infomax_mode': 'GaussianFixedForAll',
+                             # 'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 256, 'n_flat': 400, # MNIST 
+                             'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 512, 'n_flat': 400, # CIFAR
+                             'encoder_mode': 'UnivApproxNoSpatial', 'divergence_mode': 'FLOW-MMD', 'dual_dist_mode': '',  'infomax_mode': 'GaussianFixedForAll',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              # 'enc_reg_strength': 10, 'enc_n_slice_dir': 5, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 1., # MNIST Non-Additive Encoder FLOW-MMD
-                             'enc_reg_strength': 10, 'enc_n_slice_dir': 512, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 2., # MNIST Non-Additive Encoder SLICED-WASSERSTEIN
+                             # 'enc_reg_strength': 10, 'enc_n_slice_dir': 512, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 2., # MNIST Non-Additive Encoder SLICED-WASSERSTEIN
                              # 'enc_reg_strength': 10, 'enc_n_slice_dir': 5, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.1, # CIFAR
-                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 10}}  }# MNIST
-                             # 'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 30, 'start': 0}}  }# CIFAR
+                             # 'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 10}}  }# MNIST
+                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 30, 'start': 0}}  }# CIFAR
 elif Algorithm == 'WAESubmanifold':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 5, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 32, 'n_flat': 400, 
@@ -253,6 +252,7 @@ if dataset_to_use == 'IMAGENET':
     parser.add_argument('--fid_inception_score_epoch_rate', type=list, default=[0,1], help='compute fid and inception score')
     parser.add_argument('--pigeonhole_score_epoch_rate', type=list, default=[0,1], help='compute pigeonhole score')
     parser.add_argument('--reconstruction_score_epoch_rate', type=list, default=[20,5], help='compute reconstruction score')
+    parser.add_argument('--sharpness_score_epoch_rate', type=list, default=[20,5], help='compute sharpness score')
 
     parser.add_argument('--n_context', type=int, default=1, help='n_context.')
     parser.add_argument('--n_state', type=int, default=1, help='n_state.')
@@ -280,6 +280,7 @@ if dataset_to_use == 'BEDROOM':
     parser.add_argument('--fid_inception_score_epoch_rate', type=list, default=[1,0], help='compute fid and inception score')
     parser.add_argument('--pigeonhole_score_epoch_rate', type=list, default=[1,0], help='compute pigeonhole score')
     parser.add_argument('--reconstruction_score_epoch_rate', type=list, default=[20,5], help='compute reconstruction score')
+    parser.add_argument('--sharpness_score_epoch_rate', type=list, default=[20,5], help='compute sharpness score')
 
     parser.add_argument('--n_context', type=int, default=1, help='n_context.')
     parser.add_argument('--n_state', type=int, default=1, help='n_state.')
@@ -307,6 +308,7 @@ elif dataset_to_use == 'CELEB':
     parser.add_argument('--fid_inception_score_epoch_rate', type=list, default=[0,1], help='compute fid and inception score')
     parser.add_argument('--pigeonhole_score_epoch_rate', type=list, default=[0,1], help='compute pigeonhole score')
     parser.add_argument('--reconstruction_score_epoch_rate', type=list, default=[3,1], help='compute reconstruction score')
+    parser.add_argument('--sharpness_score_epoch_rate', type=list, default=[3,1], help='compute sharpness score')
 
     parser.add_argument('--n_context', type=int, default=1, help='n_context.')
     parser.add_argument('--n_state', type=int, default=1, help='n_state.')
@@ -334,6 +336,7 @@ elif dataset_to_use == 'CAT':
     parser.add_argument('--fid_inception_score_epoch_rate', type=list, default=[100,10], help='compute fid and inception score')
     parser.add_argument('--pigeonhole_score_epoch_rate', type=list, default=[0,1], help='compute pigeonhole score')
     parser.add_argument('--reconstruction_score_epoch_rate', type=list, default=[100,10], help='compute reconstruction score')
+    parser.add_argument('--sharpness_score_epoch_rate', type=list, default=[100,10], help='compute sharpness score')
 
     parser.add_argument('--n_context', type=int, default=1, help='n_context.')
     parser.add_argument('--n_state', type=int, default=1, help='n_state.')
@@ -361,6 +364,7 @@ elif dataset_to_use == 'FLOWERS':
     parser.add_argument('--fid_inception_score_epoch_rate', type=list, default=[100,10], help='compute fid and inception score')
     parser.add_argument('--pigeonhole_score_epoch_rate', type=list, default=[0,1], help='compute pigeonhole score')
     parser.add_argument('--reconstruction_score_epoch_rate', type=list, default=[1,0], help='compute reconstruction score')
+    parser.add_argument('--sharpness_score_epoch_rate', type=list, default=[1,0], help='compute sharpness score')
 
     parser.add_argument('--n_context', type=int, default=1, help='n_context.')
     parser.add_argument('--n_state', type=int, default=1, help='n_state.')
@@ -387,6 +391,7 @@ elif dataset_to_use == 'CUB':
     parser.add_argument('--fid_inception_score_epoch_rate', type=list, default=[100,10], help='compute fid and inception score')
     parser.add_argument('--pigeonhole_score_epoch_rate', type=list, default=[0,1], help='compute pigeonhole score')
     parser.add_argument('--reconstruction_score_epoch_rate', type=list, default=[1,0], help='compute reconstruction score')
+    parser.add_argument('--sharpness_score_epoch_rate', type=list, default=[1,0], help='compute sharpness score')
 
     parser.add_argument('--n_context', type=int, default=1, help='n_context.')
     parser.add_argument('--n_state', type=int, default=1, help='n_state.')
@@ -414,6 +419,7 @@ elif dataset_to_use == 'CIFAR10':
     parser.add_argument('--fid_inception_score_epoch_rate', type=list, default=[0,1], help='compute fid and inception score')
     parser.add_argument('--pigeonhole_score_epoch_rate', type=list, default=[0,1], help='compute pigeonhole score')
     parser.add_argument('--reconstruction_score_epoch_rate', type=list, default=[3,1], help='compute reconstruction score')
+    parser.add_argument('--sharpness_score_epoch_rate', type=list, default=[3,1], help='compute sharpness score')
 
     parser.add_argument('--n_context', type=int, default=1, help='n_context.')
     parser.add_argument('--n_state', type=int, default=1, help='n_state.')
@@ -441,6 +447,7 @@ elif dataset_to_use == 'MNIST':
     parser.add_argument('--fid_inception_score_epoch_rate', type=list, default=[0,1], help='compute fid and inception score')
     parser.add_argument('--pigeonhole_score_epoch_rate', type=list, default=[0,1], help='compute pigeonhole score')
     parser.add_argument('--reconstruction_score_epoch_rate', type=list, default=[1,0], help='compute reconstruction score')
+    parser.add_argument('--sharpness_score_epoch_rate', type=list, default=[1,0], help='compute sharpness score')
 
     parser.add_argument('--n_context', type=int, default=1, help='n_context.')
     parser.add_argument('--n_state', type=int, default=1, help='n_state.')
@@ -468,6 +475,7 @@ elif dataset_to_use == 'INTENSITY':
     parser.add_argument('--fid_inception_score_epoch_rate', type=list, default=[0,1], help='compute fid and inception score')
     parser.add_argument('--pigeonhole_score_epoch_rate', type=list, default=[0,1], help='compute pigeonhole score')
     parser.add_argument('--reconstruction_score_epoch_rate', type=list, default=[1,0], help='compute reconstruction score')
+    parser.add_argument('--sharpness_score_epoch_rate', type=list, default=[1,0], help='compute sharpness score')
 
     parser.add_argument('--n_context', type=int, default=1, help='n_context.')
     parser.add_argument('--n_state', type=int, default=1, help='n_state.')
@@ -496,6 +504,7 @@ elif dataset_to_use == 'TOY':
     parser.add_argument('--fid_inception_score_epoch_rate', type=list, default=[0,1], help='compute fid and inception score')
     parser.add_argument('--pigeonhole_score_epoch_rate', type=list, default=[0,1], help='compute pigeonhole score')
     parser.add_argument('--reconstruction_score_epoch_rate', type=list, default=[0,1], help='compute reconstruction score')
+    parser.add_argument('--sharpness_score_epoch_rate', type=list, default=[0,1], help='compute sharpness score')
 
     parser.add_argument('--n_context', type=int, default=1, help='n_context.')
     parser.add_argument('--n_state', type=int, default=1, help='n_state.')
@@ -899,18 +908,14 @@ with tf.Graph().as_default():
         all_np_fixed_sample = None
         all_np_fixed_grid_sample = None
         all_np_reconst_distances = None
+        all_np_real_sharness_var = None
+        all_np_reconst_sharness_var = None
+        all_np_sample_sharness_var = None
         all_labels_np = None
 
         print('\n*************************************   VISUALIZATION STAGE: '+mode+'   *************************************\n')
         print('Obtaining visualization data.')
         start = time.time();
-
-        # if (mode=='test' and ((global_args.latent_vis_TSNE_epoch_rate[0]>0 and global_args.curr_epoch % global_args.latent_vis_TSNE_epoch_rate[0] == global_args.latent_vis_TSNE_epoch_rate[1]) or \
-        #     (global_args.latent_vis_UMAP_epoch_rate[0]>0 and global_args.curr_epoch % global_args.latent_vis_UMAP_epoch_rate[0] == global_args.latent_vis_UMAP_epoch_rate[1]))) or \
-        #     (global_args.reconst_vis_epoch_rate[0]>0 and global_args.curr_epoch % global_args.reconst_vis_epoch_rate[0] == global_args.reconst_vis_epoch_rate[1]) or \
-        #     (global_args.interpolate_vis_epoch_rate[0]>0 and global_args.curr_epoch % global_args.interpolate_vis_epoch_rate[0] == global_args.interpolate_vis_epoch_rate[1]) or \
-        #     (global_args.fixed_samples_vis_epoch_rate[0]>0 and global_args.curr_epoch % global_args.fixed_samples_vis_epoch_rate[0] == global_args.fixed_samples_vis_epoch_rate[1]) or \
-        #     (global_args.reconstruction_score_epoch_rate[0]>0 and global_args.curr_epoch % global_args.reconstruction_score_epoch_rate[0] == global_args.reconstruction_score_epoch_rate[1]):
         
         if True:        
             hyper_param = np.asarray([global_args.curr_epoch, hyperparam_dict['b_identity']])
@@ -1090,7 +1095,21 @@ with tf.Graph().as_default():
                     np_reconst_distances = np.sqrt(np.sum((np_input_sample-np_reconst_sample)**2, axis=(-1,-2,-3)))/np.prod(np_reconst_sample.shape[-3:])
                     if all_np_reconst_distances is None: all_np_reconst_distances = np_reconst_distances
                     else: all_np_reconst_distances = np.concatenate([all_np_reconst_distances, np_reconst_distances], axis=0)
-                
+
+                if (global_args.sharpness_score_epoch_rate[0]>0 and global_args.curr_epoch % global_args.sharpness_score_epoch_rate[0] == global_args.sharpness_score_epoch_rate[1]): 
+                    np_input_sample, np_reconst_sample, np_obs_sample = sess.run([model.input_sample['image'], model.reconst_sample['image'], model.gen_obs_sample['image']], feed_dict = curr_feed_dict)
+                    np_real_sharness_var = helper.sharpness_eval_np(np_input_sample)
+                    np_reconst_sharness_var = helper.sharpness_eval_np(np_reconst_sample)
+                    np_sample_sharness_var = helper.sharpness_eval_np(np_obs_sample)
+                    if all_np_real_sharness_var is None: 
+                        all_np_real_sharness_var = np_real_sharness_var
+                        all_np_reconst_sharness_var = np_reconst_sharness_var
+                        all_np_sample_sharness_var = np_sample_sharness_var
+                    else: 
+                        all_np_real_sharness_var = np.concatenate([all_np_real_sharness_var, np_real_sharness_var], axis=0)
+                        all_np_reconst_sharness_var = np.concatenate([all_np_reconst_sharness_var, np_reconst_sharness_var], axis=0)
+                        all_np_sample_sharness_var = np.concatenate([all_np_sample_sharness_var, np_sample_sharness_var], axis=0)
+ 
                 if batch['context']['data']['flat'] is not None:
                   if all_labels_np is None: all_labels_np = batch['context']['data']['flat'][:,0,:]
                   else: all_labels_np = np.concatenate([all_labels_np, batch['context']['data']['flat'][:,0,:]], axis=0)
@@ -1145,6 +1164,22 @@ with tf.Graph().as_default():
                 text_file.write('Epoch: {:d} Score Mean: {:.6f} Score Std: {:.6f}'.format(\
                     global_args.curr_epoch, rec_score_mean, rec_score_std)+'\n')
 
+        if global_args.sharpness_score_epoch_rate[0]>0 and global_args.curr_epoch % global_args.sharpness_score_epoch_rate[0] == global_args.sharpness_score_epoch_rate[1]: 
+            print('Computing sharpness score.')
+            start = time.time();
+            real_sharpness_score_mean = np.mean(all_np_real_sharness_var)
+            real_sharpness_score_std = np.std(all_np_real_sharness_var)
+            reconst_sharpness_score_mean = np.mean(all_np_reconst_sharness_var)
+            reconst_sharpness_score_std = np.std(all_np_reconst_sharness_var)
+            sample_sharpness_score_mean = np.mean(all_np_sample_sharness_var)
+            sample_sharpness_score_std = np.std(all_np_sample_sharness_var)
+
+            end = time.time()
+            print('Sharpness Stats -- Time: {:.3f} Real Sharpness Mean: {:.6f} Real Sharpness Std: {:.6f} Reconstruction Sharpness Mean: {:.6f} Reconstruction Sharpness Std: {:.6f} Sample Sharpness Mean: {:.6f} Sample Sharpness Std: {:.6f}'.format(\
+                (end - start), real_sharpness_score_mean, real_sharpness_score_std, reconst_sharpness_score_mean, reconst_sharpness_score_std, sample_sharpness_score_mean, sample_sharpness_score_std))
+            with open(global_args.exp_dir+mode+"_sharpness_stats.txt", "a") as text_file:
+                text_file.write('Epoch: {:d} Real Sharpness Mean: {:.6f} Real Sharpness Std: {:.6f} Reconstruction Sharpness Mean: {:.6f} Reconstruction Sharpness Std: {:.6f} Sample Sharpness Mean: {:.6f} Sample Sharpness Std: {:.6f}'.format(\
+                    global_args.curr_epoch, real_sharpness_score_mean, real_sharpness_score_std, reconst_sharpness_score_mean, reconst_sharpness_score_std, sample_sharpness_score_mean, sample_sharpness_score_std)+'\n')
 
         if global_args.reconst_vis_epoch_rate[0]>0 and global_args.curr_epoch % global_args.reconst_vis_epoch_rate[0] == global_args.reconst_vis_epoch_rate[1]: 
             print('Visualizing reconstructions')
