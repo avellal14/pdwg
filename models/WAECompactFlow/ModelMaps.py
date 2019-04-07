@@ -253,7 +253,7 @@ class Encoder():
 				n_output_channels = helper.list_sum([distributions.DistributionsAKA[e['dist']].num_params(e['size'][-1]) for e in self.config['data_properties']['image']])
 				x_batched_inp_image = tf.reshape(x['image'], [-1,  *x['image'].get_shape().as_list()[2:]])
 				
-				if self.config['encoder_mode'] == 'Deterministic' or self.config['encoder_mode'] == 'Gaussian' or self.config['encoder_mode'] == 'UnivApproxNoSpatial':
+				if self.config['encoder_mode'] == 'Deterministic' or self.config['encoder_mode'] == 'Gaussian' or 'UnivApproxNoSpatial' in self.config['encoder_mode']:
 					image_input = x_batched_inp_image
 				if self.config['encoder_mode'] == 'UnivApprox' or self.config['encoder_mode'] == 'UnivApproxSine':
 					noise_spatial = tf.tile(noise[:, np.newaxis, np.newaxis, :], [1, *x_batched_inp_image.get_shape().as_list()[1:3], 1])
@@ -379,36 +379,43 @@ class Encoder():
 					latent_flat_det = tf.layers.dense(inputs = latent_image_flat, units = self.config['n_latent'], use_bias = True, activation = None)
 					latent_pre_scale = tf.layers.dense(inputs = latent_image_flat, units = self.config['n_latent'], use_bias = True, activation = None)
 					latent_flat = latent_flat_det+tf.nn.softplus(latent_pre_scale)*noise
-				if self.config['encoder_mode'] == 'UnivApprox' or self.config['encoder_mode'] == 'UnivApproxNoSpatial':
+				if self.config['encoder_mode'] == 'UnivApprox' or 'UnivApproxNoSpatial' in self.config['encoder_mode']:
 					# worked for MNIST
-					latent_flat_det = tf.layers.dense(inputs = latent_image_flat, units = self.config['n_latent'], use_bias = True, activation = None)
-					lay1_concat = tf.layers.dense(inputs = tf.concat([latent_flat_det, noise],axis=-1), units = 2*self.config['n_latent'], use_bias = True, activation = self.activation_function)
-					lay2_concat = tf.layers.dense(inputs = lay1_concat, units = 2*self.config['n_latent'], use_bias = True, activation = self.activation_function)
-					lay3_concat = tf.layers.dense(inputs = lay2_concat, units = 2*self.config['n_latent'], use_bias = True, activation = self.activation_function)
-					latent_flat_stoch = tf.layers.dense(inputs = lay3_concat, units = self.config['n_latent'], use_bias = False, activation = None)
-					latent_flat = latent_flat_stoch
+					if self.config['encoder_mode'] == 'UnivApproxNoSpatial_dense_comb':
+						latent_flat_det = tf.layers.dense(inputs = latent_image_flat, units = self.config['n_latent'], use_bias = True, activation = None)
+						lay1_concat = tf.layers.dense(inputs = tf.concat([latent_flat_det, noise],axis=-1), units = 2*self.config['n_latent'], use_bias = True, activation = self.activation_function)
+						lay2_concat = tf.layers.dense(inputs = lay1_concat, units = 2*self.config['n_latent'], use_bias = True, activation = self.activation_function)
+						lay3_concat = tf.layers.dense(inputs = lay2_concat, units = 2*self.config['n_latent'], use_bias = True, activation = self.activation_function)
+						latent_flat_stoch = tf.layers.dense(inputs = lay3_concat, units = self.config['n_latent'], use_bias = False, activation = None)
+						latent_flat = latent_flat_stoch
 
-					# latent_flat_det = tf.layers.dense(inputs = latent_image_flat, units = self.config['n_latent'], use_bias = True, activation = None)
-					# lay1_concat = helper.FCResnetLayer_v2(tf.concat([latent_flat_det, noise],axis=-1), units = 2*self.config['n_latent'], reduce_activation = self.activation_function)
-					# lay2_concat = helper.FCResnetLayer_v2(lay1_concat, units = 2*self.config['n_latent'], reduce_activation = self.activation_function)
-					# lay3_concat = helper.FCResnetLayer_v2(lay2_concat, units = 2*self.config['n_latent'], reduce_activation = self.activation_function)
-					# latent_flat_stoch = helper.FCResnetLayer_v2(lay3_concat, units = self.config['n_latent'], reduce_activation = self.activation_function)
+					elif self.config['encoder_mode'] == 'UnivApproxNoSpatial_dense_additive':
+						latent_flat_det = tf.layers.dense(inputs = latent_image_flat, units = self.config['n_latent'], use_bias = True, activation = None)
+						lay1_concat = tf.layers.dense(inputs = tf.concat([latent_flat_det, noise],axis=-1), units = 2*self.config['n_latent'], use_bias = True, activation = self.activation_function)
+						lay2_concat = tf.layers.dense(inputs = lay1_concat, units = 2*self.config['n_latent'], use_bias = True, activation = self.activation_function)
+						lay3_concat = tf.layers.dense(inputs = lay2_concat, units = 2*self.config['n_latent'], use_bias = True, activation = self.activation_function)
+						latent_flat_stoch = tf.layers.dense(inputs = lay3_concat, units = self.config['n_latent'], use_bias = False, activation = None)
+						latent_flat = latent_flat_det+latent_flat_stoch
 
-					# latent_flat_det = tf.layers.dense(inputs = latent_image_flat, units = self.config['n_latent'], use_bias = True, activation = None)
-					# lay1_concat = helper.FCResnetLayer_v2(tf.concat([latent_flat_det, noise],axis=-1), units = 2*self.config['n_latent'], reduce_activation = self.activation_function)
-					# lay2_concat = helper.FCResnetLayer_v2(lay1_concat, units = 2*self.config['n_latent'], reduce_activation = self.activation_function)
-					# lay3_concat = helper.FCResnetLayer_v2(lay2_concat, units = 2*self.config['n_latent'], reduce_activation = self.activation_function)
-					# latent_flat_stoch_gate = tf.nn.sigmoid(helper.FCResnetLayer_v2(lay3_concat, units = self.config['n_latent'], reduce_activation = self.activation_function))
-					# latent_flat_stoch = latent_flat_stoch_gate*lay3_concat[:, :self.config['n_latent']]+(1-latent_flat_stoch_gate)*lay3_concat[:, self.config['n_latent']:]
+					elif self.config['encoder_mode'] == 'UnivApproxNoSpatial_resnet_comb':
+						latent_flat_det = tf.layers.dense(inputs = latent_image_flat, units = self.config['n_latent'], use_bias = True, activation = None)
+						lay1_concat = helper.FCResnetLayer_v2(tf.concat([latent_flat_det, noise],axis=-1), units = 2*self.config['n_latent'], reduce_activation = self.activation_function)
+						lay2_concat = helper.FCResnetLayer_v2(lay1_concat, units = 2*self.config['n_latent'], reduce_activation = self.activation_function)
+						lay3_concat = helper.FCResnetLayer_v2(lay2_concat, units = 2*self.config['n_latent'], reduce_activation = self.activation_function)
+						latent_flat_stoch = helper.FCResnetLayer_v2(lay3_concat, units = self.config['n_latent'], reduce_activation = self.activation_function)
+						latent_flat = latent_flat_stoch
 
 					# worked for CIFAR
-					# latent_flat_det = tf.layers.dense(inputs = latent_image_flat, units = self.config['n_latent'], use_bias = True, activation = None)
-					# lay1_concat = helper.FCResnetLayer_v2(tf.concat([latent_flat_det, noise],axis=-1), units = 2*self.config['n_latent'], reduce_activation = self.activation_function)
-					# lay2_concat = helper.FCResnetLayer_v2(lay1_concat, units = 2*self.config['n_latent'], reduce_activation = self.activation_function)
-					# lay3_concat = helper.FCResnetLayer_v2(lay2_concat, units = 2*self.config['n_latent'], reduce_activation = self.activation_function)
-					# latent_flat_stoch = helper.FCResnetLayer_v2(lay3_concat, units = self.config['n_latent'], reduce_activation = self.activation_function)
-					# latent_flat = latent_flat_det+latent_flat_stoch
+					elif self.config['encoder_mode'] == 'UnivApproxNoSpatial_resnet_additive':
+						latent_flat_det = tf.layers.dense(inputs = latent_image_flat, units = self.config['n_latent'], use_bias = True, activation = None)
+						lay1_concat = helper.FCResnetLayer_v2(tf.concat([latent_flat_det, noise],axis=-1), units = 2*self.config['n_latent'], reduce_activation = self.activation_function)
+						lay2_concat = helper.FCResnetLayer_v2(lay1_concat, units = 2*self.config['n_latent'], reduce_activation = self.activation_function)
+						lay3_concat = helper.FCResnetLayer_v2(lay2_concat, units = 2*self.config['n_latent'], reduce_activation = self.activation_function)
+						latent_flat_stoch = helper.FCResnetLayer_v2(lay3_concat, units = self.config['n_latent'], reduce_activation = self.activation_function)
+						latent_flat = latent_flat_det+latent_flat_stoch
 
+					else: pdb.set_trace()
+					
 				if self.config['encoder_mode'] == 'UnivApproxSine':
 					lay1_reduced = tf.layers.dense(inputs = latent_image_flat, units = 2*self.config['n_latent'], use_bias = True, activation = self.activation_function)
 					latent_flat_det = tf.layers.dense(inputs = lay1_reduced, units = self.config['n_latent'], use_bias = True, activation = None)
@@ -421,7 +428,7 @@ class Encoder():
 				z_flat_det = tf.reshape(latent_flat_det, [-1, x['image'].get_shape().as_list()[1], self.config['n_latent']])
 				
 				# noise_reconst_cost = None
-				# if self.config['encoder_mode'] == 'UnivApprox' or self.config['encoder_mode'] == 'UnivApproxNoSpatial':
+				# if self.config['encoder_mode'] == 'UnivApprox' or 'UnivApproxNoSpatial' in self.config['encoder_mode']:
 				# 	rec_layer_1 = tf.layers.dense(inputs = z_flat, units = 2*self.config['n_latent'], activation = self.activation_function, use_bias=True)
 				# 	rec_layer_2 = helper.FCResnetLayer(rec_layer_1, units = 2*self.config['n_latent'], activation = self.activation_function)
 				# 	noise_reconst = tf.layers.dense(inputs = rec_layer_2, units = noise.get_shape().as_list()[-1], activation = None, use_bias=True)

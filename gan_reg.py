@@ -33,15 +33,15 @@ else:
 # dataset_to_use = 'IMAGENET'
 # dataset_to_use = 'BEDROOM'
 # dataset_to_use = 'CELEB'
-dataset_to_use = 'CIFAR10'
-# dataset_to_use = 'MNIST'
+# dataset_to_use = 'CIFAR10'
+dataset_to_use = 'MNIST'
 # dataset_to_use = 'CAT'
 # dataset_to_use = 'FLOWERS'
 # dataset_to_use = 'CUB'
 # dataset_to_use = 'TOY'
 # dataset_to_use = 'INTENSITY'
 
-Algorithm = 'AE'
+Algorithm = 'WAEInfoFlowMMD'
 if Algorithm == 'AE':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 256, 'n_flat': 400, 
@@ -58,10 +58,10 @@ elif Algorithm == 'WAE':
                              'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
 elif Algorithm == 'WAEVanilla':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
-                             'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 32, 'n_flat': 400, 
+                             'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 512, 'n_flat': 400, 
                              'encoder_mode': 'UnivApproxNoSpatial', 'divergence_mode': 'MMD-DENOISE', 'dual_dist_mode': '', 'infomax_mode': '',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
-                             'enc_reg_strength': 50, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.05/50, 
+                             'enc_reg_strength': 10, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0, 
                              'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
 elif Algorithm == 'WAEInfo':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
@@ -72,10 +72,11 @@ elif Algorithm == 'WAEInfo':
                              'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
 elif Algorithm == 'WAEInfoFlowMMD':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
-                             # 'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 256, 'n_flat': 400, # MNIST 
-                             'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 512, 'n_flat': 400, # CIFAR
-                             'encoder_mode': 'UnivApproxNoSpatial', 'divergence_mode': 'FLOW-MMD', 'dual_dist_mode': '',  'infomax_mode': 'GaussianFixedForAll',
+                             'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 256, 'n_flat': 400, # MNIST 
+                             # 'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 512, 'n_flat': 400, # CIFAR
+                             'encoder_mode': 'UnivApproxNoSpatial_resnet_additive', 'divergence_mode': 'FLOW-MMD', 'dual_dist_mode': '',  'infomax_mode': 'GaussianFixedForAll',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
+                             'enc_reg_strength': 10, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 2., # MNIST Additive Encoder FLOW-MMD
                              # 'enc_reg_strength': 10, 'enc_n_slice_dir': 5, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 1., # MNIST Non-Additive Encoder FLOW-MMD
                              # 'enc_reg_strength': 10, 'enc_n_slice_dir': 512, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 2., # MNIST Non-Additive Encoder SLICED-WASSERSTEIN
                              # 'enc_reg_strength': 10, 'enc_n_slice_dir': 5, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.1, # CIFAR
@@ -922,139 +923,6 @@ with tf.Graph().as_default():
             for batch_idx, curr_batch_size, batch in data_loader: 
                 curr_feed_dict = input_dict_func(batch, hyper_param)    
 
-                if batch_idx == 1:
-                    # if hasattr(model, 'posterior_latent_code'):
-                    #     # DEBUG_transformed_posterior_latent_code,  DEBUG_posterior_latent_code, DEBUG_prior_latent_code, DEBUG_pre_prior_latent_code, DEBUG_FF_1, DEBUG_FF_2 = \
-                    #         # sess.run([model.transformed_posterior_latent_code, model.posterior_latent_code, model.prior_latent_code, model.pre_prior_latent_code, model.FF_1, model.FF_2], feed_dict = curr_feed_dict)
-                    #     DEBUG_transformed_posterior_latent_code,  DEBUG_posterior_latent_code, DEBUG_prior_latent_code, DEBUG_pre_prior_latent_code = \
-                    #         sess.run([model.transformed_posterior_latent_code, model.posterior_latent_code, model.prior_latent_code, model.pre_prior_latent_code], feed_dict = curr_feed_dict)
-
-                    #     print('DEBUG_posterior_latent_code:')
-                    #     print(DEBUG_posterior_latent_code[0,:])
-                    #     print('DEBUG_transformed_posterior_latent_code:')
-                    #     print(DEBUG_transformed_posterior_latent_code[0,:])
-                    #     print('DEBUG_pre_prior_latent_code:')
-                    #     print(DEBUG_pre_prior_latent_code[0,:])
-                    #     print('DEBUG_prior_latent_code:')
-                    #     print(DEBUG_prior_latent_code[0,:])
-                        
-                    #     # print('DEBUG_FF_1:')
-                    #     # print(DEBUG_FF_1[0,:])
-                    #     # print('DEBUG_FF_2:')
-                    #     # print(DEBUG_FF_2[0,:])
-
-
-                    if hasattr(model, 'transformed_pre_posterior_feature_abs_means'):
-                        DEBUG_transformed_pre_posterior_feature_abs_means = sess.run(model.transformed_pre_posterior_feature_abs_means, feed_dict = curr_feed_dict)
-
-                        print('DEBUG_transformed_pre_posterior_feature_abs_means:')
-                        print(DEBUG_transformed_pre_posterior_feature_abs_means)
-
-                    if hasattr(model, 'shouldbezero_cost'):
-                        # DEBUG_shouldbenormal, DEBUG_shouldbezero, DEBUG_isnormal, DEBUG_pre_prior_latent_code, DEBUG_transformed_posterior_latent_code, DEBUG_prior_latent_code = \
-                        # sess.run([model.shouldbenormal, model.shouldbezero, model.isnormal, model.pre_prior_latent_code, model.transformed_posterior_latent_code, model.prior_latent_code], feed_dict = curr_feed_dict)
-                        
-                        DEBUG_shouldbezero_cost, DEBUG_transformed_posterior_latent_code, DEBUG_transformed_posterior_latent_code_abs_means = \
-                        sess.run([model.shouldbezero_cost, model.transformed_posterior_latent_code, model.transformed_posterior_latent_code_abs_means], feed_dict = curr_feed_dict)
-                        
-                        # print('DEBUG_shouldbenormal mean:')
-                        # print(np.mean(DEBUG_shouldbenormal))
-                        # print('DEBUG_shouldbenormal std:')
-                        # print(np.std(DEBUG_shouldbenormal))
-                        # print('DEBUG_shouldbezero abs max:')
-                        # print(np.max(np.abs(DEBUG_shouldbezero)))
-                        # print('DEBUG_isnormal example:')
-                        # print(DEBUG_isnormal[0,:])
-                        # print('DEBUG_shouldbezero:')
-                        # print(DEBUG_shouldbezero)
-                        # print('DEBUG_prior_latent_code example:')
-                        # print(DEBUG_prior_latent_code[0,:])
-                        # print('DEBUG_transformed_posterior_latent_code_norm:')
-                        # print(DEBUG_transformed_posterior_latent_code_norm)
-
-                        print('DEBUG_shouldbezero_cost:')
-                        print(DEBUG_shouldbezero_cost)
-
-                        print('DEBUG_transformed_posterior_latent_code example:')
-                        print(DEBUG_transformed_posterior_latent_code[0,:])
-
-                        print('DEBUG_transformed_posterior_latent_code_abs_means:')
-                        print(DEBUG_transformed_posterior_latent_code_abs_means)
-
-                        # print('DEBUG_isnormal mean:')
-                        # print(np.mean(DEBUG_isnormal))
-                        # print('DEBUG_isnormal std:')
-                        # print(np.std(DEBUG_isnormal))
-
-                    if hasattr(model, 'decomposition_out_prior'):
-                        DEBUG_decomposition_out_prior, DEBUG_decomposition_out_posterior, DEBUG_deterioration_out_prior, DEBUG_deterioration_out_posterior = \
-                            sess.run([model.decomposition_out_prior, model.decomposition_out_posterior, model.deterioration_out_prior, model.deterioration_out_posterior], feed_dict = curr_feed_dict)
-
-                        DEBUG_decomposition_out_prior_norms = np.sqrt(np.sum(DEBUG_decomposition_out_prior**2, axis=-1))
-                        DEBUG_decomposition_out_posterior_norms = np.sqrt(np.sum(DEBUG_decomposition_out_posterior**2, axis=-1))
-
-                        DEBUG_decomposition_out_prior_norms_means = np.mean(DEBUG_decomposition_out_prior_norms, axis=0)
-                        DEBUG_decomposition_out_prior_norms_stds = np.std(DEBUG_decomposition_out_prior_norms, axis=0)
-                        DEBUG_decomposition_out_posterior_norms_means = np.mean(DEBUG_decomposition_out_posterior_norms, axis=0)
-                        DEBUG_decomposition_out_posterior_norms_stds = np.std(DEBUG_decomposition_out_posterior_norms, axis=0)
-                        print('DEBUG_decomposition_out_prior_norms_means:')
-                        print(DEBUG_decomposition_out_prior_norms_means)
-                        print('DEBUG_decomposition_out_posterior_norms_means:')
-                        print(DEBUG_decomposition_out_posterior_norms_means)
-
-                        print('DEBUG_decomposition_out_prior_norms_stds:')
-                        print(DEBUG_decomposition_out_prior_norms_stds)
-                        print('DEBUG_decomposition_out_posterior_norms_stds:')
-                        print(DEBUG_decomposition_out_posterior_norms_stds)
-                        print('')
-                        print('')
-
-
-                        DEBUG_deterioration_out_prior_norms = np.sqrt(np.sum(DEBUG_deterioration_out_prior**2, axis=-1))
-                        DEBUG_deterioration_out_posterior_norms = np.sqrt(np.sum(DEBUG_deterioration_out_posterior**2, axis=-1))
-
-                        DEBUG_deterioration_out_prior_norms_means = np.mean(DEBUG_deterioration_out_prior_norms, axis=0)
-                        DEBUG_deterioration_out_prior_norms_stds = np.std(DEBUG_deterioration_out_prior_norms, axis=0)
-                        DEBUG_deterioration_out_posterior_norms_means = np.mean(DEBUG_deterioration_out_posterior_norms, axis=0)
-                        DEBUG_deterioration_out_posterior_norms_stds = np.std(DEBUG_deterioration_out_posterior_norms, axis=0)
-                        print('DEBUG_deterioration_out_prior_norms_means:')
-                        print(DEBUG_deterioration_out_prior_norms_means)
-                        print('DEBUG_deterioration_out_posterior_norms_means:')
-                        print(DEBUG_deterioration_out_posterior_norms_means)
-
-                        print('DEBUG_deterioration_out_prior_norms_stds:')
-                        print(DEBUG_deterioration_out_prior_norms_stds)
-                        print('DEBUG_deterioration_out_posterior_norms_stds:')
-                        print(DEBUG_deterioration_out_posterior_norms_stds)
-
-                    if hasattr(model, 'mean_contraction_distance_sq'):
-                        # DEBUG_mean_posterior_latent_code_diff_norm_sq, DEBUG_mean_prior_latent_code_diff_norm_sq = \
-                        #     sess.run([model.mean_posterior_latent_code_diff_norm_sq, model.mean_prior_latent_code_diff_norm_sq], feed_dict = curr_feed_dict)
-                        # print('DEBUG_mean_posterior_latent_code_diff_norm_sq: ')
-                        # print(DEBUG_mean_posterior_latent_code_diff_norm_sq)
-                        # print('DEBUG_mean_prior_latent_code_diff_norm_sq: ')
-                        # print(DEBUG_mean_prior_latent_code_diff_norm_sq)
-                        DEBUG_mean_contraction_distance_sq = sess.run(model.mean_contraction_distance_sq, feed_dict = curr_feed_dict)
-
-                        print('DEBUG_mean_contraction_distance_sq')
-                        print(DEBUG_mean_contraction_distance_sq)
-
-                    if hasattr(model, 'coupling_line_grad_vector_penalties'):
-                        DEBUG_coupling_line_grad, DEBUG_coupling_line_grad_norm, DEBUG_desired_slope, DEBUG_coupling_line_grad_vector_penalties = \
-                            sess.run([model.coupling_line_grad, model.coupling_line_grad_norm, model.desired_slope, model.coupling_line_grad_vector_penalties], feed_dict = curr_feed_dict)
-                        
-                        DEBUG_coupling_line_grad_norm_computed = np.sqrt(np.sum(DEBUG_coupling_line_grad**2, axis=(-1,-2,-3)))[:,0]
-                        DEBUG_desired_slope_norm = np.sqrt(np.sum(DEBUG_desired_slope**2, axis=(-1,-2,-3)))[:,0]
-                        
-                        print('DEBUG_coupling_line_grad_norm_computed: ')
-                        print(DEBUG_coupling_line_grad_norm_computed)
-                        print('DEBUG_coupling_line_grad_norm: ')
-                        print(DEBUG_coupling_line_grad_norm[:, 0, 0])
-                        print('DEBUG_desired_slope_norm: ')
-                        print(DEBUG_desired_slope_norm)
-                        print('DEBUG_coupling_line_grad_vector_penalties: ')
-                        print(DEBUG_coupling_line_grad_vector_penalties[:, 0, 0])
-
                 if mode=='test' and ((global_args.latent_vis_TSNE_epoch_rate[0]>0 and global_args.curr_epoch % global_args.latent_vis_TSNE_epoch_rate[0] == global_args.latent_vis_TSNE_epoch_rate[1]) or \
                                      (global_args.latent_vis_UMAP_epoch_rate[0]>0 and global_args.curr_epoch % global_args.latent_vis_UMAP_epoch_rate[0] == global_args.latent_vis_UMAP_epoch_rate[1])): 
                     np_posterior_latent_code, np_prior_latent_code = sess.run([model.posterior_latent_code, model.prior_latent_code], feed_dict = curr_feed_dict)
@@ -1324,22 +1192,18 @@ with tf.Graph().as_default():
     while global_args.curr_epoch < global_args.epochs + 1:
         print('=== Memory at start of epoch: ' + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) +' MB  '+ str(helper.convert_size(sess.run(memory_node))))
         train()
-        gc.collect()
-        gc.collect()
+        gc.collect(); gc.collect()
         print('=== Memory After train(): ' + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) +' MB  '+ str(helper.convert_size(sess.run(memory_node))))
         if global_args.test_epoch_rate[0]>0 and global_args.curr_epoch % global_args.test_epoch_rate[0] == global_args.test_epoch_rate[1]: 
             test()
-            gc.collect()
-            gc.collect()
+            gc.collect(); gc.collect()
             print('=== Memory After test(): ' + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) +' MB  '+ str(helper.convert_size(sess.run(memory_node))))
 
         visualize(mode='train')
-        gc.collect()
-        gc.collect()
+        gc.collect(); gc.collect()
         print('=== Memory After visualize(mode=train): ' + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) +' MB  '+ str(helper.convert_size(sess.run(memory_node))))
         visualize(mode='test')
-        gc.collect()
-        gc.collect()
+        gc.collect(); gc.collect()
         print('=== Memory After visualize(mode=test): ' + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) +' MB  '+ str(helper.convert_size(sess.run(memory_node)))) 
 
         total_n_nodes = len([n.name for n in tf.get_default_graph().as_graph_def().node])
@@ -1368,306 +1232,181 @@ with tf.Graph().as_default():
 
 
 
+# elif Algorithm == 'WAEInfoFlowMMD':
+#     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
+#                              # 'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 256, 'n_flat': 400, # MNIST 
+#                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 512, 'n_flat': 400, # CIFAR
+#                              'encoder_mode': 'UnivApproxNoSpatial', 'divergence_mode': 'FLOW-MMD', 'dual_dist_mode': '',  'infomax_mode': 'GaussianFixedForAll',
+#                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
+#                              # 'enc_reg_strength': 10, 'enc_n_slice_dir': 5, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 1., # MNIST Non-Additive Encoder FLOW-MMD
+#                              # 'enc_reg_strength': 10, 'enc_n_slice_dir': 512, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 2., # MNIST Non-Additive Encoder SLICED-WASSERSTEIN
+#                              # 'enc_reg_strength': 10, 'enc_n_slice_dir': 5, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.1, # CIFAR
+#                              # 'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 10}}  }# MNIST
+#                              'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 30, 'start': 0}}  }# CIFAR
 
 
 
 
 
+    # def visualize(mode='train'):
+    #     b_zero_one_range = True
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            # if model.__module__ == 'models.WAE.Model':
-            #     if div_step_tf is not None:
-            #         np_div_step, np_enc_step, np_gen_step, np_costs['div'], np_costs['enc'], np_costs['gen'], np_costs['cri'] = \
-            #         sess.run([div_step_tf, enc_step_tf, gen_step_tf, model.div_cost, model.enc_cost, 
-            #         model.cri_cost, model.gen_cost], feed_dict = curr_feed_dict)
-            #         step_counts['div'] = step_counts['div']+1
-            #         step_counts['enc'] = step_counts['enc']+1
-            #         step_counts['gen'] = step_counts['gen']+1
-            #     else:
-            #         np_enc_step, np_gen_step, np_costs['div'], np_costs['enc'], np_costs['gen'], np_costs['cri'] = \
-            #         sess.run([enc_step_tf, gen_step_tf, model.div_cost, model.enc_cost, 
-            #         model.cri_cost, model.gen_cost], feed_dict = curr_feed_dict)
-            #         step_counts['enc'] = step_counts['enc']+1
-            #         step_counts['gen'] = step_counts['gen']+1    
-            # else:
-            #     if (div_bool and div_step_tf is not None) and (enc_bool and enc_step_tf is not None) and (cri_bool and cri_step_tf is not None):
-            #         np_div_step, np_enc_step, np_cri_step = sess.run([div_step_tf, enc_step_tf, cri_step_tf], feed_dict = curr_feed_dict)
-            #         step_counts['div'] = step_counts['div']+1
-            #         step_counts['enc'] = step_counts['enc']+1
-            #         step_counts['cri'] = step_counts['cri']+1
-            #     else:   
-            #         if div_bool and div_step_tf is not None:
-            #             np_div_step = sess.run(div_step_tf, feed_dict = curr_feed_dict)
-            #             step_counts['div'] = step_counts['div']+1
-
-            #         if (enc_bool and enc_step_tf is not None) and (cri_bool and cri_step_tf is not None):
-            #             np_enc_step, np_cri_step = sess.run([enc_step_tf, cri_step_tf], feed_dict = curr_feed_dict)
-            #             step_counts['enc'] = step_counts['enc']+1
-            #             step_counts['cri'] = step_counts['cri']+1
-            #         else:
-            #             if enc_bool and enc_step_tf is not None:
-            #                 np_enc_step = sess.run(enc_step_tf, feed_dict = curr_feed_dict)
-            #                 step_counts['enc'] = step_counts['enc']+1
-                            
-            #             if cri_bool and cri_step_tf is not None:
-            #                 np_cri_step = sess.run(cri_step_tf, feed_dict = curr_feed_dict)
-            #                 step_counts['cri'] = step_counts['cri']+1
-
-            #     if gen_bool and gen_step_tf is not None:
-            #         np_gen_step, np_costs['div'], np_costs['enc'], np_costs['gen'], np_costs['cri'] = \
-            #         sess.run([gen_step_tf, model.div_cost, model.enc_cost, 
-            #         model.cri_cost, model.gen_cost], feed_dict = curr_feed_dict)
-            #         step_counts['gen'] = step_counts['gen']+1
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# if data_loader.__module__ == 'datasetLoaders.RandomManifoldDataLoader' or data_loader.__module__ == 'datasetLoaders.ToyDataLoader':
-#                 helper.visualize_datasets(sess, input_dict_func(batch), data_loader.dataset, generative_dict['obs_sample_out'],
-#                                           generative_dict['latent_sample_out'], train_outs_dict['transport_sample'], train_outs_dict['input_sample'],
-#                                           save_dir=global_args.exp_dir+'Visualization/', postfix=str(epoch)) 
-
-#                 xmin, xmax, ymin, ymax, X_dense, Y_dense = -2.5, 2.5, -2.5, 2.5, 250, 250
-#                 xlist = np.linspace(xmin, xmax, X_dense)
-#                 ylist = np.linspace(ymin, ymax, Y_dense)
-#                 X, Y = np.meshgrid(xlist, ylist)
-#                 XY = np.concatenate([X.reshape(-1,1), Y.reshape(-1,1)], axis=1)
-
-#                 batch['observed']['data']['flat'] = XY[:, np.newaxis, :]
-#                 cri_cost_real_np = sess.run(train_outs_dict['critic_real'], feed_dict = input_dict_func(batch, hyper_param))
-
-#                 batch['observed']['data']['flat'] = data_loader.dataset[:, np.newaxis, :]
-#                 cri_cost_real_real_np = sess.run(train_outs_dict['critic_real'], feed_dict = input_dict_func(batch, hyper_param))
-
-#                 cri_mean = cri_cost_real_real_np.mean()
-#                 cri_std = cri_cost_real_real_np.std()
-#                 cri_max = cri_mean+2*cri_std
-#                 cri_min = cri_mean-2*cri_std
-
-#                 np.clip(cri_cost_real_np, cri_min, cri_max, out=cri_cost_real_np)
-#                 f = np.reshape(cri_cost_real_np[:,0,0], [Y_dense, X_dense])
-#                 helper.plot_ffs(X, Y, f, save_dir=global_args.exp_dir+'Visualization/cririminator_function/', postfix='cririminator_function'+str(epoch))
-                
-#             else:
-
-
-
-        # no_gen_epoch_rate, no_gen_epoch_num = 20, 0
-        # if t<3 or ((epoch%no_gen_epoch_rate>=no_gen_epoch_num) and t%(critic_rate*generator_rate)==0): gen_bool = True
-
-
-
-    # def visualize(epoch):
-    #     data_loader.eval()
-
+    #     if mode=='train': data_loader.train(randomize=False)
+    #     else: data_loader.eval()
     #     hyperparam_dict = {'b_identity': 0.}
     #     helper.update_dict_from_file(hyperparam_dict, './hyperparam_file.py')
     #     all_np_posterior_latent_code= None
     #     all_np_prior_latent_code = None
     #     all_np_input_sample = None
     #     all_np_reconst_sample = None
+    #     all_np_interpolate_sample = None
+    #     all_np_fixed_sample = None
+    #     all_np_fixed_grid_sample = None
+    #     all_np_reconst_distances = None
+    #     all_np_real_sharness_var = None
+    #     all_np_reconst_sharness_var = None
+    #     all_np_sample_sharness_var = None
     #     all_labels_np = None
 
-    #     print('\n*************************************   VISUALIZATION STAGE   *************************************\n')
+    #     print('\n*************************************   VISUALIZATION STAGE: '+mode+'   *************************************\n')
     #     print('Obtaining visualization data.')
     #     start = time.time();
-    #     for batch_idx, curr_batch_size, batch in data_loader: 
-    #         hyper_param = np.asarray([epoch, hyperparam_dict['b_identity']])
-    #         curr_feed_dict = input_dict_func(batch, hyper_param)    
-
-    #         if global_args.curr_epoch % global_args.latent_vis_TSNE_epoch_rate[0] == global_args.latent_vis_TSNE_epoch_rate[1]: 
-    #             np_posterior_latent_code, np_prior_latent_code = sess.run([model.posterior_latent_code, model.prior_latent_code], feed_dict = curr_feed_dict)
-    #             if all_np_posterior_latent_code is None: all_np_posterior_latent_code = np_posterior_latent_code
-    #             else: all_np_posterior_latent_code = np.concatenate([all_np_posterior_latent_code, np_posterior_latent_code], axis=0)
-    #             if all_np_prior_latent_code is None: all_np_prior_latent_code = np_prior_latent_code
-    #             else: all_np_prior_latent_code = np.concatenate([all_np_prior_latent_code, np_prior_latent_code], axis=0)
-
-    #         if global_args.curr_epoch % global_args.reconst_vis_epoch_rate[0] == global_args.reconst_vis_epoch_rate[1]: 
-    #             np_input_sample, np_reconst_sample = sess.run([model.input_sample['image'], model.reconst_sample['image']], feed_dict = curr_feed_dict)
-    #             if all_np_input_sample is None or all_np_input_sample.shape[0]<400:
-    #                 if all_np_input_sample is None: all_np_input_sample = np_input_sample
-    #                 else: all_np_input_sample = np.concatenate([all_np_input_sample, np_input_sample], axis=0)
-    #             if all_np_reconst_sample is None or all_np_reconst_sample.shape[0]<400:
-    #                 if all_np_reconst_sample is None: all_np_reconst_sample = np_reconst_sample
-    #                 else: all_np_reconst_sample = np.concatenate([all_np_reconst_sample, np_reconst_sample], axis=0)
-
-    #         if batch['context']['data']['flat'] is not None:
-    #           if all_labels_np is None: all_labels_np = batch['context']['data']['flat'][:,0,:]
-    #           else: all_labels_np = np.concatenate([all_labels_np, batch['context']['data']['flat'][:,0,:]], axis=0)
-    #     end = time.time();
-    #     print('Obtained visualization data: Time: {:.3f}'.format((end - start)))
-
-    #     if global_args.compute_inception_score or global_args.compute_pigeonhole_score: 
-    #         n_random_samples = 50000
-    #         print('Obtaining {:d} random samples.'.format(n_random_samples))
-    #         start = time.time();
-    #         random_samples_from_model = np.zeros((n_random_samples, 1, data_loader.image_size, data_loader.image_size, 3))
-    #         curr_index = 0 
-    #         while curr_index<n_random_samples:
-    #             curr_samples = sess.run(model.gen_obs_sample['image'], feed_dict = curr_feed_dict)
-    #             end_index = min(curr_index+curr_samples.shape[0], n_random_samples)
-    #             random_samples_from_model[curr_index:end_index, ...] = curr_samples[:end_index-curr_index,...]
-    #             curr_index = end_index
-    #         end = time.time()
-    #         print('Obtained random samples: Time: {:.3f}'.format((end - start)))
-            
-    #         if global_args.compute_pigeonhole_score: 
-    #             print('Computing pidgeon-hole score.')
-    #             start = time.time();
-    #             pigeonhole_mean, pigeonhole_std = helper.pigeonhole_score(random_samples_from_model, subset=500, neigh=0.05)
-    #             end = time.time()
-    #             print('Pidgeon-hole Score -- Time: {:.3f} Mean: {:.3f} Std: {:.3f}'.format((end - start), pigeonhole_mean, pigeonhole_std))
-    #         if global_args.compute_inception_score:
-    #             print('Computing inception score.')
-    #             start = time.time();
-    #             inception_mean, inception_std = InceptionScoreModel.inception_score(random_samples_from_model)
-    #             end = time.time()
-    #             print('Inception Score -- Time: {:.3f} Mean: {:.3f} Std: {:.3f}'.format((end - start), inception_mean, inception_std))
-
-
-    #     if global_args.curr_epoch % global_args.reconst_vis_epoch_rate[0] == global_args.reconst_vis_epoch_rate[1]: 
-    #         print('Visualizing reconstructions')
-    #         start = time.time();
-    #         all_sample_reconst = helper.interleave_data([all_np_input_sample, all_np_reconst_sample])
-    #         helper.visualize_images2(all_sample_reconst[:2*int(np.sqrt(all_np_input_sample.shape[0]))**2, ...], 
-    #         block_size=[int(np.sqrt(all_np_input_sample.shape[0])), 2*int(np.sqrt(all_np_input_sample.shape[0]))], 
-    #         save_dir=global_args.exp_dir+'Visualization/test_real_sample_reconst/', postfix = '_test_real_sample_reconst'+str(epoch))
-            
-    #         end = time.time()
-    #         print('Visualized reconstructions: Time: {:.3f}'.format((end - start)))
-
-    #     if global_args.curr_epoch % global_args.latent_vis_TSNE_epoch_rate[0] == global_args.latent_vis_TSNE_epoch_rate[1]: 
-    #         print('Visualizing latents.')
-    #         start = time.time();
-    #         # all_np_prior_latent_code = all_np_prior_latent_code[:int(all_np_prior_latent_code.shape[0]*0.4), :]
-    #         all_np_prior_latent_code = all_np_prior_latent_code[:2000, :]
-    #         all_tsne_input = np.concatenate([all_np_posterior_latent_code, all_np_prior_latent_code], axis=0)
-
-
-    #         all_tsne = TSNE().fit_transform(all_tsne_input)
-
-    #         all_tsne_centered = all_tsne-np.mean(all_tsne, axis=0)[np.newaxis, :]
-    #         all_tsne_normalized = all_tsne_centered/(np.std(all_tsne_centered, axis=0)[np.newaxis, :]+1e-7)
-    #         all_tsne_normalized_posterior = all_tsne_normalized[:all_np_posterior_latent_code.shape[0],:]
-    #         all_tsne_normalized_prior = all_tsne_normalized[all_np_posterior_latent_code.shape[0]:,:]
-
-    #         class_wise = []
-    #         class_wise_sizes = []
-    #         if all_labels_np is None:
-    #           class_wise.append(all_tsne_normalized_posterior)
-    #         else:
-    #           for c in range(all_labels_np.shape[1]):
-    #             class_wise_z = all_tsne_normalized_posterior[all_labels_np[:,c].astype(bool),:]
-    #             class_wise_sizes.append(class_wise_z.shape[0])
-    #             class_wise.append(class_wise_z)
-    #           for i in range(len(class_wise)):
-    #             class_wise[i] = class_wise[i][:min(class_wise_sizes),:]
-
-    #         helper.dataset_plotter(class_wise, save_dir = global_args.exp_dir+'Visualization/z_projection_posterior/', postfix = '_z_projection_posterior'+str(epoch), postfix2 = 'z_projection_posterior')
-    #         helper.dataset_plotter([all_tsne_normalized_prior,], save_dir = global_args.exp_dir+'Visualization/z_projection_prior/', postfix = '_z_projection_prior'+str(epoch), postfix2 = 'z_projection_prior')
-    #         helper.dataset_plotter([all_tsne_normalized_prior, all_tsne_normalized_posterior], save_dir = global_args.exp_dir+'Visualization/z_projection_prior_posterior/', postfix = '_z_projection_prior_posterior'+str(epoch), postfix2 = 'z_projection_prior_posterior')
-            
-    #         end = time.time()
-    #         print('Visualized latents: Time: {:.3f}\n'.format((end - start)))
-
-
-
-
-# shutil.copyfile('./models/SLVM.py', global_args.exp_dir+'SLVM.py')
-# shutil.copyfile('./models/ModelGTM.py', global_args.exp_dir+'ModelGTM.py')
-# if os.path.exists('/var/scratch/mcgemici/'): 
-#     temp_dir = '/var/scratch/mcgemici/experiments/'+global_args.exp_dir
-#     shutil.move(global_args.exp_dir, temp_dir) 
-#     os.symlink(os.path.abspath(temp_dir), os.path.abspath(global_args.exp_dir))
-#     global_args.exp_dir = temp_dir
-
-
-    # def scheduler(epoch, t):
-    #     gen_bool, cri_bool, trans_bool = False, False, False
-
-    #     if data_loader.__module__ == 'datasetLoaders.RandomManifoldDataLoader' or data_loader.__module__ == 'datasetLoaders.ToyDataLoader':
-    #         if epoch < 100: critic_rate, generator_rate = 2, 5
-    #         else: critic_rate, generator_rate = 2, 5
-    #         no_gen_epoch_rate, no_gen_epoch_num = 20, 4
-
-    #         if t<3 or t%1==0: trans_bool = True
-    #         if t<3 or t%critic_rate==0: cri_bool = True
-    #         if t<3 or ((epoch%no_gen_epoch_rate>=no_gen_epoch_num) and t%(critic_rate*generator_rate)==0): gen_bool = True
-
-    #     else:
-    #         if epoch < 100: critic_rate, generator_rate = 1, 5
-    #         else: critic_rate, generator_rate = 1, 5
-
-    #         no_gen_epoch_rate, no_gen_epoch_num = 20, 0
-
-    #         if t<3 or t%1==0: trans_bool = True
-    #         if t<3 or t%critic_rate==0: cri_bool = True
-    #         if t<3 or ((epoch%no_gen_epoch_rate>=no_gen_epoch_num) and t%(critic_rate*generator_rate)==0): gen_bool = True
-
-    #     return gen_bool, cri_bool, trans_bool  
-
-
-
-# helper.draw_bar_plot(convex_mask_np, y_min_max = [0,1], save_dir=global_args.exp_dir+'Visualization/convex_mask/', postfix='convex_mask'+str(epoch))
-
-    # if global_args.optimizer_class == 'RmsProp':
-    #     if data_loader.__module__ == 'datasetLoaders.RandomManifoldDataLoader' or data_loader.__module__ == 'datasetLoaders.ToyDataLoader':
-    #         generator_step_tf = helper.clipped_optimizer_minimize(optimizer=tf.train.RMSPropOptimizer(learning_rate=global_args.learning_rate, momentum=0.5), 
-    #                                   loss=model.generator_cost, var_list=generator_vars, global_step=global_step, clip_param=global_args.gradient_clipping)
-    #         cririminator_step_tf = helper.clipped_optimizer_minimize(optimizer=tf.train.RMSPropOptimizer(learning_rate=global_args.learning_rate, momentum=0.5), 
-    #                                       loss=model.cririminator_cost, var_list=cririminator_vars, global_step=global_step, clip_param=global_args.gradient_clipping)
-    #         if model.encoder_cost is not None:
-    #             transport_step_tf = helper.clipped_optimizer_minimize(optimizer=tf.train.RMSPropOptimizer(learning_rate=global_args.learning_rate, momentum=0.5), 
-    #                                       loss=model.encoder_cost, var_list=encoder_vars, global_step=global_step, clip_param=global_args.gradient_clipping)
-    #     else:
-    #         generator_step_tf = helper.clipped_optimizer_minimize(optimizer=tf.train.RMSPropOptimizer(learning_rate=global_args.learning_rate, momentum=0.9), 
-    #                                   loss=model.generator_cost, var_list=generator_vars, global_step=global_step, clip_param=global_args.gradient_clipping)
-    #         cririminator_step_tf = helper.clipped_optimizer_minimize(optimizer=tf.train.RMSPropOptimizer(learning_rate=global_args.learning_rate, momentum=0.5), 
-    #                                       loss=model.cririminator_cost, var_list=cririminator_vars, global_step=global_step, clip_param=global_args.gradient_clipping)
-    #         if model.encoder_cost is not None:
-    #             transport_step_tf = helper.clipped_optimizer_minimize(optimizer=tf.train.RMSPropOptimizer(learning_rate=global_args.learning_rate, momentum=0.5), 
-    #                                       loss=model.encoder_cost, var_list=encoder_vars, global_step=global_step, clip_param=global_args.gradient_clipping)
-
         
-        # helper.visualize_images2(all_np_reconst_sample[:int(np.sqrt(all_np_reconst_sample.shape[0]))**2, ...],
-        # block_size=[int(np.sqrt(all_np_reconst_sample.shape[0])), int(np.sqrt(all_np_reconst_sample.shape[0]))],
-        # save_dir=global_args.exp_dir+'Visualization/test_reconstruction_only/', postfix='_test_reconstruction_only')
+    #     if True:        
+    #         hyper_param = np.asarray([global_args.curr_epoch, hyperparam_dict['b_identity']])
+    #         for batch_idx, curr_batch_size, batch in data_loader: 
+    #             curr_feed_dict = input_dict_func(batch, hyper_param)    
 
-        # helper.visualize_images2(all_np_input_sample[:int(np.sqrt(all_np_input_sample.shape[0]))**2, ...],
-        # block_size=[int(np.sqrt(all_np_input_sample.shape[0])), int(np.sqrt(all_np_input_sample.shape[0]))],
-        # save_dir=global_args.exp_dir+'Visualization/test_real_sample_only/', postfix='_test_real_sample_only')
+    #             if batch_idx == 1:
+    #                 # if hasattr(model, 'posterior_latent_code'):
+    #                 #     # DEBUG_transformed_posterior_latent_code,  DEBUG_posterior_latent_code, DEBUG_prior_latent_code, DEBUG_pre_prior_latent_code, DEBUG_FF_1, DEBUG_FF_2 = \
+    #                 #         # sess.run([model.transformed_posterior_latent_code, model.posterior_latent_code, model.prior_latent_code, model.pre_prior_latent_code, model.FF_1, model.FF_2], feed_dict = curr_feed_dict)
+    #                 #     DEBUG_transformed_posterior_latent_code,  DEBUG_posterior_latent_code, DEBUG_prior_latent_code, DEBUG_pre_prior_latent_code = \
+    #                 #         sess.run([model.transformed_posterior_latent_code, model.posterior_latent_code, model.prior_latent_code, model.pre_prior_latent_code], feed_dict = curr_feed_dict)
 
-# 'critic_reg_mode': ['Uniform Lipschitz',], 'enc_reg_strength': 10, 'enc_inv_MMD_n_trans': 5, 'enc_inv_MMD_strength': 20, 'cri_reg_strength': 1}
-# 'critic_reg_mode': ['Coupling Gradient Vector','Trivial Lipschitz'], 'enc_reg_strength': 10, 'enc_inv_MMD_n_trans': 5, 'enc_inv_MMD_strength': 20, 'cri_reg_strength': 1}
-# 'critic_reg_mode': ['Coupling Gradient Vector', 'Uniform Lipschitz'], 'enc_reg_strength': 10, 'enc_inv_MMD_n_trans': 5, 'enc_inv_MMD_strength': 20, 'cri_reg_strength': 1}
+    #                 #     print('DEBUG_posterior_latent_code:')
+    #                 #     print(DEBUG_posterior_latent_code[0,:])
+    #                 #     print('DEBUG_transformed_posterior_latent_code:')
+    #                 #     print(DEBUG_transformed_posterior_latent_code[0,:])
+    #                 #     print('DEBUG_pre_prior_latent_code:')
+    #                 #     print(DEBUG_pre_prior_latent_code[0,:])
+    #                 #     print('DEBUG_prior_latent_code:')
+    #                 #     print(DEBUG_prior_latent_code[0,:])
+                        
+    #                 #     # print('DEBUG_FF_1:')
+    #                 #     # print(DEBUG_FF_1[0,:])
+    #                 #     # print('DEBUG_FF_2:')
+    #                 #     # print(DEBUG_FF_2[0,:])
+
+
+    #                 if hasattr(model, 'transformed_pre_posterior_feature_abs_means'):
+    #                     DEBUG_transformed_pre_posterior_feature_abs_means = sess.run(model.transformed_pre_posterior_feature_abs_means, feed_dict = curr_feed_dict)
+
+    #                     print('DEBUG_transformed_pre_posterior_feature_abs_means:')
+    #                     print(DEBUG_transformed_pre_posterior_feature_abs_means)
+
+    #                 if hasattr(model, 'shouldbezero_cost'):
+    #                     # DEBUG_shouldbenormal, DEBUG_shouldbezero, DEBUG_isnormal, DEBUG_pre_prior_latent_code, DEBUG_transformed_posterior_latent_code, DEBUG_prior_latent_code = \
+    #                     # sess.run([model.shouldbenormal, model.shouldbezero, model.isnormal, model.pre_prior_latent_code, model.transformed_posterior_latent_code, model.prior_latent_code], feed_dict = curr_feed_dict)
+                        
+    #                     DEBUG_shouldbezero_cost, DEBUG_transformed_posterior_latent_code, DEBUG_transformed_posterior_latent_code_abs_means = \
+    #                     sess.run([model.shouldbezero_cost, model.transformed_posterior_latent_code, model.transformed_posterior_latent_code_abs_means], feed_dict = curr_feed_dict)
+                        
+    #                     # print('DEBUG_shouldbenormal mean:')
+    #                     # print(np.mean(DEBUG_shouldbenormal))
+    #                     # print('DEBUG_shouldbenormal std:')
+    #                     # print(np.std(DEBUG_shouldbenormal))
+    #                     # print('DEBUG_shouldbezero abs max:')
+    #                     # print(np.max(np.abs(DEBUG_shouldbezero)))
+    #                     # print('DEBUG_isnormal example:')
+    #                     # print(DEBUG_isnormal[0,:])
+    #                     # print('DEBUG_shouldbezero:')
+    #                     # print(DEBUG_shouldbezero)
+    #                     # print('DEBUG_prior_latent_code example:')
+    #                     # print(DEBUG_prior_latent_code[0,:])
+    #                     # print('DEBUG_transformed_posterior_latent_code_norm:')
+    #                     # print(DEBUG_transformed_posterior_latent_code_norm)
+
+    #                     print('DEBUG_shouldbezero_cost:')
+    #                     print(DEBUG_shouldbezero_cost)
+
+    #                     print('DEBUG_transformed_posterior_latent_code example:')
+    #                     print(DEBUG_transformed_posterior_latent_code[0,:])
+
+    #                     print('DEBUG_transformed_posterior_latent_code_abs_means:')
+    #                     print(DEBUG_transformed_posterior_latent_code_abs_means)
+
+    #                     # print('DEBUG_isnormal mean:')
+    #                     # print(np.mean(DEBUG_isnormal))
+    #                     # print('DEBUG_isnormal std:')
+    #                     # print(np.std(DEBUG_isnormal))
+
+    #                 if hasattr(model, 'decomposition_out_prior'):
+    #                     DEBUG_decomposition_out_prior, DEBUG_decomposition_out_posterior, DEBUG_deterioration_out_prior, DEBUG_deterioration_out_posterior = \
+    #                         sess.run([model.decomposition_out_prior, model.decomposition_out_posterior, model.deterioration_out_prior, model.deterioration_out_posterior], feed_dict = curr_feed_dict)
+
+    #                     DEBUG_decomposition_out_prior_norms = np.sqrt(np.sum(DEBUG_decomposition_out_prior**2, axis=-1))
+    #                     DEBUG_decomposition_out_posterior_norms = np.sqrt(np.sum(DEBUG_decomposition_out_posterior**2, axis=-1))
+
+    #                     DEBUG_decomposition_out_prior_norms_means = np.mean(DEBUG_decomposition_out_prior_norms, axis=0)
+    #                     DEBUG_decomposition_out_prior_norms_stds = np.std(DEBUG_decomposition_out_prior_norms, axis=0)
+    #                     DEBUG_decomposition_out_posterior_norms_means = np.mean(DEBUG_decomposition_out_posterior_norms, axis=0)
+    #                     DEBUG_decomposition_out_posterior_norms_stds = np.std(DEBUG_decomposition_out_posterior_norms, axis=0)
+    #                     print('DEBUG_decomposition_out_prior_norms_means:')
+    #                     print(DEBUG_decomposition_out_prior_norms_means)
+    #                     print('DEBUG_decomposition_out_posterior_norms_means:')
+    #                     print(DEBUG_decomposition_out_posterior_norms_means)
+
+    #                     print('DEBUG_decomposition_out_prior_norms_stds:')
+    #                     print(DEBUG_decomposition_out_prior_norms_stds)
+    #                     print('DEBUG_decomposition_out_posterior_norms_stds:')
+    #                     print(DEBUG_decomposition_out_posterior_norms_stds)
+    #                     print('')
+    #                     print('')
+
+
+    #                     DEBUG_deterioration_out_prior_norms = np.sqrt(np.sum(DEBUG_deterioration_out_prior**2, axis=-1))
+    #                     DEBUG_deterioration_out_posterior_norms = np.sqrt(np.sum(DEBUG_deterioration_out_posterior**2, axis=-1))
+
+    #                     DEBUG_deterioration_out_prior_norms_means = np.mean(DEBUG_deterioration_out_prior_norms, axis=0)
+    #                     DEBUG_deterioration_out_prior_norms_stds = np.std(DEBUG_deterioration_out_prior_norms, axis=0)
+    #                     DEBUG_deterioration_out_posterior_norms_means = np.mean(DEBUG_deterioration_out_posterior_norms, axis=0)
+    #                     DEBUG_deterioration_out_posterior_norms_stds = np.std(DEBUG_deterioration_out_posterior_norms, axis=0)
+    #                     print('DEBUG_deterioration_out_prior_norms_means:')
+    #                     print(DEBUG_deterioration_out_prior_norms_means)
+    #                     print('DEBUG_deterioration_out_posterior_norms_means:')
+    #                     print(DEBUG_deterioration_out_posterior_norms_means)
+
+    #                     print('DEBUG_deterioration_out_prior_norms_stds:')
+    #                     print(DEBUG_deterioration_out_prior_norms_stds)
+    #                     print('DEBUG_deterioration_out_posterior_norms_stds:')
+    #                     print(DEBUG_deterioration_out_posterior_norms_stds)
+
+    #                 if hasattr(model, 'mean_contraction_distance_sq'):
+    #                     # DEBUG_mean_posterior_latent_code_diff_norm_sq, DEBUG_mean_prior_latent_code_diff_norm_sq = \
+    #                     #     sess.run([model.mean_posterior_latent_code_diff_norm_sq, model.mean_prior_latent_code_diff_norm_sq], feed_dict = curr_feed_dict)
+    #                     # print('DEBUG_mean_posterior_latent_code_diff_norm_sq: ')
+    #                     # print(DEBUG_mean_posterior_latent_code_diff_norm_sq)
+    #                     # print('DEBUG_mean_prior_latent_code_diff_norm_sq: ')
+    #                     # print(DEBUG_mean_prior_latent_code_diff_norm_sq)
+    #                     DEBUG_mean_contraction_distance_sq = sess.run(model.mean_contraction_distance_sq, feed_dict = curr_feed_dict)
+
+    #                     print('DEBUG_mean_contraction_distance_sq')
+    #                     print(DEBUG_mean_contraction_distance_sq)
+
+    #                 if hasattr(model, 'coupling_line_grad_vector_penalties'):
+    #                     DEBUG_coupling_line_grad, DEBUG_coupling_line_grad_norm, DEBUG_desired_slope, DEBUG_coupling_line_grad_vector_penalties = \
+    #                         sess.run([model.coupling_line_grad, model.coupling_line_grad_norm, model.desired_slope, model.coupling_line_grad_vector_penalties], feed_dict = curr_feed_dict)
+                        
+    #                     DEBUG_coupling_line_grad_norm_computed = np.sqrt(np.sum(DEBUG_coupling_line_grad**2, axis=(-1,-2,-3)))[:,0]
+    #                     DEBUG_desired_slope_norm = np.sqrt(np.sum(DEBUG_desired_slope**2, axis=(-1,-2,-3)))[:,0]
+                        
+    #                     print('DEBUG_coupling_line_grad_norm_computed: ')
+    #                     print(DEBUG_coupling_line_grad_norm_computed)
+    #                     print('DEBUG_coupling_line_grad_norm: ')
+    #                     print(DEBUG_coupling_line_grad_norm[:, 0, 0])
+    #                     print('DEBUG_desired_slope_norm: ')
+    #                     print(DEBUG_desired_slope_norm)
+    #                     print('DEBUG_coupling_line_grad_vector_penalties: ')
+    #                     print(DEBUG_coupling_line_grad_vector_penalties[:, 0, 0])
+
