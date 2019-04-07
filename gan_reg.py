@@ -76,12 +76,13 @@ elif Algorithm == 'WAEInfoFlowMMD':
                              # 'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 512, 'n_flat': 400, # CIFAR
                              'encoder_mode': 'UnivApproxNoSpatial_resnet_additive', 'divergence_mode': 'FLOW-MMD', 'dual_dist_mode': '',  'infomax_mode': 'GaussianFixedForAll',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
-                             'enc_reg_strength': 10, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 2., # MNIST Additive Encoder FLOW-MMD
+                             'enc_reg_strength': 10, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 1., # MNIST Additive Encoder FLOW-MMD
                              # 'enc_reg_strength': 10, 'enc_n_slice_dir': 5, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 1., # MNIST Non-Additive Encoder FLOW-MMD
                              # 'enc_reg_strength': 10, 'enc_n_slice_dir': 512, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 2., # MNIST Non-Additive Encoder SLICED-WASSERSTEIN
                              # 'enc_reg_strength': 10, 'enc_n_slice_dir': 5, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.1, # CIFAR
                              # 'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 10}}  }# MNIST
-                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 30, 'start': 0}}  }# CIFAR
+                             # 'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 30, 'start': 0}}  }# CIFAR
+                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 0}}  }# CIFAR
 elif Algorithm == 'WAESubmanifold':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 5, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 32, 'n_flat': 400, 
@@ -447,8 +448,8 @@ elif dataset_to_use == 'MNIST':
     parser.add_argument('--fixed_samples_vis_epoch_rate', type=list, default=[3,1], help='fixed samples epoch repeat')
     parser.add_argument('--fid_inception_score_epoch_rate', type=list, default=[0,1], help='compute fid and inception score')
     parser.add_argument('--pigeonhole_score_epoch_rate', type=list, default=[0,1], help='compute pigeonhole score')
-    parser.add_argument('--reconstruction_score_epoch_rate', type=list, default=[1,0], help='compute reconstruction score')
-    parser.add_argument('--sharpness_score_epoch_rate', type=list, default=[1,0], help='compute sharpness score')
+    parser.add_argument('--reconstruction_score_epoch_rate', type=list, default=[10,0], help='compute reconstruction score')
+    parser.add_argument('--sharpness_score_epoch_rate', type=list, default=[10,0], help='compute sharpness score')
 
     parser.add_argument('--n_context', type=int, default=1, help='n_context.')
     parser.add_argument('--n_state', type=int, default=1, help='n_state.')
