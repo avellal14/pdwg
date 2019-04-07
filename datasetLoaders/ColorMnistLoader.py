@@ -11,7 +11,7 @@ from tensorflow.examples.tutorials.mnist import input_data
 import matplotlib
 
 class DataLoader:
-	def __init__(self, batch_size, time_steps, data_type='regular', b_fixed_amplitute=True, b_context=True, cuda=False):
+	def __init__(self, batch_size, time_steps, data_type='regular', b_fixed_amplitute=False, b_context=True, cuda=False):
 		self.batch_size = batch_size
 		self.time_steps = time_steps
 		self.mode = 'Train'
