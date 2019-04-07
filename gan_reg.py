@@ -1044,10 +1044,10 @@ with tf.Graph().as_default():
             sample_sharpness_score_std = np.std(all_np_sample_sharness_var)
 
             end = time.time()
-            print('Sharpness Stats -- Time: {:.3f} Real Sharpness Mean: {:.6f} Real Sharpness Std: {:.6f} Reconstruction Sharpness Mean: {:.6f} Reconstruction Sharpness Std: {:.6f} Sample Sharpness Mean: {:.6f} Sample Sharpness Std: {:.6f}'.format(\
+            print('Sharpness Stats -- Time: {:.3f} Real Sha. Mean: {:.6f} Real Sha. Std: {:.6f} Rec. Sha. Mean: {:.6f} Rec. Sha. Std: {:.6f} Sample Sha. Mean: {:.6f} Sample Sha. Std: {:.6f}'.format(\
                 (end - start), real_sharpness_score_mean, real_sharpness_score_std, reconst_sharpness_score_mean, reconst_sharpness_score_std, sample_sharpness_score_mean, sample_sharpness_score_std))
             with open(global_args.exp_dir+mode+"_sharpness_stats.txt", "a") as text_file:
-                text_file.write('Epoch: {:d} Real Sharpness Mean: {:.6f} Real Sharpness Std: {:.6f} Reconstruction Sharpness Mean: {:.6f} Reconstruction Sharpness Std: {:.6f} Sample Sharpness Mean: {:.6f} Sample Sharpness Std: {:.6f}'.format(\
+                text_file.write('Epoch: {:d} Real Sha. Mean: {:.6f} Real Sha. Std: {:.6f} Rec. Sha. Mean: {:.6f} Rec. Sha. Std: {:.6f} Sample Sha. Mean: {:.6f} Sample Sha. Std: {:.6f}'.format(\
                     global_args.curr_epoch, real_sharpness_score_mean, real_sharpness_score_std, reconst_sharpness_score_mean, reconst_sharpness_score_std, sample_sharpness_score_mean, sample_sharpness_score_std)+'\n')
 
         if global_args.reconst_vis_epoch_rate[0]>0 and global_args.curr_epoch % global_args.reconst_vis_epoch_rate[0] == global_args.reconst_vis_epoch_rate[1]: 
