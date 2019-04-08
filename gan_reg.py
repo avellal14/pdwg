@@ -194,8 +194,8 @@ global_experiment_name = str(Path.home())+'/ExperimentalResults/EEEexperimentsSt
 
 parser = argparse.ArgumentParser(description='Tensorflow Gan Models')
 parser.add_argument('--exp_dir_postfix', type=str, default='', help='Directory to put the experiment postfix.')
-# parser.add_argument('--save_checkpoints_epoch_rate', type=list, default=[25,1], help='epoch rate for storing checkpoints')
-parser.add_argument('--save_checkpoints_epoch_rate', type=list, default=[0,1], help='epoch rate for storing checkpoints')
+parser.add_argument('--save_checkpoints_epoch_rate', type=list, default=[25,1], help='epoch rate for storing checkpoints')
+# parser.add_argument('--save_checkpoints_epoch_rate', type=list, default=[0,1], help='epoch rate for storing checkpoints')
 parser.add_argument('--restore_dir', type=str, default='/8b0e7319641543e681240aff438d9df3/', help='Directory of restore experiment.')
 parser.add_argument('--restore', type=bool, default=False, help='Restore model.')
 parser.add_argument('--gpu', type=str, default='0', help='gpu to use.')
