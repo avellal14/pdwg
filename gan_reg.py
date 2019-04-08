@@ -82,7 +82,7 @@ elif Algorithm == 'WAEInfoFlowMMD' and dataset_to_use == 'CIFAR10':
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 512, 'n_flat': 400, 
                              'encoder_mode': 'UnivApproxNoSpatial_resnet_additive', 'divergence_mode': 'FLOW-MMD', 'dual_dist_mode': '',  'infomax_mode': 'GaussianFixedForAll',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
-                             'enc_reg_strength': 10, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.5, # CIFAR
+                             'enc_reg_strength': 10, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.2, # CIFAR
                              'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 0}}  }
 elif Algorithm == 'WAESubmanifold':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
@@ -419,10 +419,10 @@ elif dataset_to_use == 'CIFAR10':
     parser.add_argument('--reconst_vis_epoch_rate', type=list, default=[3,1], help='reconst epoch repeat')
     parser.add_argument('--interpolate_vis_epoch_rate', type=list, default=[3,1], help='interpolation epoch repeat')
     parser.add_argument('--fixed_samples_vis_epoch_rate', type=list, default=[3,1], help='fixed samples epoch repeat')
-    parser.add_argument('--fid_inception_score_epoch_rate', type=list, default=[25,1], help='compute fid and inception score')
-    parser.add_argument('--pigeonhole_score_epoch_rate', type=list, default=[25,1], help='compute pigeonhole score')
-    parser.add_argument('--reconstruction_score_epoch_rate', type=list, default=[25,1], help='compute reconstruction score')
-    parser.add_argument('--sharpness_score_epoch_rate', type=list, default=[25,1], help='compute sharpness score')
+    parser.add_argument('--fid_inception_score_epoch_rate', type=list, default=[25,10], help='compute fid and inception score')
+    parser.add_argument('--pigeonhole_score_epoch_rate', type=list, default=[25,10], help='compute pigeonhole score')
+    parser.add_argument('--reconstruction_score_epoch_rate', type=list, default=[25,10], help='compute reconstruction score')
+    parser.add_argument('--sharpness_score_epoch_rate', type=list, default=[25,10], help='compute sharpness score')
 
     parser.add_argument('--n_context', type=int, default=1, help='n_context.')
     parser.add_argument('--n_state', type=int, default=1, help='n_state.')
