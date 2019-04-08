@@ -138,7 +138,6 @@ class Model():
         if self.config['encoder_mode'] == 'Gaussian' or self.config['encoder_mode'] == 'UnivApprox' or 'UnivApproxNoSpatial' in self.config['encoder_mode'] or self.config['encoder_mode'] == 'UnivApproxSine': 
             self.epsilon_param = self.EpsilonMap.forward((tf.zeros(shape=(self.batch_size_tf, 1)),))
             self.epsilon_dist = distributions.DiagonalGaussianDistribution(params = self.epsilon_param)        
-            # self.epsilon_dist = distributions.BernoulliDistribution(params = self.epsilon_param)        
             self.epsilon = self.epsilon_dist.sample()
             
         self.flow_param_list = self.FlowMap.forward()
@@ -228,10 +227,8 @@ class Model():
 
         self.info_param = self.InfoMap.forward(self.posterior_latent_code)
         self.info_dist = distributions.DiagonalGaussianDistribution(params = self.info_param)
-        # self.info_dist = distributions.BernoulliDistribution(params = self.info_param)
         self.epsilon_info_log_pdf = self.info_dist.log_pdf(self.epsilon)
         self.info_cost = -(self.config['n_latent']/2)*(1+np.log(2*np.pi))-tf.reduce_mean(self.epsilon_info_log_pdf)
-        # self.info_cost = 0
 
         self.interpolated_posterior_latent_code = helper.interpolate_latent_codes(self.posterior_latent_code, size=self.batch_size_tf//2)
         self.interpolated_obs = self.Generator.forward(self.interpolated_posterior_latent_code) 

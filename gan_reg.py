@@ -33,8 +33,8 @@ else:
 # dataset_to_use = 'IMAGENET'
 # dataset_to_use = 'BEDROOM'
 # dataset_to_use = 'CELEB'
-# dataset_to_use = 'CIFAR10'
-dataset_to_use = 'MNIST'
+dataset_to_use = 'CIFAR10'
+# dataset_to_use = 'MNIST'
 # dataset_to_use = 'CAT'
 # dataset_to_use = 'FLOWERS'
 # dataset_to_use = 'CUB'
@@ -70,16 +70,20 @@ elif Algorithm == 'WAEInfo':
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 100, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.15,  # CIFAR batch_size=100 fixed to one across dimensions n_latent=500
                              'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
-elif Algorithm == 'WAEInfoFlowMMD':
+elif Algorithm == 'WAEInfoFlowMMD' and dataset_to_use == 'MNIST':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 256, 'n_flat': 400, # MNIST 
-                             # 'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 512, 'n_flat': 400, # CIFAR
                              'encoder_mode': 'UnivApproxNoSpatial_resnet_additive', 'divergence_mode': 'FLOW-MMD', 'dual_dist_mode': '',  'infomax_mode': 'GaussianFixedForAll',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 10, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.75, # MNIST Additive Encoder FLOW-MMD
-                             # 'enc_reg_strength': 10, 'enc_n_slice_dir': 5, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.1, # CIFAR
-                             # 'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 30, 'start': 0}}  }# CIFAR
-                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 0}}  }# CIFAR
+                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 0}}  }
+elif Algorithm == 'WAEInfoFlowMMD' and dataset_to_use == 'CIFAR10':
+    alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
+                             'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 512, 'n_flat': 400, 
+                             'encoder_mode': 'UnivApproxNoSpatial_resnet_additive', 'divergence_mode': 'FLOW-MMD', 'dual_dist_mode': '',  'infomax_mode': 'GaussianFixedForAll',
+                             'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
+                             'enc_reg_strength': 10, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.1, # CIFAR
+                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 0}}  }
 elif Algorithm == 'WAESubmanifold':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 5, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 32, 'n_flat': 400, 
@@ -415,10 +419,10 @@ elif dataset_to_use == 'CIFAR10':
     parser.add_argument('--reconst_vis_epoch_rate', type=list, default=[3,1], help='reconst epoch repeat')
     parser.add_argument('--interpolate_vis_epoch_rate', type=list, default=[3,1], help='interpolation epoch repeat')
     parser.add_argument('--fixed_samples_vis_epoch_rate', type=list, default=[3,1], help='fixed samples epoch repeat')
-    parser.add_argument('--fid_inception_score_epoch_rate', type=list, default=[0,1], help='compute fid and inception score')
-    parser.add_argument('--pigeonhole_score_epoch_rate', type=list, default=[0,1], help='compute pigeonhole score')
-    parser.add_argument('--reconstruction_score_epoch_rate', type=list, default=[3,1], help='compute reconstruction score')
-    parser.add_argument('--sharpness_score_epoch_rate', type=list, default=[3,1], help='compute sharpness score')
+    parser.add_argument('--fid_inception_score_epoch_rate', type=list, default=[25,1], help='compute fid and inception score')
+    parser.add_argument('--pigeonhole_score_epoch_rate', type=list, default=[25,1], help='compute pigeonhole score')
+    parser.add_argument('--reconstruction_score_epoch_rate', type=list, default=[10,1], help='compute reconstruction score')
+    parser.add_argument('--sharpness_score_epoch_rate', type=list, default=[10,1], help='compute sharpness score')
 
     parser.add_argument('--n_context', type=int, default=1, help='n_context.')
     parser.add_argument('--n_state', type=int, default=1, help='n_state.')
@@ -777,7 +781,6 @@ with tf.Graph().as_default():
 
                 start = time.time()
                 if global_args.in_between_vis>0 and report_count % global_args.in_between_vis == 0: 
-                    # for mode in ['Fixed', 'Random']:
                     for mode in ['Random',]:
                         if mode == 'Fixed': batch['observed']['data']['image'] = fixed_batch_data
                         else: batch['observed']['data']['image'] = random_batch_data
@@ -1217,6 +1220,41 @@ with tf.Graph().as_default():
         
         print('Experiment Directory: ', global_args.exp_dir)
         global_args.curr_epoch += 1 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
