@@ -688,7 +688,7 @@ class NonLinearIARFlow():
     """
     layer_expansions=[2,]
 
-    def __init__(self, input_dim, parameters, mode='VolumePreserving', name='nonlinearIAR_transform'):   #real
+    def __init__(self, input_dim, parameters, mode='BoundedScaleShift', name='nonlinearIAR_transform'):   #real
         self._parameter_scale = 1
         self._parameters = self._parameter_scale*parameters
         self._input_dim = input_dim
@@ -810,7 +810,8 @@ class NonLinearIARFlow():
             z = mu+scale*z0
             log_abs_det_jacobian = tf.reduce_sum(pre_scale, axis=[1], keep_dims=True)
         elif self._mode == 'BoundedScaleShift':
-            mu = tf.nn.tanh(pre_mu)*5
+            mu = pre_mu
+            # mu = tf.nn.tanh(pre_mu)*5
             scale = 0.1+tf.nn.sigmoid(pre_scale)*5
             z_change = mu+scale*z0_change
             log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
