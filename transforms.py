@@ -811,9 +811,8 @@ class NonLinearIARFlow():
             log_abs_det_jacobian = tf.reduce_sum(pre_scale, axis=[1], keep_dims=True)
         elif self._mode == 'BoundedScaleShift':
             mu = pre_mu
-            # mu = tf.nn.tanh(pre_mu)*5
             scale = 0.1+tf.nn.sigmoid(pre_scale)*2
-            z_change = mu+scale*z0_change
+            z_change = mu+scale*z0
             log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
         elif self._mode == 'VolumePreserving':
             mu = pre_mu
