@@ -419,8 +419,8 @@ elif dataset_to_use == 'CIFAR10':
     parser.add_argument('--reconst_vis_epoch_rate', type=list, default=[3,1], help='reconst epoch repeat')
     parser.add_argument('--interpolate_vis_epoch_rate', type=list, default=[3,1], help='interpolation epoch repeat')
     parser.add_argument('--fixed_samples_vis_epoch_rate', type=list, default=[3,1], help='fixed samples epoch repeat')
-    parser.add_argument('--fid_inception_score_epoch_rate', type=list, default=[50,0], help='compute fid and inception score')
-    parser.add_argument('--pigeonhole_score_epoch_rate', type=list, default=[50,0], help='compute pigeonhole score')
+    parser.add_argument('--fid_inception_score_epoch_rate', type=list, default=[50,10], help='compute fid and inception score')
+    parser.add_argument('--pigeonhole_score_epoch_rate', type=list, default=[50,10], help='compute pigeonhole score')
     parser.add_argument('--reconstruction_score_epoch_rate', type=list, default=[10,1], help='compute reconstruction score')
     parser.add_argument('--sharpness_score_epoch_rate', type=list, default=[10,1], help='compute sharpness score')
 
