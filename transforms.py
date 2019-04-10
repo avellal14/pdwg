@@ -688,7 +688,7 @@ class NonLinearIARFlow():
     """
     layer_expansions=[2,]
 
-    def __init__(self, input_dim, parameters, mode='BoundedScaleShift', name='nonlinearIAR_transform'):   #real
+    def __init__(self, input_dim, parameters, mode='VolumePreserving', name='nonlinearIAR_transform'):   #real
         self._parameter_scale = 1
         self._parameters = self._parameter_scale*parameters
         self._input_dim = input_dim
