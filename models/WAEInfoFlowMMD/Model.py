@@ -293,7 +293,7 @@ class Model():
             self.div_reg_cost = tf.reduce_mean(self.trivial_line_grad_norm_1_penalties)
             self.div_cost = -(tf.reduce_mean(self.div_posterior)-tf.reduce_mean(self.div_prior))+10*self.div_reg_cost
 
-        self.div_cost = helper.hardstep((self.epoch-float(self.config['timers']['0']['start']))/float(self.config['timers']['0']['timescale'])+0.00001)*(1*self.div_cost)
+        self.div_cost = helper.hardstep((self.epoch-float(self.config['timers']['0']['start']))/float(self.config['timers']['0']['timescale'])+1e-5)*self.div_cost
 
         if self.config['divergence_mode'] == 'MMD' or self.config['divergence_mode'] == 'SLICED-WASSERSTEIN' or self.config['divergence_mode'] == 'SLICED-SORTED-WASSERSTEIN':
             self.enc_reg_cost = self.MMD
@@ -313,10 +313,9 @@ class Model():
         ### Encoder
         self.OT_primal = self.sample_distance_function(self.input_sample, self.reconst_sample)
         self.mean_OT_primal = tf.reduce_mean(self.OT_primal)
+        self.enc_overall_cost = self.config['enc_reg_strength']*self.enc_reg_cost + self.config['enc_inv_MMD_strength']*self.info_cost
         if '0' in self.config['timers']: 
-            self.enc_overall_cost = helper.hardstep((self.epoch-float(self.config['timers']['0']['start']))/float(self.config['timers']['0']['timescale'])+0.00001)*(self.config['enc_reg_strength']*self.enc_reg_cost + self.config['enc_inv_MMD_strength']*self.info_cost)
-        else:
-            self.enc_overall_cost = self.config['enc_reg_strength']*self.enc_reg_cost + self.config['enc_inv_MMD_strength']*self.info_cost
+            self.enc_overall_cost = helper.hardstep((self.epoch-float(self.config['timers']['0']['start']))/float(self.config['timers']['0']['timescale'])+1e-5)*enc_overall_cost
         self.enc_cost = self.mean_OT_primal + self.enc_overall_cost 
 
         ### Generator
