@@ -293,6 +293,8 @@ class Model():
             self.div_reg_cost = tf.reduce_mean(self.trivial_line_grad_norm_1_penalties)
             self.div_cost = -(tf.reduce_mean(self.div_posterior)-tf.reduce_mean(self.div_prior))+10*self.div_reg_cost
 
+        self.div_cost = helper.hardstep((self.epoch-float(self.config['timers']['0']['start']))/float(self.config['timers']['0']['timescale'])+0.00001)*(1*self.div_cost)
+
         if self.config['divergence_mode'] == 'MMD' or self.config['divergence_mode'] == 'SLICED-WASSERSTEIN' or self.config['divergence_mode'] == 'SLICED-SORTED-WASSERSTEIN':
             self.enc_reg_cost = self.MMD
         elif self.config['divergence_mode'] == 'FLOW-MMD': 
@@ -303,7 +305,7 @@ class Model():
             self.enc_reg_cost = tf.reduce_mean(tf.log(1-tf.nn.sigmoid(self.div_posterior)+1e-7))
         elif self.config['divergence_mode'] == 'WGAN-GP': 
             self.enc_reg_cost = -tf.reduce_mean(self.div_prior)
-        
+
         ### Critic
         self.cri_reg_cost = self.info_cost
         self.cri_cost = self.cri_reg_cost
