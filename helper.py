@@ -235,10 +235,10 @@ def sigmoid_J(x):
 	return (1-tf.sigmoid(x))*tf.sigmoid(x)
 
 def upper_bounded_nonlinearity(x, max_value=1):
-	return max_value-tf.math.softplus(max_value-x)
+	return max_value-tf.nn.softplus(max_value-x)
 
 def lower_bounded_nonlinearity(x, min_value=-1):
-	return tf.math.softplus(x-min_value)+min_value
+	return tf.nn.softplus(x-min_value)+min_value
 
 def tanh_J(x):
 	return 1-tf.nn.tanh(x)**2
@@ -1646,21 +1646,47 @@ def householder_matrix_tf(batch, n, k, init_reflection=1, u_var=None):
 	H_mat = tf.concat([H_mat_id, H_ref_column], axis=2)
 	return H_mat
 
-def householder_rotations_tf(n, batch=10, k_start=1, init_reflection=1, params=None):
+def householder_rotations_tf(n, k_start=1, init_reflection=1, params=None):
 	M_k_start_list = []
 	W = None 
+	batch = 1
+	if params.get_shape().as_list()[1] == 0: params = None
 	if params is not None: 
-		params_split = tf.split(params, list(range(max(2, k_start), n+1)), axis=1)
 		batch = tf.shape(params)[0]
+		params_split = tf.split(params, list(range(max(2, k_start), n+1)), axis=1)
+	
 	for k in range(k_start, n+1):
 		if k % 20 == 0: print('Householder rotation progress: '+ str(k) + '/' + str(n))
 		if params is None or k == 1: u_var = None
 		else: u_var = params_split[k-max(2, k_start)]
-		H_k = householder_matrix_tf(batch, n, k, init_reflection, u_var)
+		H_k = householder_matrix_tf(batch, n, k, float(init_reflection), u_var)
 		M_k_start_list.append(H_k)
 		if W is None: W = H_k
 		else: W = tf.matmul(H_k, W)
 	return W
+
+def householder_rotation_vectors_tf(n, k_start=1, init_reflection=1, params=None):
+	list_householder_dir_vecs = []
+	batch = 1
+	if params.get_shape().as_list()[1] == 0: params = None
+	if params is not None: 
+		batch = tf.shape(params)[0]
+		params_split = tf.split(params, list(range(max(2, k_start), n+1)), axis=1)
+
+	for k in range(k_start, n+1):
+		if k % 20 == 0: print('Householder rotation progress: '+ str(k) + '/' + str(n))
+		if params is None or k == 1: u_var = None
+		else: u_var = params_split[k-max(2, k_start)]
+
+		if k == 1:
+			list_householder_dir_vecs.append(float(init_reflection))
+		else:
+			if u_var is None: 
+				pdb.set_trace()
+				u_var = tf.random_normal((batch, k), 0, 1, dtype=tf.float32)
+			u_dir = u_var/safe_tf_sqrt(tf.reduce_sum(u_var**2, axis=1, keep_dims=True))
+			list_householder_dir_vecs.append(u_dir)
+	return list_householder_dir_vecs
 
 def tf_resize_image(x, resize_ratios=[2,2]):
 	return tf.image.resize_images(x, [resize_ratios[0]*x.get_shape().as_list()[1], resize_ratios[1]*x.get_shape().as_list()[2]], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
