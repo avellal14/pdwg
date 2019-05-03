@@ -134,7 +134,7 @@ ax2.set_zlim(range_1_min, range_1_max)
 set_axis_prop(ax, grid_on, ticks_on, axis_on )
 
 animate_mode = 'elevazim'
-animate([ax1, ax2], n_turns = 1, skip_rate = 20, mode=animate_mode, quality=quality, grid_on=axis_on, ticks_on=axis_on, axis_on=axis_on, save_path=exp_dir+animate_mode+'_rotation')
+animate([ax1, ax2], n_turns = 1, skip_rate = 20, mode=animate_mode, quality=quality, grid_on=grid_on, ticks_on=ticks_on, axis_on=axis_on, save_path=exp_dir+animate_mode+'_rotation')
 
 if not platform.dist()[0] == 'Ubuntu': plt.show()
 
