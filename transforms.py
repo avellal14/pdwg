@@ -491,11 +491,13 @@ class ConnectedPiecewiseOrthogonalMap():
     Raises:
       ValueError: 
     """
-    def __init__(self, input_dim, parameters, name='connected_piecewise_orthogonal_transform'):   
+    def __init__(self, input_dim, parameters, margin_mode='NoGradient', name='connected_piecewise_orthogonal_transform'):   
         self._parameter_scale = 1.
         self._parameters = parameters
         if self._parameters is not None: self._parameters = self._parameter_scale*self._parameters
         self._input_dim = input_dim
+        self._margin_mode = margin_mode
+        assert (self._margin_mode == 'NoGradient' or self._margin_mode == 'ST')
 
     @property
     def input_dim(self):
@@ -522,16 +524,19 @@ class ConnectedPiecewiseOrthogonalMap():
         hyper_pre_bias, param_index = helper.slice_parameters(self._parameters, param_index, 1)
         hyper_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim) 
 
-        pos_scale = tf.nn.softplus(pos_pre_scale)
-        neg_scale = tf.nn.softplus(neg_pre_scale)
-        hyper_bias = tf.nn.softplus(hyper_pre_bias)
+        pos_scale = tf.nn.softplus(pos_pre_scale)/np.log(1+np.exp(0))
+        neg_scale = tf.nn.softplus(neg_pre_scale)/np.log(1+np.exp(0))
+        hyper_bias = tf.nn.softplus(hyper_pre_bias)/np.log(1+np.exp(0))
         hyper_vec_dir = hyper_vec/helper.safe_tf_sqrt(tf.reduce_sum(hyper_vec**2, axis=1, keep_dims=True))
         pos_householder_flow = HouseholdRotationFlow(self._input_dim, pos_householder_param) 
         neg_householder_flow = HouseholdRotationFlow(self._input_dim, neg_householder_param) 
 
         z_centered = z0-hyper_vec_dir*hyper_bias
         margin = tf.reduce_sum(hyper_vec_dir*z_centered, axis=1, keep_dims=True)
-        pos_mask = tf.stop_gradient(tf.cast(margin>=0, tf.float32)) #tf.sign(margin) # margin >= 0 return 1 else 0 
+        if self._margin_mode == 'NoGradient':
+            pos_mask = tf.stop_gradient(tf.cast(margin>=0, tf.float32)) # margin >= 0 return 1 else 0 
+        elif self._margin_mode == 'ST':
+            pos_mask = helper.binaryStochastic_ST(margin) # margin >= ~9e-8 return 1 else 0
         neg_mask = 1-pos_mask
         
         pos_batched_rot_matrix = pos_householder_flow.get_batched_rot_matrix()
@@ -553,16 +558,19 @@ class ConnectedPiecewiseOrthogonalMap():
         hyper_pre_bias, param_index = helper.slice_parameters(self._parameters, param_index, 1)
         hyper_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim) 
 
-        pos_scale = tf.nn.softplus(pos_pre_scale)
-        neg_scale = tf.nn.softplus(neg_pre_scale)
-        hyper_bias = tf.nn.softplus(hyper_pre_bias)
+        pos_scale = tf.nn.softplus(pos_pre_scale)/np.log(1+np.exp(0))
+        neg_scale = tf.nn.softplus(neg_pre_scale)/np.log(1+np.exp(0))
+        hyper_bias = tf.nn.softplus(hyper_pre_bias)/np.log(1+np.exp(0))
         hyper_vec_dir = hyper_vec/helper.safe_tf_sqrt(tf.reduce_sum(hyper_vec**2, axis=1, keep_dims=True))
         pos_householder_flow = HouseholdRotationFlow(self._input_dim, pos_householder_param) 
         neg_householder_flow = HouseholdRotationFlow(self._input_dim, neg_householder_param) 
 
         z_centered = z0-hyper_vec_dir*hyper_bias
         margin = tf.reduce_sum(hyper_vec_dir*z_centered, axis=1, keep_dims=True)
-        pos_mask = tf.stop_gradient(tf.cast(margin>=0, tf.float32)) #tf.sign(margin) # margin >= 0 return 1 else 0 
+        if self._margin_mode == 'NoGradient':
+            pos_mask = tf.stop_gradient(tf.cast(margin>=0, tf.float32)) # margin >= 0 return 1 else 0 
+        elif self._margin_mode == 'ST':
+            pos_mask = helper.binaryStochastic_ST(margin) # margin >= ~9e-8 return 1 else 0
         neg_mask = 1-pos_mask
         
         z_pos_rot, _ = pos_householder_flow.transform(z_centered, tf.zeros(shape=(tf.shape(z0)[0], 1), dtype=tf.float32))
@@ -1436,38 +1444,35 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 # print('all_log_density_changes vs all_log_density_changes_computed max abs diff: ', np.abs(all_log_density_changes-all_log_density_changes_computed).max())
 # pdb.set_trace()
 
+# batch_size = 50
+# n_latent = 2
+# n_out = 3
+# n_input_CPO, n_output_CPO = 4, 4
+# name = 'transform'
+# transform_to_check = RiemannianFlow
+# n_parameter = transform_to_check.required_num_parameters(n_latent, n_out, n_input_CPO, n_output_CPO)
 
+# parameters = None
+# if n_parameter > 0: parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
 
+# z0 = tf.random_normal((batch_size, n_latent), 0, 1, dtype=tf.float32)
+# log_pdf_z0 = tf.zeros(shape=(batch_size, 1), dtype=tf.float32)
+# transform1 = transform_to_check(input_dim=n_latent, output_dim=n_out, n_input_CPO=n_input_CPO, n_output_CPO=n_output_CPO, parameters=parameters)
+# z, log_pdf_z = transform1.transform(z0, log_pdf_z0)
 
-batch_size = 50
-n_latent = 2
-n_out = 3
-n_input_CPO, n_output_CPO = 4, 4
-name = 'transform'
-transform_to_check = RiemannianFlow
-n_parameter = transform_to_check.required_num_parameters(n_latent, n_out, n_input_CPO, n_output_CPO)
+# init = tf.initialize_all_variables()
+# sess = tf.InteractiveSession()  
+# sess.run(init)
 
-parameters = None
-if n_parameter > 0: parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
+# import time
+# print('Start Timer: ')
+# start = time.time();
+# for i in range(1000):
+#     z0_np, log_pdf_z0_np, z_np, log_pdf_z_np = sess.run([z0, log_pdf_z0, z, log_pdf_z])
 
-z0 = tf.random_normal((batch_size, n_latent), 0, 1, dtype=tf.float32)
-log_pdf_z0 = tf.zeros(shape=(batch_size, 1), dtype=tf.float32)
-transform1 = transform_to_check(input_dim=n_latent, output_dim=n_out, n_input_CPO=n_input_CPO, n_output_CPO=n_output_CPO, parameters=parameters)
-z, log_pdf_z = transform1.transform(z0, log_pdf_z0)
-
-init = tf.initialize_all_variables()
-sess = tf.InteractiveSession()  
-sess.run(init)
-
-import time
-print('Start Timer: ')
-start = time.time();
-for i in range(1000):
-    z0_np, log_pdf_z0_np, z_np, log_pdf_z_np = sess.run([z0, log_pdf_z0, z, log_pdf_z])
-
-end = time.time()
-print('Time: {:.3f}\n'.format((end - start)))
-pdb.set_trace()
+# end = time.time()
+# print('Time: {:.3f}\n'.format((end - start)))
+# pdb.set_trace()
 
 # batch_size = 20
 # n_latent = 4
