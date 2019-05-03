@@ -48,7 +48,9 @@ def obj_fun(X):
     return vals
 
 use_gpu = False 
-if platform.dist()[0] == 'Ubuntu': use_gpu = True
+if platform.dist()[0] == 'Ubuntu': 
+    print('On Collab!!!!!')
+    use_gpu = True
 
 exp_dir = str(Path.home())+'/ExperimentalResults/RNF_EXP/'
 
