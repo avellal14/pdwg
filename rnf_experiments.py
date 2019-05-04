@@ -54,12 +54,13 @@ if platform.dist()[0] == 'Ubuntu':
 
 exp_dir = str(Path.home())+'/ExperimentalResults/RNF_EXP/'
 
-n_samples = 100000
-n_training_samples = 10000
 range_1_min = -1
 range_1_max = 1
 
-n_epochs = 10
+resolution = 50
+n_samples = 20000
+n_training_samples = 20000
+n_epochs = 20
 vis_epoch_rate = 1
 
 batch_size = 500
@@ -69,10 +70,15 @@ n_out = 3
 n_input_CPO, n_output_CPO = 15, 15
 
 data_manifold_xy = np.random.uniform(0, 1, (n_samples, 2))*(range_1_max-range_1_min)+range_1_min
-# data_manifold_xy = np.random.randn(n_samples, 2)*0.4
 data_manifold_z = obj_fun(data_manifold_xy)[:, np.newaxis]
 data_manifold = np.concatenate([data_manifold_xy, data_manifold_z], axis=1)
+
+full_grid_xy_samples, full_grid_xy, full_x0_range, full_x1_range = get_full_grid_samples(resolution=resolution, range_min=range_1_min, range_max=range_1_max)
+full_grid_z_samples = obj_fun(full_grid_xy_samples)[:, np.newaxis]
+grid_manifold = np.concatenate([full_grid_xy_samples, full_grid_z_samples], axis=1)
+
 rec_data_manifold = np.zeros(data_manifold.shape)
+rec_grid_manifold = np.zeros(grid_manifold.shape)
 
 ################################# TF training ##################################################################
 
@@ -93,10 +99,10 @@ prior_dist = distributions.DiagonalGaussianDistribution(params=prior_param)
 lay_1 = tf.layers.dense(inputs = x_input, units = 200, use_bias = True, activation = tf.nn.relu) 
 lay_2 = tf.layers.dense(inputs = lay_1, units = 200, use_bias = True, activation = tf.nn.relu) 
 lay_3 = tf.layers.dense(inputs = lay_2, units = 200, use_bias = True, activation = tf.nn.relu) 
-# lay_4 = tf.layers.dense(inputs = lay_3, units = 200, use_bias = True, activation = tf.nn.relu) 
+lay_4 = tf.layers.dense(inputs = lay_3, units = 200, use_bias = True, activation = tf.nn.relu) 
 # lay_5 = tf.layers.dense(inputs = lay_4, units = 200, use_bias = True, activation = tf.nn.relu) 
 # lay_6 = tf.layers.dense(inputs = lay_5, units = 200, use_bias = True, activation = tf.nn.relu) 
-z_x = tf.layers.dense(inputs = lay_3, units = n_latent, use_bias = True, activation = None) 
+z_x = tf.layers.dense(inputs = lay_4, units = n_latent, use_bias = True, activation = None) 
 log_pdf_z_x = prior_dist.log_pdf(z_x)
 x_rec, log_pdf_x_rec = riemannian_flow.transform(z_x, log_pdf_z_x)
 
@@ -113,6 +119,7 @@ print('Start Timer: ')
 start = time.time();
 
 rec_data_manifolds = None
+rec_grid_manifolds = None
 for epoch in range(1, n_epochs+1):
     perm_indeces = np.random.permutation(np.arange(n_training_samples))     
     training_data_manifold_scrambled = data_manifold[:n_training_samples,:][perm_indeces,:]
@@ -131,16 +138,28 @@ for epoch in range(1, n_epochs+1):
             rec_cost_np, z_x_np, log_pdf_z_x_np, x_rec_np, log_pdf_x_rec_np = sess.run([rec_cost, z_x, log_pdf_z_x, x_rec, log_pdf_x_rec], feed_dict=fd)
             rec_data_manifold[i*batch_size:min((i+1)*batch_size, data_manifold.shape[0]), :] = x_rec_np
             total_rec_cost_np += rec_cost_np
+
+        for i in range(math.ceil(grid_manifold.shape[0]/float(batch_size))):
+            curr_batch_np = grid_manifold[i*batch_size:min((i+1)*batch_size, grid_manifold.shape[0]), :]
+            fd = {x_input: curr_batch_np,}
+            rec_cost_np, z_x_np, log_pdf_z_x_np, x_rec_np, log_pdf_x_rec_np = sess.run([rec_cost, z_x, log_pdf_z_x, x_rec, log_pdf_x_rec], feed_dict=fd)
+            rec_grid_manifold[i*batch_size:min((i+1)*batch_size, grid_manifold.shape[0]), :] = x_rec_np
+
         print(total_rec_cost_np/data_manifold.shape[0])
         if rec_data_manifolds is None: rec_data_manifolds = rec_data_manifold[np.newaxis, ...]
         else: rec_data_manifolds = np.concatenate([rec_data_manifolds, rec_data_manifold[np.newaxis, ...]], axis=0)
+
+        if rec_grid_manifolds is None: rec_grid_manifolds = rec_grid_manifold[np.newaxis, ...]
+        else: rec_grid_manifolds = np.concatenate([rec_grid_manifolds, rec_grid_manifold[np.newaxis, ...]], axis=0)
 
 end = time.time()
 print('Overall Time: {:.3f}\n'.format((end - start)))
 
 if not os.path.exists(exp_dir): os.makedirs(exp_dir)
 np.save(exp_dir+'data_manifold.npy', data_manifold, allow_pickle=True, fix_imports=True)
+np.save(exp_dir+'grid_manifold.npy', grid_manifold, allow_pickle=True, fix_imports=True)
 np.save(exp_dir+'rec_data_manifolds.npy', rec_data_manifolds, allow_pickle=True, fix_imports=True)
+np.save(exp_dir+'rec_grid_manifolds.npy', rec_grid_manifolds, allow_pickle=True, fix_imports=True)
 
 
 
