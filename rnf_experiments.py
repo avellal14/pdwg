@@ -98,7 +98,7 @@ x_rec, log_pdf_x_rec = riemannian_flow.transform(z_x, log_pdf_z_x)
 
 rec_cost = tf.reduce_mean(tf.reduce_sum((x_rec-x_input)**2, axis=1))
 # optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.9, beta2=0.99, epsilon=1e-08)
-optimizer = tf.train.AdamOptimizer(learning_rate=0.1, beta1=0.1, beta2=0.1, epsilon=1e-08)
+optimizer = tf.train.AdamOptimizer(learning_rate=0.01, beta1=0.1, beta2=0.1, epsilon=1e-08)
 cost_step = optimizer.minimize(rec_cost)
 
 init = tf.initialize_all_variables()
