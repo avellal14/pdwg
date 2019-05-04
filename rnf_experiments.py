@@ -58,10 +58,10 @@ n_samples = 10000
 range_1_min = -1
 range_1_max = 1
 
-n_epochs = 5
+n_epochs = 10
 vis_epoch_rate = 1
 
-train_batch_size = 10
+train_batch_size = 25
 n_latent = 2
 n_out = 3
 n_input_CPO, n_output_CPO = 30, 30
@@ -98,7 +98,7 @@ x_rec, log_pdf_x_rec = riemannian_flow.transform(z_x, log_pdf_z_x)
 
 rec_cost = tf.reduce_mean(tf.reduce_sum((x_rec-x_input)**2, axis=1))
 # optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.9, beta2=0.99, epsilon=1e-08)
-optimizer = tf.train.AdamOptimizer(learning_rate=0.01, beta1=0.1, beta2=0.1, epsilon=1e-08)
+optimizer = tf.train.AdamOptimizer(learning_rate=0.01, beta1=0.5, beta2=0.9, epsilon=1e-08)
 cost_step = optimizer.minimize(rec_cost)
 
 init = tf.initialize_all_variables()
