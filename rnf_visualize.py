@@ -73,7 +73,7 @@ def animate(ax_list, n_turns = 1, skip_rate = 10, mode='elevazim', wait_time=0.0
                 if mode == 'azimuth': 
                 	for ax in ax_list: ax.view_init(elev=0., azim=i)
                 elif mode == 'elevation':
-                    for ax in ax_list: ax.view_init(elev=i+10, azim=0)
+                    for ax in ax_list: ax.view_init(elev=i+10, azim=0.)
                 elif mode == 'elevazim': 
                     for ax in ax_list: ax.view_init(elev=i, azim=i)
                 else: pdb.set_trace()
@@ -85,9 +85,9 @@ def animate(ax_list, n_turns = 1, skip_rate = 10, mode='elevazim', wait_time=0.0
         for i in range(360*n_turns):
             if i % skip_rate == 0:
                 if mode == 'azimuth': 
-                    for ax in ax_list: ax.view_init(elev=10., azim=i)
+                    for ax in ax_list: ax.view_init(elev=0., azim=i)
                 elif mode == 'elevation':
-                    for ax in ax_list: ax.view_init(elev=i, azim=10)
+                    for ax in ax_list: ax.view_init(elev=i+10, azim=0.)
                 elif mode == 'elevazim': 
                     for ax in ax_list: ax.view_init(elev=i, azim=i)
                 else: pdb.set_trace()
