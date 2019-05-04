@@ -61,7 +61,7 @@ resolution = 200
 n_samples = 20000
 n_training_samples = 20000
 
-n_epochs = 20
+n_epochs = 25
 vis_epoch_rate = 1
 
 batch_size = 500
