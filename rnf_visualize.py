@@ -71,9 +71,9 @@ def animate(ax_list, n_turns = 1, skip_rate = 10, mode='elevazim', wait_time=0.0
         for i in range(360*n_turns):
             if i % skip_rate == 0:
                 if mode == 'azimuth': 
-                	for ax in ax_list: ax.view_init(elev=10., azim=i)
+                	for ax in ax_list: ax.view_init(elev=0., azim=i)
                 elif mode == 'elevation':
-                    for ax in ax_list: ax.view_init(elev=i, azim=10)
+                    for ax in ax_list: ax.view_init(elev=i, azim=0)
                 elif mode == 'elevazim': 
                     for ax in ax_list: ax.view_init(elev=i, azim=i)
                 else: pdb.set_trace()
@@ -207,8 +207,8 @@ set_axis_prop(ax2, grid_on, ticks_on, axis_on )
 set_axis_prop(ax3, grid_on, ticks_on, axis_on )
 set_axis_prop(ax4, grid_on, ticks_on, axis_on )
 
-animate_mode = 'elevazim'
-animate([ax1, ax2, ax3, ax4], n_turns = 1, skip_rate = 20, mode=animate_mode, quality=quality, grid_on=grid_on, ticks_on=ticks_on, axis_on=axis_on, save_path=exp_dir+'RI('+str(rotation_index)+')'+animate_mode+'_rotation')
+# animate_mode = 'elevazim'
+# animate([ax1, ax2, ax3, ax4], n_turns = 1, skip_rate = 20, mode=animate_mode, quality=quality, grid_on=grid_on, ticks_on=ticks_on, axis_on=axis_on, save_path=exp_dir+'RI('+str(rotation_index)+')'+animate_mode+'_rotation')
 animate_mode = 'elevation'
 animate([ax1, ax2, ax3, ax4], n_turns = 1, skip_rate = 20, mode=animate_mode, quality=quality, grid_on=grid_on, ticks_on=ticks_on, axis_on=axis_on, save_path=exp_dir+'RI('+str(rotation_index)+')'+animate_mode+'_rotation')
 animate_mode = 'azimuth'
