@@ -57,7 +57,7 @@ exp_dir = str(Path.home())+'/ExperimentalResults/RNF_EXP/'
 range_1_min = -1
 range_1_max = 1
 
-resolution = 50
+resolution = 100
 n_samples = 20000
 n_training_samples = 20000
 n_epochs = 10
@@ -106,12 +106,15 @@ z_x = tf.layers.dense(inputs = lay_4, units = n_latent, use_bias = True, activat
 log_pdf_z_x = prior_dist.log_pdf(z_x)
 x_rec, log_pdf_x_rec = riemannian_flow.transform(z_x, log_pdf_z_x)
 
-rec_cost = 100*tf.reduce_mean(tf.reduce_sum((x_rec-x_input)**2, axis=1))
+margin = 0.1
+rec_cost = 100*tf.reduce_mean(tf.reduce_sum(tf.nn.relu((x_rec-x_input)**2-margin**2), axis=1))
+# rec_cost = 100*tf.reduce_mean(tf.reduce_sum((x_rec-x_input)**2, axis=1))
+
+
 optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.5, beta2=0.99, epsilon=1e-08)
 # optimizer = tf.train.AdamOptimizer(learning_rate=0.0001, beta1=0.9, beta2=0.999, epsilon=1e-08)
 # optimizer = tf.train.AdamOptimizer(learning_rate=0.01, beta1=0.5, beta2=0.9, epsilon=1e-08)
 cost_step = optimizer.minimize(rec_cost)
-
 init = tf.initialize_all_variables()
 sess = tf.InteractiveSession()  
 sess.run(init)
