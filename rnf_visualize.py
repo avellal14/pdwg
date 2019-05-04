@@ -32,7 +32,7 @@ plt.rcParams['ytick.labelsize'] = 14
 plt.rcParams['legend.fontsize'] = 16
 my_dpi = 350
 grid_on, ticks_on, axis_on = False, False, True
-quality = 1
+quality = 0.5
 marker_size = 10/2
 marker_line = 0.3/2
 
@@ -133,7 +133,7 @@ def obj_fun(X):
 assert(rec_data_manifolds.shape[0] == rec_grid_manifolds.shape[0])
 fig, ax = plt.subplots(figsize=(10, 10))
 # for i in range(rec_data_manifolds.shape[0]):
-for i in [15,]:
+for i in [15,17]:
     plt.clf()
     ax1 = fig.add_subplot(2, 2, 1, projection='3d')
     ax1.scatter(data_manifold[:, 0], data_manifold[:, 1], data_manifold[:, 2], s=marker_size, lw = marker_line, edgecolors='k', facecolors=cm.get_cmap("coolwarm")(Normalize()(data_manifold[:, 2])))
