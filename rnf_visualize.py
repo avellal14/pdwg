@@ -113,7 +113,12 @@ for i in range(rec_data_manifolds.shape[0]):
     # ax1.plot_wireframe(rec_data_manifolds[i, :, 0], rec_data_manifolds[i, :, 1], rec_data_manifolds[i, :, 2], color='red')
 
     c1 = fig.canvas.mpl_connect('motion_notify_event', get_on_move(fig, ax1, ax2))
+    ax1.set_xlim(range_1_min, range_1_max)
+    ax1.set_ylim(range_1_min, range_1_max)
     ax1.set_zlim(range_1_min, range_1_max)
+
+    ax2.set_xlim(range_1_min, range_1_max)
+    ax2.set_ylim(range_1_min, range_1_max)
     ax2.set_zlim(range_1_min, range_1_max)
     set_axis_prop(ax, grid_on, ticks_on, axis_on )
 
@@ -131,7 +136,12 @@ ax2 = fig.add_subplot(1, 2, 2, projection='3d')
 ax2.scatter(rec_data_manifolds[-1, :, 0], rec_data_manifolds[-1, :, 1], rec_data_manifolds[-1, :, 2], facecolors=cm.get_cmap("coolwarm")(Normalize()(rec_data_manifolds[-1, :, 2])))
 
 c1 = fig.canvas.mpl_connect('motion_notify_event', get_on_move(fig, ax1, ax2))
+ax1.set_xlim(range_1_min, range_1_max)
+ax1.set_ylim(range_1_min, range_1_max)
 ax1.set_zlim(range_1_min, range_1_max)
+
+ax2.set_xlim(range_1_min, range_1_max)
+ax2.set_ylim(range_1_min, range_1_max)
 ax2.set_zlim(range_1_min, range_1_max)
 set_axis_prop(ax, grid_on, ticks_on, axis_on )
 
