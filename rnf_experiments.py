@@ -54,13 +54,15 @@ if platform.dist()[0] == 'Ubuntu':
 
 exp_dir = str(Path.home())+'/ExperimentalResults/RNF_EXP/'
 
-n_samples = 50000
+n_samples = 100000
+n_training_samples = 10000
 range_1_min = -1
 range_1_max = 1
 
 n_epochs = 10
 vis_epoch_rate = 1
 
+batch_size = 500
 train_batch_size = 25
 n_latent = 2
 n_out = 3
@@ -112,11 +114,10 @@ start = time.time();
 
 rec_data_manifolds = None
 for epoch in range(1, n_epochs+1):
-    batch_size = train_batch_size
-    perm_indeces = np.random.permutation(np.arange(data_manifold.shape[0])) 
-    data_manifold_scrambled = data_manifold[perm_indeces,:]
-    for i in range(math.ceil(data_manifold_scrambled.shape[0]/float(batch_size))):
-        curr_batch_np = data_manifold_scrambled[i*batch_size:min((i+1)*batch_size, data_manifold_scrambled.shape[0]), :]
+    perm_indeces = np.random.permutation(np.arange(n_training_samples))     
+    training_data_manifold_scrambled = data_manifold[:n_training_samples,:][perm_indeces,:]
+    for i in range(math.ceil(training_data_manifold_scrambled.shape[0]/float(train_batch_size))):
+        curr_batch_np = training_data_manifold_scrambled[i*train_batch_size:min((i+1)*train_batch_size, training_data_manifold_scrambled.shape[0]), :]
         fd = {x_input: curr_batch_np,}
         _, rec_cost_np, z_x_np, log_pdf_z_x_np, x_rec_np, log_pdf_x_rec_np = sess.run([cost_step, rec_cost, z_x, log_pdf_z_x, x_rec, log_pdf_x_rec], feed_dict=fd)
     
