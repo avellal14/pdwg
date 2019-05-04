@@ -107,7 +107,8 @@ log_pdf_z_x = prior_dist.log_pdf(z_x)
 x_rec, log_pdf_x_rec = riemannian_flow.transform(z_x, log_pdf_z_x)
 
 rec_cost = tf.reduce_mean(tf.reduce_sum((x_rec-x_input)**2, axis=1))
-optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.5, beta2=0.999, epsilon=1e-08)
+# optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.5, beta2=0.999, epsilon=1e-08)
+optimizer = tf.train.AdamOptimizer(learning_rate=0.0001, beta1=0.99, beta2=0.999, epsilon=1e-08)
 # optimizer = tf.train.AdamOptimizer(learning_rate=0.01, beta1=0.5, beta2=0.9, epsilon=1e-08)
 cost_step = optimizer.minimize(rec_cost)
 
@@ -131,7 +132,6 @@ for epoch in range(1, n_epochs+1):
     if epoch % vis_epoch_rate == 0: 
         print('Eval and Visualize: Epoch, Time: {:d} {:.3f}'.format(epoch, time.time()-start))
         total_rec_cost_np = 0
-        batch_size = 500
         for i in range(math.ceil(data_manifold.shape[0]/float(batch_size))):
             curr_batch_np = data_manifold[i*batch_size:min((i+1)*batch_size, data_manifold.shape[0]), :]
             fd = {x_input: curr_batch_np,}
