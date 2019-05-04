@@ -176,13 +176,13 @@ for i in range(rec_data_manifolds.shape[0]):
 
 plt.clf()
 ax1 = fig.add_subplot(2, 2, 1, projection='3d')
-ax1.scatter(data_manifold[:, 0], data_manifold[:, 1], data_manifold[:, 2], facecolors=cm.get_cmap("coolwarm")(Normalize()(data_manifold[:, 2])))
+ax1.scatter(data_manifold[:, 0], data_manifold[:, 1], data_manifold[:, 2], s=marker_size, lw = marker_line, facecolors=cm.get_cmap("coolwarm")(Normalize()(data_manifold[:, 2])))
 ax2 = fig.add_subplot(2, 2, 2, projection='3d')
-ax2.scatter(rec_data_manifolds[-1, :, 0], rec_data_manifolds[-1, :, 1], rec_data_manifolds[-1, :, 2], facecolors=cm.get_cmap("coolwarm")(Normalize()(rec_data_manifolds[-1, :, 2])))
+ax2.scatter(rec_data_manifolds[-1, :, 0], rec_data_manifolds[-1, :, 1], rec_data_manifolds[-1, :, 2], s=marker_size, lw = marker_line, facecolors=cm.get_cmap("coolwarm")(Normalize()(rec_data_manifolds[-1, :, 2])))
 ax3 = fig.add_subplot(2, 2, 3, projection='3d')
-ax3.scatter(grid_manifold[:, 0], grid_manifold[:, 1], grid_manifold[:, 2], facecolors=cm.get_cmap("coolwarm")(Normalize()(grid_manifold[:, 2])))
+ax3.scatter(grid_manifold[:, 0], grid_manifold[:, 1], grid_manifold[:, 2], s=marker_size, lw = marker_line, facecolors=cm.get_cmap("coolwarm")(Normalize()(grid_manifold[:, 2])))
 ax4 = fig.add_subplot(2, 2, 4, projection='3d')
-ax4.scatter(rec_grid_manifolds[-1, :, 0], rec_grid_manifolds[-1, :, 1], rec_grid_manifolds[-1, :, 2], facecolors=cm.get_cmap("coolwarm")(Normalize()(rec_grid_manifolds[-1, :, 2])))
+ax4.scatter(rec_grid_manifolds[-1, :, 0], rec_grid_manifolds[-1, :, 1], rec_grid_manifolds[-1, :, 2], s=marker_size, lw = marker_line, facecolors=cm.get_cmap("coolwarm")(Normalize()(rec_grid_manifolds[-1, :, 2])))
 
 fig.canvas.mpl_connect('motion_notify_event', get_on_move(fig, ax1, ax2))
 fig.canvas.mpl_connect('motion_notify_event', get_on_move(fig, ax3, ax4))
