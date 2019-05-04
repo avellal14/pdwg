@@ -60,7 +60,7 @@ range_1_max = 1
 resolution = 100
 n_samples = 20000
 n_training_samples = 20000
-n_epochs = 15
+n_epochs = 20
 vis_epoch_rate = 1
 
 batch_size = 500
@@ -106,7 +106,7 @@ z_x = tf.layers.dense(inputs = lay_4, units = n_latent, use_bias = True, activat
 log_pdf_z_x = prior_dist.log_pdf(z_x)
 x_rec, log_pdf_x_rec = riemannian_flow.transform(z_x, log_pdf_z_x)
 
-margin = 0.2
+margin = 0.15
 rec_cost = 100*tf.reduce_mean(tf.reduce_sum(tf.nn.relu((x_rec-x_input)**2-margin**2), axis=1))
 # rec_cost = 100*tf.reduce_mean(tf.reduce_sum((x_rec-x_input)**2, axis=1))
 
