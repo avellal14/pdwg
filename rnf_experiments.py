@@ -64,7 +64,7 @@ vis_epoch_rate = 1
 train_batch_size = 25
 n_latent = 2
 n_out = 3
-n_input_CPO, n_output_CPO = 30, 30
+n_input_CPO, n_output_CPO = 15, 15
 
 data_manifold_xy = np.random.uniform(0, 1, (n_samples, 2))*(range_1_max-range_1_min)+range_1_min
 # data_manifold_xy = np.random.randn(n_samples, 2)*0.4
@@ -89,16 +89,16 @@ prior_param = tf.zeros((batch_size_tf, 2*n_latent), tf.float32)
 prior_dist = distributions.DiagonalGaussianDistribution(params=prior_param)
 
 lay_1 = tf.layers.dense(inputs = x_input, units = 100, use_bias = True, activation = tf.nn.relu) 
-lay_2 = tf.layers.dense(inputs = lay_1, units = 100, use_bias = True, activation = tf.nn.relu) 
-lay_3 = tf.layers.dense(inputs = lay_2, units = 100, use_bias = True, activation = tf.nn.relu) 
-lay_4 = tf.layers.dense(inputs = lay_3, units = 100, use_bias = True, activation = tf.nn.relu) 
-z_x = tf.layers.dense(inputs = lay_4, units = n_latent, use_bias = True, activation = None) 
+# lay_2 = tf.layers.dense(inputs = lay_1, units = 100, use_bias = True, activation = tf.nn.relu) 
+# lay_3 = tf.layers.dense(inputs = lay_2, units = 100, use_bias = True, activation = tf.nn.relu) 
+# lay_4 = tf.layers.dense(inputs = lay_3, units = 100, use_bias = True, activation = tf.nn.relu) 
+z_x = tf.layers.dense(inputs = lay_1, units = n_latent, use_bias = True, activation = None) 
 log_pdf_z_x = prior_dist.log_pdf(z_x)
 x_rec, log_pdf_x_rec = riemannian_flow.transform(z_x, log_pdf_z_x)
 
 rec_cost = tf.reduce_mean(tf.reduce_sum((x_rec-x_input)**2, axis=1))
-# optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.9, beta2=0.99, epsilon=1e-08)
-optimizer = tf.train.AdamOptimizer(learning_rate=0.01, beta1=0.5, beta2=0.9, epsilon=1e-08)
+optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.9, beta2=0.99, epsilon=1e-08)
+# optimizer = tf.train.AdamOptimizer(learning_rate=0.01, beta1=0.5, beta2=0.9, epsilon=1e-08)
 cost_step = optimizer.minimize(rec_cost)
 
 init = tf.initialize_all_variables()
