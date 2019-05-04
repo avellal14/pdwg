@@ -88,11 +88,13 @@ riemannian_flow = transforms.RiemannianFlow(input_dim=n_latent, output_dim=n_out
 prior_param = tf.zeros((batch_size_tf, 2*n_latent), tf.float32)
 prior_dist = distributions.DiagonalGaussianDistribution(params=prior_param)
 
-lay_1 = tf.layers.dense(inputs = x_input, units = 100, use_bias = True, activation = tf.nn.relu) 
-lay_2 = tf.layers.dense(inputs = lay_1, units = 100, use_bias = True, activation = tf.nn.relu) 
-lay_3 = tf.layers.dense(inputs = lay_2, units = 100, use_bias = True, activation = tf.nn.relu) 
-lay_4 = tf.layers.dense(inputs = lay_3, units = 100, use_bias = True, activation = tf.nn.relu) 
-z_x = tf.layers.dense(inputs = lay_4, units = n_latent, use_bias = True, activation = None) 
+lay_1 = tf.layers.dense(inputs = x_input, units = 200, use_bias = True, activation = tf.nn.relu) 
+lay_2 = tf.layers.dense(inputs = lay_1, units = 200, use_bias = True, activation = tf.nn.relu) 
+lay_3 = tf.layers.dense(inputs = lay_2, units = 200, use_bias = True, activation = tf.nn.relu) 
+lay_4 = tf.layers.dense(inputs = lay_3, units = 200, use_bias = True, activation = tf.nn.relu) 
+lay_5 = tf.layers.dense(inputs = lay_4, units = 200, use_bias = True, activation = tf.nn.relu) 
+lay_6 = tf.layers.dense(inputs = lay_5, units = 200, use_bias = True, activation = tf.nn.relu) 
+z_x = tf.layers.dense(inputs = lay_6, units = n_latent, use_bias = True, activation = None) 
 log_pdf_z_x = prior_dist.log_pdf(z_x)
 x_rec, log_pdf_x_rec = riemannian_flow.transform(z_x, log_pdf_z_x)
 
