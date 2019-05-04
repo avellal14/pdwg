@@ -55,8 +55,8 @@ if platform.dist()[0] == 'Ubuntu':
 exp_dir = str(Path.home())+'/ExperimentalResults/RNF_EXP/'
 
 n_samples = 20000
-range_1_min = -2
-range_1_max = 2
+range_1_min = -1.1
+range_1_max = 1.1
 
 n_epochs = 40
 vis_epoch_rate = 1
