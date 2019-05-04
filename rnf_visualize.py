@@ -34,7 +34,7 @@ my_dpi = 350
 grid_on, ticks_on, axis_on = False, False, True
 quality = 0.3
 marker_size = 10/2
-marker_line = 0.3/2
+marker_line = 0.3/3
 
 def get_on_move(fig, ax1, ax2):
     def on_move(event):
