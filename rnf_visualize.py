@@ -32,7 +32,9 @@ plt.rcParams['ytick.labelsize'] = 14
 plt.rcParams['legend.fontsize'] = 16
 my_dpi = 350
 grid_on, ticks_on, axis_on = False, False, True
-quality=0.3
+quality = 0.3
+marker_size = 10
+marker_line = 0.3
 
 def get_on_move(fig, ax1, ax2):
     def on_move(event):
@@ -129,18 +131,19 @@ def obj_fun(X):
         vals[i] = func_scale_1*(func_scale_2*X[i,0]**2-0.5*np.cos(2*np.pi*X[i,0])+X[i,1]**2-0.5*np.cos(2*np.pi*X[i,1]))
     return vals
 
+
 assert(rec_data_manifolds.shape[0] == rec_grid_manifolds.shape[0])
 fig, ax = plt.subplots(figsize=(10, 10))
 for i in range(rec_data_manifolds.shape[0]):
     plt.clf()
     ax1 = fig.add_subplot(2, 2, 1, projection='3d')
-    ax1.scatter(data_manifold[:, 0], data_manifold[:, 1], data_manifold[:, 2], facecolors=cm.get_cmap("coolwarm")(Normalize()(data_manifold[:, 2])))
+    ax1.scatter(data_manifold[:, 0], data_manifold[:, 1], data_manifold[:, 2], s=marker_size, lw = marker_line,  facecolors=cm.get_cmap("coolwarm")(Normalize()(data_manifold[:, 2])))
     ax2 = fig.add_subplot(2, 2, 2, projection='3d')
-    ax2.scatter(rec_data_manifolds[i, :, 0], rec_data_manifolds[i, :, 1], rec_data_manifolds[i, :, 2], facecolors=cm.get_cmap("coolwarm")(Normalize()(rec_data_manifolds[i, :, 2])))
+    ax2.scatter(rec_data_manifolds[i, :, 0], rec_data_manifolds[i, :, 1], rec_data_manifolds[i, :, 2], s=marker_size, lw = marker_line, facecolors=cm.get_cmap("coolwarm")(Normalize()(rec_data_manifolds[i, :, 2])))
     ax3 = fig.add_subplot(2, 2, 3, projection='3d')
-    ax3.scatter(grid_manifold[:, 0], grid_manifold[:, 1], grid_manifold[:, 2], facecolors=cm.get_cmap("coolwarm")(Normalize()(grid_manifold[:, 2])))
+    ax3.scatter(grid_manifold[:, 0], grid_manifold[:, 1], grid_manifold[:, 2], s=marker_size, lw = marker_line, facecolors=cm.get_cmap("coolwarm")(Normalize()(grid_manifold[:, 2])))
     ax4 = fig.add_subplot(2, 2, 4, projection='3d')
-    ax4.scatter(rec_grid_manifolds[i, :, 0], rec_grid_manifolds[i, :, 1], rec_grid_manifolds[i, :, 2], facecolors=cm.get_cmap("coolwarm")(Normalize()(rec_grid_manifolds[i, :, 2])))
+    ax4.scatter(rec_grid_manifolds[i, :, 0], rec_grid_manifolds[i, :, 1], rec_grid_manifolds[i, :, 2], s=marker_size, lw = marker_line, facecolors=cm.get_cmap("coolwarm")(Normalize()(rec_grid_manifolds[i, :, 2])))
 
     fig.canvas.mpl_connect('motion_notify_event', get_on_move(fig, ax1, ax2))
     fig.canvas.mpl_connect('motion_notify_event', get_on_move(fig, ax3, ax4))
