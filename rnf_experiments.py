@@ -14,6 +14,7 @@ import time
 import os
 from pathlib import Path
 import platform
+import subprocess
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -166,7 +167,7 @@ np.save(exp_dir+'grid_manifold.npy', grid_manifold, allow_pickle=True, fix_impor
 np.save(exp_dir+'rec_data_manifolds.npy', rec_data_manifolds, allow_pickle=True, fix_imports=True)
 np.save(exp_dir+'rec_grid_manifolds.npy', rec_grid_manifolds, allow_pickle=True, fix_imports=True)
 
-
+# subprocess.call("rnf_visualize.py", shell=True)
 
 
 
