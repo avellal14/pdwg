@@ -57,7 +57,7 @@ exp_dir = str(Path.home())+'/ExperimentalResults/RNF_EXP/'
 range_1_min = -1
 range_1_max = 1
 
-resolution = 100
+resolution = 200
 n_samples = 20000
 n_training_samples = 20000
 
