@@ -61,7 +61,7 @@ resolution = 200
 n_samples = 20000
 n_training_samples = 20000
 
-n_epochs = 25
+n_epochs = 20
 vis_epoch_rate = 1
 
 batch_size = 500
@@ -107,9 +107,9 @@ z_x = tf.layers.dense(inputs = lay_4, units = n_latent, use_bias = True, activat
 log_pdf_z_x = prior_dist.log_pdf(z_x)
 x_rec, log_pdf_x_rec = riemannian_flow.transform(z_x, log_pdf_z_x)
 
-margin = 0.05
-rec_cost = 100*tf.reduce_mean(tf.reduce_sum(tf.nn.relu((x_rec-x_input)**2-margin**2), axis=1))
-# rec_cost = 100*tf.reduce_mean(tf.reduce_sum((x_rec-x_input)**2, axis=1))
+# margin = 0.05
+# rec_cost = 100*tf.reduce_mean(tf.reduce_sum(tf.nn.relu((x_rec-x_input)**2-margin**2), axis=1))
+rec_cost = 100*tf.reduce_mean(tf.reduce_sum((x_rec-x_input)**2, axis=1))
 
 
 optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.5, beta2=0.99, epsilon=1e-08)
