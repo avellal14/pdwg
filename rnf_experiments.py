@@ -54,14 +54,14 @@ if platform.dist()[0] == 'Ubuntu':
 
 exp_dir = str(Path.home())+'/ExperimentalResults/RNF_EXP/'
 
-n_samples = 10000
-range_1_min = -1
-range_1_max = 1
+n_samples = 20000
+range_1_min = -2
+range_1_max = 2
 
 n_epochs = 40
 vis_epoch_rate = 1
 
-train_batch_size = 25
+train_batch_size = 100
 n_latent = 2
 n_out = 3
 n_input_CPO, n_output_CPO = 15, 15
@@ -91,10 +91,10 @@ prior_dist = distributions.DiagonalGaussianDistribution(params=prior_param)
 lay_1 = tf.layers.dense(inputs = x_input, units = 200, use_bias = True, activation = tf.nn.relu) 
 lay_2 = tf.layers.dense(inputs = lay_1, units = 200, use_bias = True, activation = tf.nn.relu) 
 lay_3 = tf.layers.dense(inputs = lay_2, units = 200, use_bias = True, activation = tf.nn.relu) 
-lay_4 = tf.layers.dense(inputs = lay_3, units = 200, use_bias = True, activation = tf.nn.relu) 
-lay_5 = tf.layers.dense(inputs = lay_4, units = 200, use_bias = True, activation = tf.nn.relu) 
-lay_6 = tf.layers.dense(inputs = lay_5, units = 200, use_bias = True, activation = tf.nn.relu) 
-z_x = tf.layers.dense(inputs = lay_6, units = n_latent, use_bias = True, activation = None) 
+# lay_4 = tf.layers.dense(inputs = lay_3, units = 200, use_bias = True, activation = tf.nn.relu) 
+# lay_5 = tf.layers.dense(inputs = lay_4, units = 200, use_bias = True, activation = tf.nn.relu) 
+# lay_6 = tf.layers.dense(inputs = lay_5, units = 200, use_bias = True, activation = tf.nn.relu) 
+z_x = tf.layers.dense(inputs = lay_3, units = n_latent, use_bias = True, activation = None) 
 log_pdf_z_x = prior_dist.log_pdf(z_x)
 x_rec, log_pdf_x_rec = riemannian_flow.transform(z_x, log_pdf_z_x)
 
