@@ -68,7 +68,7 @@ batch_size = 500
 train_batch_size = 25
 n_latent = 2
 n_out = 3
-n_input_CPO, n_output_CPO = 10, 10
+n_input_CPO, n_output_CPO = 15, 15
 
 data_manifold_xy = np.random.uniform(0, 1, (n_samples, 2))*(range_1_max-range_1_min)+range_1_min
 data_manifold_z = obj_fun(data_manifold_xy)[:, np.newaxis]
