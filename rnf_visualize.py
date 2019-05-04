@@ -95,7 +95,6 @@ def animate(ax_list, n_turns = 1, skip_rate = 10, mode='elevazim', wait_time=0.0
                 plt.savefig(save_path+'_('+str(ax_list[0].elev)+','+str(ax_list[0].azim)+').png', bbox_inches='tight', format='png', dpi=int(quality*my_dpi), transparent=False)
                 print('(Elev, Azim): ', ax_list[0].elev, ax_list[0].azim)
 
-
 range_1_min = -1
 range_1_max = 1
 
