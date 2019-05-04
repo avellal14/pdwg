@@ -65,7 +65,7 @@ n_epochs = 20
 vis_epoch_rate = 1
 
 batch_size = 500
-train_batch_size = 25
+train_batch_size = 50
 n_latent = 2
 n_out = 3
 n_input_CPO, n_output_CPO = 15, 15
@@ -98,9 +98,9 @@ prior_param = tf.zeros((batch_size_tf, 2*n_latent), tf.float32)
 prior_dist = distributions.DiagonalGaussianDistribution(params=prior_param)
 
 lay_1 = tf.layers.dense(inputs = x_input, units = 200, use_bias = True, activation = tf.nn.relu) 
-lay_2 = tf.layers.dense(inputs = lay_1, units = 200, use_bias = True, activation = tf.nn.relu) 
-lay_3 = tf.layers.dense(inputs = lay_2, units = 200, use_bias = True, activation = tf.nn.relu) 
-lay_4 = tf.layers.dense(inputs = lay_3, units = 200, use_bias = True, activation = tf.nn.relu) 
+lay_2 = lay_1+tf.layers.dense(inputs = lay_1, units = 200, use_bias = True, activation = tf.nn.relu) 
+lay_3 = lay_2+tf.layers.dense(inputs = lay_2, units = 200, use_bias = True, activation = tf.nn.relu) 
+lay_4 = lay_3+tf.layers.dense(inputs = lay_3, units = 200, use_bias = True, activation = tf.nn.relu) 
 # lay_5 = tf.layers.dense(inputs = lay_4, units = 200, use_bias = True, activation = tf.nn.relu) 
 # lay_6 = tf.layers.dense(inputs = lay_5, units = 200, use_bias = True, activation = tf.nn.relu) 
 z_x = tf.layers.dense(inputs = lay_4, units = n_latent, use_bias = True, activation = None) 
@@ -112,7 +112,7 @@ x_rec, log_pdf_x_rec = riemannian_flow.transform(z_x, log_pdf_z_x)
 rec_cost = 100*tf.reduce_mean(tf.reduce_sum((x_rec-x_input)**2, axis=1))
 
 
-optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.5, beta2=0.99, epsilon=1e-08)
+optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.5, beta2=0.9, epsilon=1e-08)
 # optimizer = tf.train.AdamOptimizer(learning_rate=0.0001, beta1=0.9, beta2=0.999, epsilon=1e-08)
 # optimizer = tf.train.AdamOptimizer(learning_rate=0.01, beta1=0.5, beta2=0.9, epsilon=1e-08)
 cost_step = optimizer.minimize(rec_cost)

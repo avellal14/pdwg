@@ -74,7 +74,7 @@ def animate(ax_list, n_turns = 1, skip_rate = 10, mode='elevazim', wait_time=0.0
                 	for ax in ax_list: ax.view_init(elev=10., azim=i)
                 elif mode == 'elevation':
                     for ax in ax_list: ax.view_init(elev=i, azim=10)
-                if mode == 'elevazim': 
+                elif mode == 'elevazim': 
                     for ax in ax_list: ax.view_init(elev=i, azim=i)
                 else: pdb.set_trace()
                 for ax in ax_list: set_axis_prop(ax, grid_on, ticks_on, axis_on)
@@ -88,7 +88,7 @@ def animate(ax_list, n_turns = 1, skip_rate = 10, mode='elevazim', wait_time=0.0
                     for ax in ax_list: ax.view_init(elev=10., azim=i)
                 elif mode == 'elevation':
                     for ax in ax_list: ax.view_init(elev=i, azim=10)
-                if mode == 'elevazim': 
+                elif mode == 'elevazim': 
                     for ax in ax_list: ax.view_init(elev=i, azim=i)
                 else: pdb.set_trace()
                 for ax in ax_list: set_axis_prop(ax, grid_on, ticks_on, axis_on)
