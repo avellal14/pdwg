@@ -58,7 +58,7 @@ n_samples = 10000
 range_1_min = -1
 range_1_max = 1
 
-n_epochs = 10
+n_epochs = 20
 vis_epoch_rate = 1
 
 train_batch_size = 25
