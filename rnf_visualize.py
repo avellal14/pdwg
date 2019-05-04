@@ -103,21 +103,6 @@ rec_data_manifolds = np.load(exp_dir+'rec_data_manifolds.npy')
 
 fig, ax = plt.subplots(figsize=(10, 5))
 # plt.show(block=False)
-
-plt.clf()
-ax1 = fig.add_subplot(1, 2, 1, projection='3d')
-ax1.scatter(data_manifold[:, 0], data_manifold[:, 1], data_manifold[:, 2], facecolors=cm.get_cmap("coolwarm")(Normalize()(data_manifold[:, 2])))
-ax2 = fig.add_subplot(1, 2, 2, projection='3d')
-ax2.scatter(rec_data_manifolds[-1, :, 0], rec_data_manifolds[-1, :, 1], rec_data_manifolds[-1, :, 2], facecolors=cm.get_cmap("coolwarm")(Normalize()(rec_data_manifolds[-1, :, 2])))
-
-c1 = fig.canvas.mpl_connect('motion_notify_event', get_on_move(fig, ax1, ax2))
-ax1.set_zlim(range_1_min, range_1_max)
-ax2.set_zlim(range_1_min, range_1_max)
-set_axis_prop(ax, grid_on, ticks_on, axis_on )
-
-animate_mode = 'elevazim'
-animate([ax1, ax2], n_turns = 1, skip_rate = 20, mode=animate_mode, quality=quality, grid_on=grid_on, ticks_on=ticks_on, axis_on=axis_on, save_path=exp_dir+animate_mode+'_rotation')
-
 for i in range(rec_data_manifolds.shape[0]):
 	plt.clf()
 	ax1 = fig.add_subplot(1, 2, 1, projection='3d')
@@ -137,6 +122,19 @@ for i in range(rec_data_manifolds.shape[0]):
 	plt.savefig(exp_dir+'epoch_'+str(i)+'.png', bbox_inches='tight', format='png', dpi=int(quality*my_dpi), transparent=False)
 	print('Epoch: ', i)
 
+plt.clf()
+ax1 = fig.add_subplot(1, 2, 1, projection='3d')
+ax1.scatter(data_manifold[:, 0], data_manifold[:, 1], data_manifold[:, 2], facecolors=cm.get_cmap("coolwarm")(Normalize()(data_manifold[:, 2])))
+ax2 = fig.add_subplot(1, 2, 2, projection='3d')
+ax2.scatter(rec_data_manifolds[-1, :, 0], rec_data_manifolds[-1, :, 1], rec_data_manifolds[-1, :, 2], facecolors=cm.get_cmap("coolwarm")(Normalize()(rec_data_manifolds[-1, :, 2])))
+
+c1 = fig.canvas.mpl_connect('motion_notify_event', get_on_move(fig, ax1, ax2))
+ax1.set_zlim(range_1_min, range_1_max)
+ax2.set_zlim(range_1_min, range_1_max)
+set_axis_prop(ax, grid_on, ticks_on, axis_on )
+
+animate_mode = 'elevazim'
+animate([ax1, ax2], n_turns = 1, skip_rate = 20, mode=animate_mode, quality=quality, grid_on=grid_on, ticks_on=ticks_on, axis_on=axis_on, save_path=exp_dir+animate_mode+'_rotation')
 
 if not platform.dist()[0] == 'Ubuntu': plt.show()
 
