@@ -132,7 +132,8 @@ def obj_fun(X):
 
 assert(rec_data_manifolds.shape[0] == rec_grid_manifolds.shape[0])
 fig, ax = plt.subplots(figsize=(10, 10))
-for i in range(rec_data_manifolds.shape[0]):
+# for i in range(rec_data_manifolds.shape[0]):
+for i in [17,]:
     plt.clf()
     ax1 = fig.add_subplot(2, 2, 1, projection='3d')
     ax1.scatter(data_manifold[:, 0], data_manifold[:, 1], data_manifold[:, 2], s=marker_size, lw = marker_line, edgecolors='k', facecolors=cm.get_cmap("coolwarm")(Normalize()(data_manifold[:, 2])))
