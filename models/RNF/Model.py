@@ -149,7 +149,6 @@ class Model():
                                                   transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
                                                   transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[4]),
                                                   ])
-        
 
 
         self.reconst_param = self.Generator.forward(self.posterior_latent_code[:, np.newaxis, :]) 
