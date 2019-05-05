@@ -374,6 +374,7 @@ class Encoder():
 				if self.config['encoder_mode'] == 'Deterministic':
 					# lay1_flat = tf.layers.dense(inputs = latent_image_flat, units = 2*self.config['n_latent'], use_bias = True, activation = self.activation_function)
 					latent_flat_det = tf.layers.dense(inputs = latent_image_flat, units = self.config['n_latent'], use_bias = True, activation = None)
+					latent_flat = latent_flat_det
 				if self.config['encoder_mode'] == 'Gaussian':
 					# lay1_flat = tf.layers.dense(inputs = latent_image_flat, units = 2*self.config['n_latent'], use_bias = True, activation = self.activation_function)
 					latent_flat_det = tf.layers.dense(inputs = latent_image_flat, units = self.config['n_latent'], use_bias = True, activation = None)
