@@ -171,46 +171,46 @@ for i in range(rec_data_manifolds.shape[0]):
     plt.savefig(exp_dir+'epoch_'+str(i)+'.png', bbox_inches='tight', format='png', dpi=int(quality*my_dpi), transparent=False)
     print('Epoch: ', i)
 
-rotation_index = None
-rotation_index = 17
-if rotation_index is None: rotation_index = -1
-print('Animate Rotation Index, ', rotation_index)
-plt.clf()
-ax1 = fig.add_subplot(2, 2, 1, projection='3d')
-ax1.scatter(data_manifold[:, 0], data_manifold[:, 1], data_manifold[:, 2], s=marker_size, lw = marker_line, edgecolors='k', facecolors=cm.get_cmap("coolwarm")(Normalize()(data_manifold[:, 2])))
-ax2 = fig.add_subplot(2, 2, 2, projection='3d')
-ax2.scatter(rec_data_manifolds[rotation_index, :, 0], rec_data_manifolds[rotation_index, :, 1], rec_data_manifolds[rotation_index, :, 2], s=marker_size, lw = marker_line, edgecolors='k', facecolors=cm.get_cmap("coolwarm")(Normalize()(rec_data_manifolds[rotation_index, :, 2])))
-ax3 = fig.add_subplot(2, 2, 3, projection='3d')
-ax3.scatter(grid_manifold[:, 0], grid_manifold[:, 1], grid_manifold[:, 2], s=marker_size, lw = marker_line, edgecolors='k', facecolors=cm.get_cmap("coolwarm")(Normalize()(grid_manifold[:, 2])))
-ax4 = fig.add_subplot(2, 2, 4, projection='3d')
-ax4.scatter(rec_grid_manifolds[rotation_index, :, 0], rec_grid_manifolds[rotation_index, :, 1], rec_grid_manifolds[rotation_index, :, 2], s=marker_size, lw = marker_line, edgecolors='k', facecolors=cm.get_cmap("coolwarm")(Normalize()(rec_grid_manifolds[rotation_index, :, 2])))
+# rotation_index = None
+# rotation_index = 17
+# if rotation_index is None: rotation_index = -1
+# print('Animate Rotation Index, ', rotation_index)
+# plt.clf()
+# ax1 = fig.add_subplot(2, 2, 1, projection='3d')
+# ax1.scatter(data_manifold[:, 0], data_manifold[:, 1], data_manifold[:, 2], s=marker_size, lw = marker_line, edgecolors='k', facecolors=cm.get_cmap("coolwarm")(Normalize()(data_manifold[:, 2])))
+# ax2 = fig.add_subplot(2, 2, 2, projection='3d')
+# ax2.scatter(rec_data_manifolds[rotation_index, :, 0], rec_data_manifolds[rotation_index, :, 1], rec_data_manifolds[rotation_index, :, 2], s=marker_size, lw = marker_line, edgecolors='k', facecolors=cm.get_cmap("coolwarm")(Normalize()(rec_data_manifolds[rotation_index, :, 2])))
+# ax3 = fig.add_subplot(2, 2, 3, projection='3d')
+# ax3.scatter(grid_manifold[:, 0], grid_manifold[:, 1], grid_manifold[:, 2], s=marker_size, lw = marker_line, edgecolors='k', facecolors=cm.get_cmap("coolwarm")(Normalize()(grid_manifold[:, 2])))
+# ax4 = fig.add_subplot(2, 2, 4, projection='3d')
+# ax4.scatter(rec_grid_manifolds[rotation_index, :, 0], rec_grid_manifolds[rotation_index, :, 1], rec_grid_manifolds[rotation_index, :, 2], s=marker_size, lw = marker_line, edgecolors='k', facecolors=cm.get_cmap("coolwarm")(Normalize()(rec_grid_manifolds[rotation_index, :, 2])))
 
-fig.canvas.mpl_connect('motion_notify_event', get_on_move(fig, ax1, ax2))
-fig.canvas.mpl_connect('motion_notify_event', get_on_move(fig, ax3, ax4))
-ax1.set_xlim(range_1_min, range_1_max)
-ax1.set_ylim(range_1_min, range_1_max)
-ax1.set_zlim(range_1_min, range_1_max)
-ax2.set_xlim(range_1_min, range_1_max)
-ax2.set_ylim(range_1_min, range_1_max)
-ax2.set_zlim(range_1_min, range_1_max)
-ax3.set_xlim(range_1_min, range_1_max)
-ax3.set_ylim(range_1_min, range_1_max)
-ax3.set_zlim(range_1_min, range_1_max)
-ax4.set_xlim(range_1_min, range_1_max)
-ax4.set_ylim(range_1_min, range_1_max)
-ax4.set_zlim(range_1_min, range_1_max)
+# fig.canvas.mpl_connect('motion_notify_event', get_on_move(fig, ax1, ax2))
+# fig.canvas.mpl_connect('motion_notify_event', get_on_move(fig, ax3, ax4))
+# ax1.set_xlim(range_1_min, range_1_max)
+# ax1.set_ylim(range_1_min, range_1_max)
+# ax1.set_zlim(range_1_min, range_1_max)
+# ax2.set_xlim(range_1_min, range_1_max)
+# ax2.set_ylim(range_1_min, range_1_max)
+# ax2.set_zlim(range_1_min, range_1_max)
+# ax3.set_xlim(range_1_min, range_1_max)
+# ax3.set_ylim(range_1_min, range_1_max)
+# ax3.set_zlim(range_1_min, range_1_max)
+# ax4.set_xlim(range_1_min, range_1_max)
+# ax4.set_ylim(range_1_min, range_1_max)
+# ax4.set_zlim(range_1_min, range_1_max)
 
-set_axis_prop(ax1, grid_on, ticks_on, axis_on )
-set_axis_prop(ax2, grid_on, ticks_on, axis_on )
-set_axis_prop(ax3, grid_on, ticks_on, axis_on )
-set_axis_prop(ax4, grid_on, ticks_on, axis_on )
+# set_axis_prop(ax1, grid_on, ticks_on, axis_on )
+# set_axis_prop(ax2, grid_on, ticks_on, axis_on )
+# set_axis_prop(ax3, grid_on, ticks_on, axis_on )
+# set_axis_prop(ax4, grid_on, ticks_on, axis_on )
 
-animate_mode = 'elevation'
-animate([ax1, ax2, ax3, ax4], n_turns = 1, skip_rate = 30, mode=animate_mode, quality=quality, grid_on=grid_on, ticks_on=ticks_on, axis_on=axis_on, save_path=exp_dir+'RI('+str(rotation_index)+')'+animate_mode+'_rotation')
-animate_mode = 'elevazim'
-animate([ax1, ax2, ax3, ax4], n_turns = 1, skip_rate = 30, mode=animate_mode, quality=quality, grid_on=grid_on, ticks_on=ticks_on, axis_on=axis_on, save_path=exp_dir+'RI('+str(rotation_index)+')'+animate_mode+'_rotation')
-animate_mode = 'azimuth'
-animate([ax1, ax2, ax3, ax4], n_turns = 1, skip_rate = 30, mode=animate_mode, quality=quality, grid_on=grid_on, ticks_on=ticks_on, axis_on=axis_on, save_path=exp_dir+'RI('+str(rotation_index)+')'+animate_mode+'_rotation')
+# animate_mode = 'elevation'
+# animate([ax1, ax2, ax3, ax4], n_turns = 1, skip_rate = 30, mode=animate_mode, quality=quality, grid_on=grid_on, ticks_on=ticks_on, axis_on=axis_on, save_path=exp_dir+'RI('+str(rotation_index)+')'+animate_mode+'_rotation')
+# animate_mode = 'elevazim'
+# animate([ax1, ax2, ax3, ax4], n_turns = 1, skip_rate = 30, mode=animate_mode, quality=quality, grid_on=grid_on, ticks_on=ticks_on, axis_on=axis_on, save_path=exp_dir+'RI('+str(rotation_index)+')'+animate_mode+'_rotation')
+# animate_mode = 'azimuth'
+# animate([ax1, ax2, ax3, ax4], n_turns = 1, skip_rate = 30, mode=animate_mode, quality=quality, grid_on=grid_on, ticks_on=ticks_on, axis_on=axis_on, save_path=exp_dir+'RI('+str(rotation_index)+')'+animate_mode+'_rotation')
 
 
 
