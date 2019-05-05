@@ -109,10 +109,12 @@ lay_4 = lay_3+tf.layers.dense(inputs = lay_3, units = 200, use_bias = True, acti
 z_x = tf.layers.dense(inputs = lay_4, units = n_latent, use_bias = True, activation = None) 
 log_pdf_z_x = prior_dist.log_pdf(z_x)
 x_rec, log_pdf_x_rec = serial_flow.transform(z_x, log_pdf_z_x)
-rec_cost = 100*tf.reduce_mean(tf.reduce_sum((x_rec-x_input)**2, axis=1))
+# rec_cost = 100*tf.reduce_mean(tf.reduce_sum((x_rec-x_input)**2, axis=1))
+rec_cost = tf.reduce_mean(tf.reduce_sum((x_rec-x_input)**2, axis=1))
 
 
-optimizer = tf.train.AdamOptimizer(learning_rate=0.01, beta1=0.5, beta2=0.9, epsilon=1e-08) # good with overall rotation added
+optimizer = tf.train.AdamOptimizer(learning_rate=0.5, beta1=0.5, beta2=0.9, epsilon=1e-08) # good with overall rotation added
+# optimizer = tf.train.AdamOptimizer(learning_rate=0.01, beta1=0.5, beta2=0.9, epsilon=1e-08) # good with overall rotation added
 # optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.5, beta2=0.9, epsilon=1e-08) # good without overall rotation added
 # optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.5, beta2=0.99, epsilon=1e-08) # good without overall rotation added
 cost_step = optimizer.minimize(rec_cost)
