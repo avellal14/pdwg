@@ -129,6 +129,7 @@ start = time.time();
 rec_data_manifolds = None
 rec_grid_manifolds = None
 for epoch in range(1, n_epochs+1):
+    print(epoch)
     perm_indeces = np.random.permutation(np.arange(n_training_samples))     
     training_data_manifold_scrambled = data_manifold[:n_training_samples,:][perm_indeces,:]
     for i in range(math.ceil(training_data_manifold_scrambled.shape[0]/float(train_batch_size))):
