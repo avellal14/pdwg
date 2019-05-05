@@ -510,7 +510,7 @@ class ConnectedPiecewiseOrthogonalMap():
     @staticmethod
     def required_num_parameters(input_dim):
         n_rot_param = HouseholdRotationFlow.required_num_parameters(input_dim)
-        return 2*n_rot_param+1+1+1+input_dim
+        return 2*n_rot_param+1+1+1+input_dim+input_dim
 
     def jacobian(self, z0):
         if self._parameters is not None:
@@ -523,6 +523,7 @@ class ConnectedPiecewiseOrthogonalMap():
         neg_pre_scale, param_index = helper.slice_parameters(self._parameters, param_index, 1)
         hyper_pre_bias, param_index = helper.slice_parameters(self._parameters, param_index, 1)
         hyper_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim) 
+        output_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim) 
 
         pos_scale = tf.nn.softplus(pos_pre_scale)/np.log(1+np.exp(0))
         neg_scale = tf.nn.softplus(neg_pre_scale)/np.log(1+np.exp(0))
@@ -557,6 +558,7 @@ class ConnectedPiecewiseOrthogonalMap():
         neg_pre_scale, param_index = helper.slice_parameters(self._parameters, param_index, 1)
         hyper_pre_bias, param_index = helper.slice_parameters(self._parameters, param_index, 1)
         hyper_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim) 
+        output_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim) 
 
         pos_scale = tf.nn.softplus(pos_pre_scale)/np.log(1+np.exp(0))
         neg_scale = tf.nn.softplus(neg_pre_scale)/np.log(1+np.exp(0))
@@ -579,7 +581,7 @@ class ConnectedPiecewiseOrthogonalMap():
         z_neg_scale_rot = neg_scale*z_neg_rot
 
         z_scale_rot = pos_mask*z_pos_scale_rot+neg_mask*z_neg_scale_rot
-        z = z_scale_rot+hyper_vec_dir*hyper_bias
+        z = z_scale_rot+hyper_vec_dir*hyper_bias+output_shift_vec
         scales = pos_mask*pos_scale+neg_mask*neg_scale 
         return z, scales
 
