@@ -111,7 +111,12 @@ class Model():
                                                   transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[0]), 
                                                   transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
                                                   transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[1]), 
-                                                  transforms.RiemannianFlow(input_dim=self.config['n_latent'], output_dim=n_output, n_input_CPO=self.config['rnf_prop']['n_input_CPO'], n_output_CPO=self.config['rnf_prop']['n_output_CPO'], parameters=self.flow_param_list[-2]),
+                                                  transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
+                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[2]), 
+                                                  transforms.RiemannianFlow(input_dim=self.config['n_latent'], output_dim=n_output, n_input_CPO=self.config['rnf_prop']['n_input_CPO'], n_output_CPO=self.config['rnf_prop']['n_output_CPO'], parameters=self.flow_param_list[-5]),
+                                                  transforms.HouseholdRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-4]),
+                                                  transforms.HouseholdRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-3]),
+                                                  transforms.HouseholdRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-2]),
                                                   transforms.HouseholdRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-1]),
                                                   ])
 
