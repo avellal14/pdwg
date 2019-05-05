@@ -104,7 +104,7 @@ class Model():
                                                   # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
                                                   # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[4]),
                                                   transforms.OpenIntervalDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  # ])
+                                                  ])
 
         self.prior_param = self.PriorMap.forward((tf.zeros(shape=(self.batch_size_tf, 1)),))
         self.prior_dist = distributions.DiagonalGaussianDistribution(params = self.prior_param)
