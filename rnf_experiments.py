@@ -62,8 +62,8 @@ resolution = 200
 n_samples = 30000
 n_training_samples = 30000
 
-n_epochs = 42
-vis_epoch_rate = 20
+n_epochs = 40
+vis_epoch_rate = 5
 
 batch_size = 500
 train_batch_size = 100
@@ -113,8 +113,8 @@ rec_cost = 100*tf.reduce_mean(tf.reduce_sum((x_rec-x_input)**2, axis=1))
 # rec_cost = tf.reduce_mean(tf.reduce_sum((x_rec-x_input)**2, axis=1))
 
 
-optimizer = tf.train.RMSPropOptimizer(learning_rate=0.01, decay=0.9, momentum=0., epsilon=1e-10) # good with overall rotation added
-# optimizer = tf.train.AdamOptimizer(learning_rate=0.01, beta1=0.99, beta2=0.999, epsilon=1e-08) # good with overall rotation added
+# optimizer = tf.train.RMSPropOptimizer(learning_rate=0.01, decay=0.9, momentum=0., epsilon=1e-10) # good with overall rotation added
+optimizer = tf.train.AdamOptimizer(learning_rate=0.01, beta1=0.99, beta2=0.999, epsilon=1e-08) # good with overall rotation added
 # optimizer = tf.train.AdamOptimizer(learning_rate=0.01, beta1=0.5, beta2=0.9, epsilon=1e-08) # good with overall rotation added
 # optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.5, beta2=0.9, epsilon=1e-08) # good without overall rotation added
 # optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.5, beta2=0.99, epsilon=1e-08) # good without overall rotation added
@@ -129,9 +129,9 @@ start = time.time();
 rec_data_manifolds = None
 rec_grid_manifolds = None
 for epoch in range(1, n_epochs+1):
-    print(epoch)
     perm_indeces = np.random.permutation(np.arange(n_training_samples))     
     training_data_manifold_scrambled = data_manifold[:n_training_samples,:][perm_indeces,:]
+    print(epoch, math.ceil(training_data_manifold_scrambled.shape[0]/float(train_batch_size)))
     for i in range(math.ceil(training_data_manifold_scrambled.shape[0]/float(train_batch_size))):
         curr_batch_np = training_data_manifold_scrambled[i*train_batch_size:min((i+1)*train_batch_size, training_data_manifold_scrambled.shape[0]), :]
         fd = {x_input: curr_batch_np,}
