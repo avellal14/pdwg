@@ -110,8 +110,8 @@ class Model():
         n_input_CPO, n_output_CPO = self.config['rnf_prop']['n_input_CPO']
         self.flow_object = transforms.SerialFlow([\
                                                   transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[0]), 
-                                                  transforms.RiemannianFlow(input_dim=self.config['n_latent'], output_dim=n_output, n_input_CPO=self.config['rnf_prop']['n_input_CPO'], n_output_CPO=self.config['rnf_prop']['n_output_CPO'], parameters=self.flow_param_list[-2])
-                                                  transforms.HouseholdRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-1])
+                                                  transforms.RiemannianFlow(input_dim=self.config['n_latent'], output_dim=n_output, n_input_CPO=self.config['rnf_prop']['n_input_CPO'], n_output_CPO=self.config['rnf_prop']['n_output_CPO'], parameters=self.flow_param_list[-2]),
+                                                  transforms.HouseholdRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-1]),
                                                   ])
 
         self.prior_param = self.PriorMap.forward((tf.zeros(shape=(self.batch_size_tf, 1)),))
