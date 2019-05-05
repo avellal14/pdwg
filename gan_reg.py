@@ -52,7 +52,7 @@ if Algorithm == 'AE':
 if Algorithm == 'RNF':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 256, 'n_flat': 400, 
-                             'encoder_mode': 'UnivApproxNoSpatial', 'divergence_mode': 'None', 'dual_dist_mode': '',  'infomax_mode': 'None',
+                             'encoder_mode': 'Deterministic', 'divergence_mode': 'None', 'dual_dist_mode': '',  'infomax_mode': 'None',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 0, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 0, 'enc_inv_MMD_n_trans': 0, 'enc_inv_MMD_strength': 0,
                              'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {}}
