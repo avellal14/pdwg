@@ -92,6 +92,18 @@ class Model():
 
         #############################################################################
         # GENERATOR 
+        self.flow_param_list = self.FlowMap.forward()
+        self.flow_object = transforms.SerialFlow([\
+                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[0]), 
+                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
+                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[1]),
+                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
+                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[2]),
+                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
+                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[3]),
+                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
+                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[4]),
+                                                  ])
 
         self.prior_param = self.PriorMap.forward((tf.zeros(shape=(self.batch_size_tf, 1)),))
         self.prior_dist = distributions.DiagonalGaussianDistribution(params = self.prior_param)
@@ -163,19 +175,6 @@ class Model():
         # self.interpolated_obs = self.Generator.forward(self.interpolated_posterior_latent_code) 
         self.transformed_interpolated_posterior_latent_code, _ = self.flow_object.transform(self.interpolated_posterior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
         self.interpolated_obs = {'flat': None, 'image': tf.reshape(self.transformed_interpolated_posterior_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
-
-        self.flow_param_list = self.FlowMap.forward()
-        self.flow_object = transforms.SerialFlow([\
-                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[0]), 
-                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[1]),
-                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[2]),
-                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[3]),
-                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[4]),
-                                                  ])
 
         # self.reconst_param = self.Generator.forward(self.posterior_latent_code[:, np.newaxis, :]) 
         # self.reconst_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.reconst_param)
