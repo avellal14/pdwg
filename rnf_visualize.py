@@ -32,7 +32,7 @@ plt.rcParams['ytick.labelsize'] = 14
 plt.rcParams['legend.fontsize'] = 16
 my_dpi = 350
 grid_on, ticks_on, axis_on = False, False, True
-quality = 0.5
+quality = 0.2
 marker_size = 10/2
 marker_line = 0.3/2
 
