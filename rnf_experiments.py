@@ -54,6 +54,7 @@ if platform.dist()[0] == 'Ubuntu':
     use_gpu = True
 
 exp_dir = str(Path.home())+'/ExperimentalResults/RNF_EXP/'
+if not os.path.exists(exp_dir): os.makedirs(exp_dir)
 
 range_1_min = -1
 range_1_max = 1
@@ -62,14 +63,14 @@ resolution = 200
 n_samples = 10000
 n_training_samples = 10000
 
-n_epochs = 40
+n_epochs = 50
 vis_epoch_rate = 1
 
 batch_size = 500
 train_batch_size = 25
 n_latent = 2
 n_out = 3
-n_input_CPO, n_output_CPO = 10, 10
+n_input_CPO, n_output_CPO = 15, 15
 
 data_manifold_xy = np.random.uniform(0, 1, (n_samples, 2))*(range_1_max-range_1_min)+range_1_min
 data_manifold_z = obj_fun(data_manifold_xy)[:, np.newaxis]
@@ -126,6 +127,8 @@ sess.run(init)
 print('Start Timer: ')
 start = time.time();
 
+np.save(exp_dir+'data_manifold.npy', data_manifold, allow_pickle=True, fix_imports=True)
+np.save(exp_dir+'grid_manifold.npy', grid_manifold, allow_pickle=True, fix_imports=True)
 rec_data_manifolds = None
 rec_grid_manifolds = None
 for epoch in range(1, n_epochs+1):
@@ -159,16 +162,16 @@ for epoch in range(1, n_epochs+1):
 
         if rec_grid_manifolds is None: rec_grid_manifolds = rec_grid_manifold[np.newaxis, ...]
         else: rec_grid_manifolds = np.concatenate([rec_grid_manifolds, rec_grid_manifold[np.newaxis, ...]], axis=0)
+        
+        np.save(exp_dir+'rec_data_manifolds.npy', rec_data_manifolds, allow_pickle=True, fix_imports=True)
+        np.save(exp_dir+'rec_grid_manifolds.npy', rec_grid_manifolds, allow_pickle=True, fix_imports=True)
+
 
 end = time.time()
 print('Overall Time: {:.3f}\n'.format((end - start)))
 
-if not os.path.exists(exp_dir): os.makedirs(exp_dir)
-np.save(exp_dir+'data_manifold.npy', data_manifold, allow_pickle=True, fix_imports=True)
-np.save(exp_dir+'grid_manifold.npy', grid_manifold, allow_pickle=True, fix_imports=True)
 np.save(exp_dir+'rec_data_manifolds.npy', rec_data_manifolds, allow_pickle=True, fix_imports=True)
 np.save(exp_dir+'rec_grid_manifolds.npy', rec_grid_manifolds, allow_pickle=True, fix_imports=True)
-
 
 
 
