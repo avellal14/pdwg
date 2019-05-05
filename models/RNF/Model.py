@@ -124,6 +124,7 @@ class Model():
         # self.obs_sample = self.obs_sample_dist.sample(b_mode=True)
         
         self.transformed_prior_latent_code, _ = self.flow_object.transform(self.prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
+        pdb.set_trace()
         self.obs_sample_param = {'flat': None, 'image': tf.reshape(self.transformed_prior_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
         self.obs_sample_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.obs_sample_param)
         self.obs_sample = self.obs_sample_dist.sample(b_mode=True)
