@@ -48,156 +48,156 @@ if Algorithm == 'AE':
                              'encoder_mode': 'UnivApproxNoSpatial', 'divergence_mode': 'None', 'dual_dist_mode': '',  'infomax_mode': 'None',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 0, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 0, 'enc_inv_MMD_n_trans': 0, 'enc_inv_MMD_strength': 0,
-                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {}}
+                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {}, 'rnf_prop': {}}
 if Algorithm == 'RNF':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 256, 'n_flat': 400, 
                              'encoder_mode': 'Deterministic', 'divergence_mode': 'None', 'dual_dist_mode': '',  'infomax_mode': 'None',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 0, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 0, 'enc_inv_MMD_n_trans': 0, 'enc_inv_MMD_strength': 0,
-                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {}}
+                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {}, 'rnf_prop': {'n_input_CPO': 10, 'n_output_CPO': 10}}
 elif Algorithm == 'WAE':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.5, 'beta2': 0.9,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 128, 'n_flat': 400, 
                              'encoder_mode': 'UnivApprox', 'divergence_mode': 'NS-GAN', 'dual_dist_mode': '', 'infomax_mode': '',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Batch Norm', 'cri_normalization_mode': 'Layer Norm', 
                              'enc_reg_strength': 10, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 3, 'enc_inv_MMD_n_trans': 5, 'enc_inv_MMD_strength': 10, 
-                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
+                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}, 'rnf_prop': {}  }
 elif Algorithm == 'WAEVanilla':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 512, 'n_flat': 400, 
                              'encoder_mode': 'UnivApproxNoSpatial', 'divergence_mode': 'MMD-DENOISE', 'dual_dist_mode': '', 'infomax_mode': '',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 10, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0, 
-                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
+                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}, 'rnf_prop': {}  }
 elif Algorithm == 'WAEInfo':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 256, 'n_flat': 400, 
                              'encoder_mode': 'UnivApproxNoSpatial', 'divergence_mode': 'MMD', 'dual_dist_mode': '', 'infomax_mode': '',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 100, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.15,  # CIFAR batch_size=100 fixed to one across dimensions n_latent=500
-                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
+                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}, 'rnf_prop': {}  }
 elif Algorithm == 'WAEInfoFlowMMD' and dataset_to_use == 'MNIST':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 256, 'n_flat': 400, # MNIST 
                              'encoder_mode': 'UnivApproxNoSpatial_resnet_additive', 'divergence_mode': 'FLOW-MMD', 'dual_dist_mode': '',  'infomax_mode': 'GaussianFixedForAll',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 10, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.75, # MNIST Additive Encoder FLOW-MMD
-                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 0}}  }
+                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 0}}, 'rnf_prop': {}  }
 elif Algorithm == 'WAEInfoFlowMMD' and dataset_to_use == 'CIFAR10':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 512, 'n_flat': 400, 
                              'encoder_mode': 'UnivApproxNoSpatial_resnet_additive', 'divergence_mode': 'FLOW-MMD', 'dual_dist_mode': '',  'infomax_mode': 'GaussianFixedForAll',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 10, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.020, # CIFAR
-                             # 'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 0}}  }
-                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 25}}  }
+                             # 'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 0}}, 'rnf_prop': {}  }
+                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 25}}, 'rnf_prop': {}  }
 elif Algorithm == 'WAESubmanifold':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 5, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 32, 'n_flat': 400, 
                              'encoder_mode': 'Deterministic', 'divergence_mode': 'WGAN-GP', 'dual_dist_mode': '', 'infomax_mode': '',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 50, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.2/50, 
-                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
+                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}, 'rnf_prop': {}  }
 elif Algorithm == 'WAEPrioritizingFlow':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 64, 'n_flat': 400, 
                              'encoder_mode': 'Deterministic', 'divergence_mode': 'WGAN-GP', 'dual_dist_mode': '', 
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 50, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.2/50, 
-                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
+                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}, 'rnf_prop': {}  }
 elif Algorithm == 'WAECompactFlow':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 128, 'n_flat': 400, 
                              'encoder_mode': 'Deterministic', 'divergence_mode': 'MMD', 'dual_dist_mode': '', 'infomax_mode': '', 
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 50, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.2/50, 
-                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
+                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}, 'rnf_prop': {}  }
 elif Algorithm == 'WAETwoLevel':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 128, 'n_flat': 400, 
                              'encoder_mode': 'Deterministic', 'divergence_mode': 'MMD-DENOISE', 'dual_dist_mode': '', 'infomax_mode': '', 
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 50, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0.05/50, 
-                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
+                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}, 'rnf_prop': {}  }
 elif Algorithm == 'WAEInterpolate':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.99,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 64, 'n_flat': 400, 
                              'encoder_mode': 'UnivApproxNoSpatial', 'divergence_mode': 'MMD', 'dual_dist_mode': '', 'infomax_mode': '', 
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Batch Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 50, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0/50, 
-                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
+                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}, 'rnf_prop': {}  }
 elif Algorithm == 'WAEFlexPrior':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.99,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 64, 'n_flat': 400, 
                              'encoder_mode': 'Deterministic', 'divergence_mode': 'MMD', 'dual_dist_mode': '', 'infomax_mode': '', 
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Batch Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 10, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 1, 'enc_inv_MMD_n_trans': 1, 'enc_inv_MMD_strength': 0, 
-                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
+                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}, 'rnf_prop': {}  }
 elif Algorithm == 'WGANGP':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.5, 'beta2': 0.9,
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 5, 'n_filter': 128, 'n_flat': 400, 
                              'encoder_mode': 'UnivApprox', 'divergence_mode': 'NS-GAN', 'dual_dist_mode': 'Prior', 'infomax_mode': '', 
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Batch Norm', 'cri_normalization_mode': 'Layer Norm', 
                              'enc_reg_strength': 20, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 3, 'enc_inv_MMD_n_trans': 5, 'enc_inv_MMD_strength': 10, 
-                             'critic_reg_mode': ['Trivial Gradient Norm',], 'cri_reg_strength': 10, 'lambda_mix': 0.25, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
+                             'critic_reg_mode': ['Trivial Gradient Norm',], 'cri_reg_strength': 10, 'lambda_mix': 0.25, 'timers': {'0': {'timescale': 5, 'start': 5}}, 'rnf_prop': {}  }
 elif Algorithm == 'PDWGAN':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.5, 'beta2': 0.9,
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 5, 'n_filter': 128, 'n_flat': 400, 
                              'encoder_mode': 'UnivApprox', 'divergence_mode': 'NS-GAN', 'dual_dist_mode': 'Prior', 'infomax_mode': '', 
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Batch Norm', 'cri_normalization_mode': 'Layer Norm', 
                              'enc_reg_strength': 20, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 3, 'enc_inv_MMD_n_trans': 5, 'enc_inv_MMD_strength': 10, 
-                             'critic_reg_mode': ['Coupling Gradient Vector',], 'cri_reg_strength': 0.1, 'lambda_mix': 0.25, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
+                             'critic_reg_mode': ['Coupling Gradient Vector',], 'cri_reg_strength': 0.1, 'lambda_mix': 0.25, 'timers': {'0': {'timescale': 5, 'start': 5}}, 'rnf_prop': {}  }
 elif Algorithm == 'WGANGPCannon':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.5, 'beta2': 0.9,
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 5, 'n_filter': 128, 'n_flat': 400, 
                              'encoder_mode': 'UnivApprox', 'divergence_mode': 'MMD', 'dual_dist_mode': 'Prior', 'infomax_mode': '', 
                              'enc_normalization_mode': 'None', 'gen_normalization_mode': 'Batch Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 100, 'enc_inv_MMD_n_reflect': 3, 'enc_inv_MMD_n_trans': 5, 'enc_inv_MMD_strength': 10, 
-                             'critic_reg_mode': ['Trivial Gradient Norm',], 'cri_reg_strength': 10, 'lambda_mix': 0.25, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
+                             'critic_reg_mode': ['Trivial Gradient Norm',], 'cri_reg_strength': 10, 'lambda_mix': 0.25, 'timers': {'0': {'timescale': 5, 'start': 5}}, 'rnf_prop': {}  }
 elif Algorithm == 'PDWGANCannon':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.5, 'beta2': 0.9,
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 5, 'n_filter': 64, 'n_flat': 400, 
                              'encoder_mode': 'UnivApprox', 'divergence_mode': 'MMD', 'dual_dist_mode': 'Prior', 'infomax_mode': '', 
                              'enc_normalization_mode': 'None', 'gen_normalization_mode': 'Batch Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 100, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 3, 'enc_inv_MMD_n_trans': 5, 'enc_inv_MMD_strength': 10, 
-                             'critic_reg_mode': ['Coupling Gradient Vector', 'Coupling Gradient Norm'], 'cri_reg_strength': 1, 'lambda_mix': 1, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
+                             'critic_reg_mode': ['Coupling Gradient Vector', 'Coupling Gradient Norm'], 'cri_reg_strength': 1, 'lambda_mix': 1, 'timers': {'0': {'timescale': 5, 'start': 5}}, 'rnf_prop': {}  }
 elif Algorithm == 'PDWGANDirectionCannon':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.5, 'beta2': 0.9,
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 5, 'n_filter': 128, 'n_flat': 400, 
                              'encoder_mode': 'UnivApprox', 'divergence_mode': 'MMD', 'dual_dist_mode': 'Prior', 'infomax_mode': '', 
                              'enc_normalization_mode': 'None', 'gen_normalization_mode': 'Batch Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 100, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 3, 'enc_inv_MMD_n_trans': 5, 'enc_inv_MMD_strength': 10, 
-                             'critic_reg_mode': ['Coupling Gradient Direction', 'Coupling Gradient Norm'], 'cri_reg_strength': 10, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
+                             'critic_reg_mode': ['Coupling Gradient Direction', 'Coupling Gradient Norm'], 'cri_reg_strength': 10, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}, 'rnf_prop': {}  }
 elif Algorithm == 'PDWGANCannon2':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.5, 'beta2': 0.9,
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 5, 'n_filter': 128, 'n_flat': 400, 
                              'encoder_mode': 'UnivApprox', 'divergence_mode': 'MMD', 'dual_dist_mode': 'CouplingAndPrior', 'infomax_mode': '', 
                              'enc_normalization_mode': 'None', 'gen_normalization_mode': 'Batch Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 10, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 3, 'enc_inv_MMD_n_trans': 5, 'enc_inv_MMD_strength': 10, 
-                             'critic_reg_mode': ['Coupling Gradient Vector',], 'cri_reg_strength': 1, 'lambda_mix': 0.5, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
+                             'critic_reg_mode': ['Coupling Gradient Vector',], 'cri_reg_strength': 1, 'lambda_mix': 0.5, 'timers': {'0': {'timescale': 5, 'start': 5}}, 'rnf_prop': {}  }
 elif Algorithm == 'PDWGANCollapsed':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.5, 'beta2': 0.9,
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 5, 'n_filter': 64, 'n_flat': 400, 
                              'encoder_mode': 'UnivApprox', 'divergence_mode': 'MMD', 'dual_dist_mode': 'Coupling', 'infomax_mode': '', 
                              'enc_normalization_mode': 'None', 'gen_normalization_mode': 'Batch Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 100, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 3, 'enc_inv_MMD_n_trans': 5, 'enc_inv_MMD_strength': 10, 
-                             # 'critic_reg_mode': ['Coupling Gradient Vector',], 'cri_reg_strength': 100, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
-                             'critic_reg_mode': ['Coupling Gradient Vector',], 'cri_reg_strength': 10, 'lambda_mix': 1, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
+                             # 'critic_reg_mode': ['Coupling Gradient Vector',], 'cri_reg_strength': 100, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}, 'rnf_prop': {}  }
+                             'critic_reg_mode': ['Coupling Gradient Vector',], 'cri_reg_strength': 10, 'lambda_mix': 1, 'timers': {'0': {'timescale': 5, 'start': 5}}, 'rnf_prop': {}  }
 elif Algorithm == 'PDWGANCollapsed2':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.5, 'beta2': 0.9,
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 5, 'n_filter': 64, 'n_flat': 400, 
                              'encoder_mode': 'UnivApprox', 'divergence_mode': 'MMD', 'dual_dist_mode': 'Coupling', 'infomax_mode': '', 
                              'enc_normalization_mode': 'None', 'gen_normalization_mode': 'Batch Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 100, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 3, 'enc_inv_MMD_n_trans': 5, 'enc_inv_MMD_strength': 10, 
-                             'critic_reg_mode': ['Coupling Gradient Vector',], 'cri_reg_strength': 1, 'lambda_mix': 1, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
+                             'critic_reg_mode': ['Coupling Gradient Vector',], 'cri_reg_strength': 1, 'lambda_mix': 1, 'timers': {'0': {'timescale': 5, 'start': 5}}, 'rnf_prop': {}  }
 elif Algorithm == 'DecomposeAE':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 1, 'n_flat': 400, 
                              'encoder_mode': 'UnivApprox', 'divergence_mode': 'None', 'dual_dist_mode': '', 'infomax_mode': '', 
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'None', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 0, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 0, 'enc_inv_MMD_n_trans': 0, 'enc_inv_MMD_strength': 0, 
-                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}  }
+                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {'0': {'timescale': 5, 'start': 5}}, 'rnf_prop': {}  }
 
 global_experiment_name = str(Path.home())+'/ExperimentalResults/EEEexperimentsStable-'+Algorithm+'-'
 
@@ -245,6 +245,7 @@ parser.add_argument('--enc_inv_MMD_n_reflect', type=float, default=alg_specific_
 parser.add_argument('--enc_inv_MMD_n_trans', type=float, default=alg_specific_settings['enc_inv_MMD_n_trans'], help='encoder invariant MMD num of transforms')
 parser.add_argument('--enc_inv_MMD_strength', type=float, default=alg_specific_settings['enc_inv_MMD_strength'], help='encoder invariant MMD strength')
 parser.add_argument('--cri_reg_strength', type=float, default=alg_specific_settings['cri_reg_strength'], help='cririminator regularization strength')
+parser.add_argument('--rnf_prop', type=float, default=alg_specific_settings['rnf_prop'], help='rnf properties')
 parser.add_argument('--enc_sine_freq', type=float, default=2, help='encoder sine frequency')
     
 if dataset_to_use == 'IMAGENET':
