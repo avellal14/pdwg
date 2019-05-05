@@ -113,7 +113,7 @@ rec_cost = 100*tf.reduce_mean(tf.reduce_sum((x_rec-x_input)**2, axis=1))
 # rec_cost = tf.reduce_mean(tf.reduce_sum((x_rec-x_input)**2, axis=1))
 
 
-optimizer = tf.train.AdamOptimizer(learning_rate=0.01, beta1=0.9, beta2=0.9, epsilon=1e-08) # good with overall rotation added
+optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.9, beta2=0.9, epsilon=1e-08) # good with overall rotation added
 # optimizer = tf.train.AdamOptimizer(learning_rate=0.01, beta1=0.5, beta2=0.9, epsilon=1e-08) # good with overall rotation added
 # optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.5, beta2=0.9, epsilon=1e-08) # good without overall rotation added
 # optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.5, beta2=0.99, epsilon=1e-08) # good without overall rotation added
