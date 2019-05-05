@@ -92,24 +92,33 @@ class Model():
 
         #############################################################################
         # GENERATOR 
-        self.flow_param_list = self.FlowMap.forward()
+        self.flow_param_list = self.FlowMap.forward(batch)
+        # self.flow_object = transforms.SerialFlow([\
+        #                                           transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[0]), 
+        #                                           # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
+        #                                           # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[1]),
+        #                                           # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
+        #                                           # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[2]),
+        #                                           # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
+        #                                           # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[3]),
+        #                                           # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
+        #                                           # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[4]),
+        #                                           transforms.OpenIntervalDimensionFlow(input_dim=self.config['n_latent']), 
+        #                                           ])
+        
+        n_output = np.prod(batch['observed']['properties']['image'][0]['size'][2:])
+        n_input_CPO, n_output_CPO = self.config['rnf_prop']['n_input_CPO']
         self.flow_object = transforms.SerialFlow([\
                                                   transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[0]), 
-                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[1]),
-                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[2]),
-                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[3]),
-                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[4]),
-                                                  transforms.OpenIntervalDimensionFlow(input_dim=self.config['n_latent']), 
+                                                  transforms.RiemannianFlow(input_dim=self.config['n_latent'], output_dim=n_output, n_input_CPO=self.config['rnf_prop']['n_input_CPO'], n_output_CPO=self.config['rnf_prop']['n_output_CPO'], parameters=self.flow_param_list[-2])
+                                                  transforms.HouseholdRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-1])
                                                   ])
 
         self.prior_param = self.PriorMap.forward((tf.zeros(shape=(self.batch_size_tf, 1)),))
         self.prior_dist = distributions.DiagonalGaussianDistribution(params = self.prior_param)
         self.prior_latent_code = self.prior_dist.sample()        
         
+
         # self.obs_sample_param = self.Generator.forward(self.prior_latent_code[:, np.newaxis, :])
         # self.obs_sample_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.obs_sample_param)
         # self.obs_sample = self.obs_sample_dist.sample(b_mode=True)
