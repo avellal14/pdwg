@@ -173,9 +173,8 @@ class Model():
 
         self.interpolated_posterior_latent_code = helper.interpolate_latent_codes(self.posterior_latent_code, size=self.batch_size_tf//2)
         # self.interpolated_obs = self.Generator.forward(self.interpolated_posterior_latent_code) 
-        pdb.set_trace()
-        self.transformed_interpolated_posterior_latent_code, _ = self.flow_object.transform(self.interpolated_posterior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
-        self.interpolated_obs = {'flat': None, 'image': tf.reshape(self.transformed_interpolated_posterior_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
+        self.transformed_interpolated_posterior_latent_code, _ = self.flow_object.transform(tf.reshape(self.interpolated_posterior_latent_code, [-1, self.interpolated_posterior_latent_code.get_shape().as_list()[-1]]), tf.zeros(shape=(10*self.batch_size_tf//2, 1)))
+        self.interpolated_obs = {'flat': None, 'image': tf.reshape(self.transformed_interpolated_posterior_latent_code, [-1, 10, *batch['observed']['properties']['image'][0]['size'][2:]])}
 
         # self.reconst_param = self.Generator.forward(self.posterior_latent_code[:, np.newaxis, :]) 
         # self.reconst_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.reconst_param)
