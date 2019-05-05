@@ -123,7 +123,7 @@ class Model():
         self.uniform_dist = distributions.UniformDistribution(params = tf.concat([tf.zeros(shape=(self.batch_size_tf, 1)), tf.ones(shape=(self.batch_size_tf, 1))], axis=1))
 
         if self.config['encoder_mode'] == 'Deterministic': 
-            pdb.set_trace()
+            self.epsilon = None
         if self.config['encoder_mode'] == 'Gaussian' or self.config['encoder_mode'] == 'UnivApprox' or self.config['encoder_mode'] == 'UnivApproxNoSpatial' or self.config['encoder_mode'] == 'UnivApproxSine': 
             self.epsilon_param = self.EpsilonMap.forward((tf.zeros(shape=(self.batch_size_tf, 1)),))
             self.epsilon_dist = distributions.DiagonalGaussianDistribution(params = self.epsilon_param)        
