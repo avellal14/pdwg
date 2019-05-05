@@ -106,22 +106,14 @@ lay_1 = tf.layers.dense(inputs = x_input, units = 200, use_bias = True, activati
 lay_2 = lay_1+tf.layers.dense(inputs = lay_1, units = 200, use_bias = True, activation = tf.nn.relu) 
 lay_3 = lay_2+tf.layers.dense(inputs = lay_2, units = 200, use_bias = True, activation = tf.nn.relu) 
 lay_4 = lay_3+tf.layers.dense(inputs = lay_3, units = 200, use_bias = True, activation = tf.nn.relu) 
-# lay_5 = tf.layers.dense(inputs = lay_4, units = 200, use_bias = True, activation = tf.nn.relu) 
-# lay_6 = tf.layers.dense(inputs = lay_5, units = 200, use_bias = True, activation = tf.nn.relu) 
 z_x = tf.layers.dense(inputs = lay_4, units = n_latent, use_bias = True, activation = None) 
 log_pdf_z_x = prior_dist.log_pdf(z_x)
-# x_rec, log_pdf_x_rec = riemannian_flow.transform(z_x, log_pdf_z_x)
 x_rec, log_pdf_x_rec = serial_flow.transform(z_x, log_pdf_z_x)
-
-# margin = 0.05
-# rec_cost = 100*tf.reduce_mean(tf.reduce_sum(tf.nn.relu((x_rec-x_input)**2-margin**2), axis=1))
 rec_cost = 100*tf.reduce_mean(tf.reduce_sum((x_rec-x_input)**2, axis=1))
 
 
-optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.5, beta2=0.9, epsilon=1e-08)
-# optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.5, beta2=0.99, epsilon=1e-08)# good
-# optimizer = tf.train.AdamOptimizer(learning_rate=0.0001, beta1=0.9, beta2=0.999, epsilon=1e-08)
-# optimizer = tf.train.AdamOptimizer(learning_rate=0.01, beta1=0.5, beta2=0.9, epsilon=1e-08)
+optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.5, beta2=0.9, epsilon=1e-08) # good
+# optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1=0.5, beta2=0.99, epsilon=1e-08) # good
 cost_step = optimizer.minimize(rec_cost)
 init = tf.initialize_all_variables()
 sess = tf.InteractiveSession()  
