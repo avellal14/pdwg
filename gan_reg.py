@@ -941,8 +941,16 @@ with tf.Graph().as_default():
                 if batch_idx == 1:
                     if hasattr(model, 'particular'):
                         DEBUG_particular, DEBUG_transformed_latent_code = sess.run([model.particular, model.transformed_latent_code], feed_dict = curr_feed_dict)
+                        # np.mean(DEBUG_transformed_latent_code[0,:512])
+                        # np.std(DEBUG_transformed_latent_code[0,:512])
+                        # np.mean(DEBUG_transformed_latent_code[0,512:1024])
+                        # np.std(DEBUG_transformed_latent_code[0,512:1024])
+                        # np.mean(DEBUG_transformed_latent_code[0,1024:])
+                        # np.std(DEBUG_transformed_latent_code[0,1024:])
+                        # DEBUG_transformed_latent_code[0,1024:1024+512]
+                        np.max(np.abs(DEBUG_particular), axis=1)[:512]
+                        np.max(np.abs(DEBUG_particular), axis=1)[512:]
                         pdb.set_trace()
-                        
 
                 if mode=='test' and ((global_args.latent_vis_TSNE_epoch_rate[0]>0 and global_args.curr_epoch % global_args.latent_vis_TSNE_epoch_rate[0] == global_args.latent_vis_TSNE_epoch_rate[1]) or \
                                      (global_args.latent_vis_UMAP_epoch_rate[0]>0 and global_args.curr_epoch % global_args.latent_vis_UMAP_epoch_rate[0] == global_args.latent_vis_UMAP_epoch_rate[1])): 

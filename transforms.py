@@ -9,6 +9,7 @@ import pdb
 import numpy as np
 import math 
 from random import shuffle 
+from scipy.stats import special_ortho_group
 
 class PlanarFlow():
     """
@@ -439,12 +440,15 @@ class OthogonalProjectionMap():
             self._parameters.get_shape().assert_is_compatible_with([None, OthogonalProjectionMap.required_num_parameters(self._input_dim, self._output_dim)])
         
         param_index = 0
-        householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(max(self._input_dim, self._output_dim)))
+        # householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(max(self._input_dim, self._output_dim)))
+        compound_rotation_param, param_index = helper.slice_parameters(self._parameters, param_index, CompoundRotationFlow.required_num_parameters(max(self._input_dim, self._output_dim)))
         input_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim)
         output_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._output_dim) 
-        householder_flow = HouseholdRotationFlow(max(self._input_dim, self._output_dim), householder_param) 
+        # householder_flow = HouseholdRotationFlow(max(self._input_dim, self._output_dim), householder_param) 
+        compound_rotation_flow = CompoundRotationFlow(max(self._input_dim, self._output_dim), compound_rotation_param) 
 
-        full_batched_rot_matrix = householder_flow.get_batched_rot_matrix()
+        # full_batched_rot_matrix = householder_flow.get_batched_rot_matrix()
+        full_batched_rot_matrix = compound_rotation_flow.get_batched_rot_matrix()
         batched_rot_matrix = full_batched_rot_matrix[:, :self._output_dim, :self._input_dim]
         if self._parameters is None or self._parameters.get_shape()[0].value == 1: #one set of parameters
             jacobian = tf.tile(batched_rot_matrix, [tf.shape(z0)[0], 1, 1])
@@ -458,15 +462,18 @@ class OthogonalProjectionMap():
         assert (self._mode == 'matrix' or self._mode == 'vector')
         
         param_index = 0
-        householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(max(self._input_dim, self._output_dim)))
+        # householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(max(self._input_dim, self._output_dim)))
+        compound_rotation_param, param_index = helper.slice_parameters(self._parameters, param_index, CompoundRotationFlow.required_num_parameters(max(self._input_dim, self._output_dim)))
         input_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim)
         output_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._output_dim) 
-        householder_flow = HouseholdRotationFlow(max(self._input_dim, self._output_dim), householder_param) 
-        # z0_centered = z0-input_shift_vec
-        z0_centered = z0
-       
+        # householder_flow = HouseholdRotationFlow(max(self._input_dim, self._output_dim), householder_param) 
+        compound_rotation_flow = CompoundRotationFlow(max(self._input_dim, self._output_dim), compound_rotation_param)
+
+        z0_centered = z0-input_shift_vec
+        
         if self._mode == 'matrix': # This is for debugging mostly, defer to householder flow mode in general.
-            full_batched_rot_matrix = householder_flow.get_batched_rot_matrix()
+            # full_batched_rot_matrix = householder_flow.get_batched_rot_matrix()
+            full_batched_rot_matrix = compound_rotation_flow.get_batched_rot_matrix()
             batched_rot_matrix = full_batched_rot_matrix[:, :self._output_dim, :self._input_dim]
             if self._parameters is None or self._parameters.get_shape()[0].value == 1: #one set of parameters
                 z_proj = tf.matmul(z0_centered, batched_rot_matrix[0, :, :], transpose_a=False, transpose_b=True)
@@ -474,15 +481,15 @@ class OthogonalProjectionMap():
                 z_proj = tf.matmul(batched_rot_matrix, z0_centered[:,:,np.newaxis])[:, :, 0]
 
         elif self._mode == 'vector':
-            pdb.set_trace()
             if self._input_dim >= self._output_dim: 
-                z_proj_full, _ = householder_flow.transform(z0_centered, tf.zeros((tf.shape(z0)[0], 1), tf.float32))
+                # z_proj_full, _ = householder_flow.transform(z0_centered, tf.zeros((tf.shape(z0)[0], 1), tf.float32))
+                z_proj_full, _ = compound_rotation_flow.transform(z0_centered, tf.zeros((tf.shape(z0)[0], 1), tf.float32))
                 z_proj = z_proj_full[:, :self._output_dim]
             elif self._output_dim > self._input_dim: 
-                z_proj, _ = householder_flow.transform(tf.concat([z0_centered, tf.zeros((tf.shape(z0_centered)[0], self._output_dim-self._input_dim))], axis=1), tf.zeros((tf.shape(z0)[0], 1), tf.float32))
+                # z_proj, _ = householder_flow.transform(tf.concat([z0_centered, tf.zeros((tf.shape(z0_centered)[0], self._output_dim-self._input_dim))], axis=1), tf.zeros((tf.shape(z0)[0], 1), tf.float32))
+                z_proj, _ = compound_rotation_flow.transform(tf.concat([z0_centered, tf.zeros((tf.shape(z0_centered)[0], self._output_dim-self._input_dim))], axis=1), tf.zeros((tf.shape(z0)[0], 1), tf.float32))
 
-        # z = z_proj+output_shift_vec
-        z = z_proj
+        z = z_proj+output_shift_vec
         return z
 
 class ConnectedPiecewiseOrthogonalMap():
@@ -767,8 +774,8 @@ class HouseholdRotationFlow():
         return self._input_dim
 
     @staticmethod
-    def required_num_parameters(input_dim, k_start=None): 
-        if k_start is None: k_start = max(input_dim-HouseholdRotationFlow.max_steps+1, 1)
+    def required_num_parameters(input_dim): 
+        k_start = max(input_dim-HouseholdRotationFlow.max_steps+1, 1)
         return sum(list(range(max(2, k_start), input_dim+1)))
     
     def get_batched_rot_matrix(self):
@@ -780,7 +787,7 @@ class HouseholdRotationFlow():
     def transform(self, z0, log_pdf_z0):
         verify_size(z0, log_pdf_z0)
         if self._parameters is not None:
-            self._parameters.get_shape().assert_is_compatible_with([None, HouseholdRotationFlow.required_num_parameters(self._input_dim, self._k_start)])
+            self._parameters.get_shape().assert_is_compatible_with([None, HouseholdRotationFlow.required_num_parameters(self._input_dim)])
         assert (self._mode == 'matrix' or self._mode == 'vector')
 
         if self._mode == 'matrix':
@@ -811,7 +818,7 @@ class HouseholdRotationFlow():
     def inverse_transform(self, z, log_pdf_z):
         verify_size(z, log_pdf_z)
         if self._parameters is not None:
-            self._parameters.get_shape().assert_is_compatible_with([None, HouseholdRotationFlow.required_num_parameters(self._input_dim, self._k_start)])
+            self._parameters.get_shape().assert_is_compatible_with([None, HouseholdRotationFlow.required_num_parameters(self._input_dim)])
         
         if self._parameters is None or self._parameters.get_shape()[0].value == 1: #one set of parameters
             if self._mode == 'matrix':
@@ -839,6 +846,103 @@ class HouseholdRotationFlow():
             quit()
 
         log_pdf_z0 = log_pdf_z 
+        return z0, log_pdf_z0
+
+class CompoundRotationFlow():
+    """
+    Compound Rotation Flow class.
+    Args:
+      parameters: parameters of transformation all appended.
+      input_dim : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+    n_steps = 3
+
+    def __init__(self, input_dim, parameters, name='compound_rotation_transform'):   
+        self._parameter_scale = 1.
+        self._parameters = parameters
+        if self._parameters is not None: self._parameters = self._parameter_scale*self._parameters
+        self._input_dim = input_dim
+        self._n_steps = CompoundRotationFlow.n_steps
+        
+        self._constant_rot_mats = []
+        for i in range(self._n_steps): 
+            self._constant_rot_mats.append(tf.constant(special_ortho_group.rvs(self._input_dim), dtype=tf.float32))
+
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim
+
+    @staticmethod
+    def required_num_parameters(input_dim): 
+        return CompoundRotationFlow.n_steps*HouseholdRotationFlow.required_num_parameters(input_dim)
+    
+    def get_batched_rot_matrix(self):
+        if self._parameters is not None:
+            self._parameters.get_shape().assert_is_compatible_with([None, CompoundRotationFlow.required_num_parameters(self._input_dim)])
+        
+        param_index = 0
+        householder_flow_objects = []
+        for i in range(self._n_steps):
+            curr_householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._input_dim))
+            householder_flow_objects.append(HouseholdRotationFlow(self._input_dim, curr_householder_param))
+
+        curr_batched_rot_matrix = None
+        for i in range(self._n_steps):
+            if curr_batched_rot_matrix is None: curr_batched_rot_matrix = self._constant_rot_mats[i][np.newaxis, :, :]
+            else: curr_batched_rot_matrix = tf.matmul(self._constant_rot_mats[i][np.newaxis, :, :], curr_batched_rot_matrix, transpose_a=False, transpose_b=False)
+            curr_batched_rot_matrix = tf.matmul(householder_flow_objects[i].get_batched_rot_matrix(), curr_batched_rot_matrix, transpose_a=False, transpose_b=False)
+
+        return curr_batched_rot_matrix
+        
+    def transform(self, z0, log_pdf_z0):
+        verify_size(z0, log_pdf_z0)
+        if self._parameters is not None:
+            self._parameters.get_shape().assert_is_compatible_with([None, CompoundRotationFlow.required_num_parameters(self._input_dim)])
+        
+        param_index = 0
+        householder_flow_objects = []
+        for i in range(self._n_steps):
+            curr_householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._input_dim))
+            householder_flow_objects.append(HouseholdRotationFlow(self._input_dim, curr_householder_param))
+
+        curr_z, curr_log_pdf_z = z0, log_pdf_z0
+        for i in range(self._n_steps):
+            curr_z_rand_rot = tf.matmul(curr_z, self._constant_rot_mats[i], transpose_a=False, transpose_b=True)
+            curr_log_pdf_z_rand_rot = curr_log_pdf_z
+            curr_z, curr_log_pdf_z = householder_flow_objects[i].transform(curr_z_rand_rot, curr_log_pdf_z_rand_rot)
+        z, log_pdf_z = curr_z, curr_log_pdf_z
+
+        return z, log_pdf_z
+
+    def inverse_transform(self, z, log_pdf_z):
+        verify_size(z, log_pdf_z)
+        if self._parameters is not None:
+            self._parameters.get_shape().assert_is_compatible_with([None, CompoundRotationFlow.required_num_parameters(self._input_dim)])
+        
+        param_index = 0
+        householder_flow_objects = []
+        for i in range(self._n_steps):
+            curr_householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._input_dim))
+            householder_flow_objects.append(HouseholdRotationFlow(self._input_dim, curr_householder_param))
+
+        if self._parameters is None or self._parameters.get_shape()[0].value == 1: #one set of parameters
+            curr_z, curr_log_pdf_z = z, log_pdf_z
+            for i in range(self._n_steps-1, -1, -1):
+                curr_z_rand_rot, curr_log_pdf_z_rand_rot = householder_flow_objects[i].inverse_transform(curr_z, curr_log_pdf_z)
+                curr_z = tf.matmul(curr_z_rand_rot, self._constant_rot_mats[i], transpose_a=False, transpose_b=False)
+                curr_log_pdf_z = curr_log_pdf_z_rand_rot
+            z0, log_pdf_z0 = curr_z, curr_log_pdf_z
+
+        else: # batched parameters
+            print('Parameters depend on unknown z0. Therefore, there is no analytical inverse.')
+            quit()
+
         return z0, log_pdf_z0
 
 class LinearIARFlow():
@@ -1546,10 +1650,10 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 # print('\n\n\n')
 # pdb.set_trace()
 
-# batch_size = 50
-# n_latent = 10
+# batch_size = 3
+# n_latent = 4
 # name = 'transform'
-# transform_to_check = HouseholdRotationFlow
+# transform_to_check = CompoundRotationFlow
 # n_parameter = transform_to_check.required_num_parameters(n_latent)
 
 # parameters = None
@@ -1560,6 +1664,7 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 # transform1 = transform_to_check(input_dim=n_latent, parameters=parameters)
 # z, log_pdf_z = transform1.transform(z0, log_pdf_z0)
 # z0_inv, log_pdf_z0_inv = transform1.inverse_transform(z, log_pdf_z)
+# rot_mat = transform1.get_batched_rot_matrix()
 
 # # transform1._mode = 'matrix'
 # # z_2, log_pdf_z = transform1.transform(z0, log_pdf_z0)
@@ -1568,9 +1673,13 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 # init = tf.initialize_all_variables()
 # sess = tf.InteractiveSession()  
 # sess.run(init)
-# z0_np, log_pdf_z0_np, z_np, log_pdf_z_np, z0_inv_np, log_pdf_z0_inv_np = sess.run([z0, log_pdf_z0, z, log_pdf_z, z0_inv, log_pdf_z0_inv])
+# z0_np, log_pdf_z0_np, z_np, log_pdf_z_np, z0_inv_np, log_pdf_z0_inv_np, rot_mat_np = sess.run([z0, log_pdf_z0, z, log_pdf_z, z0_inv, log_pdf_z0_inv, rot_mat])
 # # z0_np, log_pdf_z0_np, z_np, z_np_2, log_pdf_z_np, z0_inv_np, log_pdf_z0_inv_np = sess.run([z0, log_pdf_z0, z, z_2, log_pdf_z, z0_inv, log_pdf_z0_inv])
 # # rot_mat_np = sess.run(transform1.get_batched_rot_matrix())
+
+# # print(np.dot(rot_mat_np[0], rot_mat_np[0].T))
+
+# # np.dot(z0_np, rot_mat_np[0].T).T 
 
 # # import time
 # # print('Start Timer: ', transform1._mode)

@@ -24,6 +24,23 @@ from matplotlib import cm
 from sklearn.datasets import make_blobs, make_circles, make_moons
 from sklearn.preprocessing import StandardScaler
 
+
+pdb.set_trace()
+
+# dim = 100
+# v = np.random.randn(dim,1)
+# v_norm = np.sqrt(np.sum(v**2))
+# v_dir = v/v_norm
+# householder = np.eye(dim)-2*np.dot(v_dir, v_dir.T)
+# np.diag(householder)
+
+# J1 = special_ortho_group.rvs(3)
+# J3 = special_ortho_group.rvs(5)
+# J2 = special_ortho_group.rvs(5)[:,:3]
+# JA = np.dot(J3, np.dot(J2, J1))
+# print(np.dot(JA.T,JA))
+
+
 def get_full_grid_samples(resolution=100, range_min=-1, range_max=1):
     x0_range = np.linspace(range_min, range_max, 2*resolution+1)
     x1_range = np.linspace(range_min, range_max, 2*resolution+1)
