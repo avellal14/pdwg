@@ -854,7 +854,8 @@ class CompoundRotationFlow():
     """
     n_steps = 3
 
-    def __init__(self, input_dim, parameters, name='compound_rotation_transform'):   
+    def __init__(self, input_dim, parameters, name='compound_rotation_transform'):  
+        pdb.set_trace() 
         self._parameter_scale = 1.
         self._parameters = parameters
         if self._parameters is not None: self._parameters = self._parameter_scale*self._parameters
@@ -864,7 +865,7 @@ class CompoundRotationFlow():
         self._constant_rot_mats = []
         for i in range(self._n_steps):             
             self._constant_rot_mats.append(tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32))
-
+        self._householder_flow_objects = None
     @property
     def input_dim(self):
         return self._input_dim
@@ -881,17 +882,18 @@ class CompoundRotationFlow():
         if self._parameters is not None:
             self._parameters.get_shape().assert_is_compatible_with([None, CompoundRotationFlow.required_num_parameters(self._input_dim)])
         
-        param_index = 0
-        householder_flow_objects = []
-        for i in range(self._n_steps):
-            curr_householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._input_dim))
-            householder_flow_objects.append(HouseholdRotationFlow(self._input_dim, curr_householder_param))
+        if self._householder_flow_objects is None:
+            param_index = 0
+            self._householder_flow_objects = []
+            for i in range(self._n_steps):
+                curr_householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._input_dim))
+                self._householder_flow_objects.append(HouseholdRotationFlow(self._input_dim, curr_householder_param))
 
         curr_batched_rot_matrix = None
         for i in range(self._n_steps):
             if curr_batched_rot_matrix is None: curr_batched_rot_matrix = self._constant_rot_mats[i][np.newaxis, :, :]
             else: curr_batched_rot_matrix = tf.matmul(self._constant_rot_mats[i][np.newaxis, :, :], curr_batched_rot_matrix, transpose_a=False, transpose_b=False)
-            curr_batched_rot_matrix = tf.matmul(householder_flow_objects[i].get_batched_rot_matrix(), curr_batched_rot_matrix, transpose_a=False, transpose_b=False)
+            curr_batched_rot_matrix = tf.matmul(self._householder_flow_objects[i].get_batched_rot_matrix(), curr_batched_rot_matrix, transpose_a=False, transpose_b=False)
 
         return curr_batched_rot_matrix
         
@@ -900,17 +902,18 @@ class CompoundRotationFlow():
         if self._parameters is not None:
             self._parameters.get_shape().assert_is_compatible_with([None, CompoundRotationFlow.required_num_parameters(self._input_dim)])
         
-        param_index = 0
-        householder_flow_objects = []
-        for i in range(self._n_steps):
-            curr_householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._input_dim))
-            householder_flow_objects.append(HouseholdRotationFlow(self._input_dim, curr_householder_param))
+        if self._householder_flow_objects is None:
+            param_index = 0
+            self._householder_flow_objects = []
+            for i in range(self._n_steps):
+                curr_householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._input_dim))
+                self._householder_flow_objects.append(HouseholdRotationFlow(self._input_dim, curr_householder_param))
 
         curr_z, curr_log_pdf_z = z0, log_pdf_z0
         for i in range(self._n_steps):
             curr_z_rand_rot = tf.matmul(curr_z, self._constant_rot_mats[i], transpose_a=False, transpose_b=True)
             curr_log_pdf_z_rand_rot = curr_log_pdf_z
-            curr_z, curr_log_pdf_z = householder_flow_objects[i].transform(curr_z_rand_rot, curr_log_pdf_z_rand_rot)
+            curr_z, curr_log_pdf_z = self._householder_flow_objects[i].transform(curr_z_rand_rot, curr_log_pdf_z_rand_rot)
         z, log_pdf_z = curr_z, curr_log_pdf_z
 
         return z, log_pdf_z
@@ -920,16 +923,17 @@ class CompoundRotationFlow():
         if self._parameters is not None:
             self._parameters.get_shape().assert_is_compatible_with([None, CompoundRotationFlow.required_num_parameters(self._input_dim)])
         
-        param_index = 0
-        householder_flow_objects = []
-        for i in range(self._n_steps):
-            curr_householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._input_dim))
-            householder_flow_objects.append(HouseholdRotationFlow(self._input_dim, curr_householder_param))
+        if self._householder_flow_objects is None:
+            param_index = 0
+            self._householder_flow_objects = []
+            for i in range(self._n_steps):
+                curr_householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._input_dim))
+                self._householder_flow_objects.append(HouseholdRotationFlow(self._input_dim, curr_householder_param))
 
         if self._parameters is None or self._parameters.get_shape()[0].value == 1: #one set of parameters
             curr_z, curr_log_pdf_z = z, log_pdf_z
             for i in range(self._n_steps-1, -1, -1):
-                curr_z_rand_rot, curr_log_pdf_z_rand_rot = householder_flow_objects[i].inverse_transform(curr_z, curr_log_pdf_z)
+                curr_z_rand_rot, curr_log_pdf_z_rand_rot = self._householder_flow_objects[i].inverse_transform(curr_z, curr_log_pdf_z)
                 curr_z = tf.matmul(curr_z_rand_rot, self._constant_rot_mats[i], transpose_a=False, transpose_b=False)
                 curr_log_pdf_z = curr_log_pdf_z_rand_rot
             z0, log_pdf_z0 = curr_z, curr_log_pdf_z
