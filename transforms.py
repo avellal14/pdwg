@@ -470,7 +470,7 @@ class OthogonalProjectionMap():
         compound_rotation_flow = CompoundRotationFlow(max(self._input_dim, self._output_dim), compound_rotation_param)
 
         z0_centered = z0-input_shift_vec
-        
+
         if self._mode == 'matrix': # This is for debugging mostly, defer to householder flow mode in general.
             # full_batched_rot_matrix = householder_flow.get_batched_rot_matrix()
             full_batched_rot_matrix = compound_rotation_flow.get_batched_rot_matrix()
@@ -868,6 +868,7 @@ class CompoundRotationFlow():
         
         self._constant_rot_mats = []
         for i in range(self._n_steps): 
+            pdb.set_trace()
             self._constant_rot_mats.append(tf.constant(special_ortho_group.rvs(self._input_dim), dtype=tf.float32))
 
     @property
