@@ -420,6 +420,8 @@ class OthogonalProjectionMap():
         self._input_dim = input_dim
         self._output_dim = output_dim
         self._mode = 'matrix'
+        self._householder_flow = None
+        self._compound_rotation_flow = None
 
     @property
     def input_dim(self):
@@ -468,9 +470,7 @@ class OthogonalProjectionMap():
         output_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._output_dim) 
         
         # if self._householder_flow is None: self._householder_flow = HouseholdRotationFlow(max(self._input_dim, self._output_dim), householder_param) 
-        if self._compound_rotation_flow is None: 
-            pdb.set_trace()
-            self._compound_rotation_flow = CompoundRotationFlow(max(self._input_dim, self._output_dim), compound_rotation_param) 
+        if self._compound_rotation_flow is None: self._compound_rotation_flow = CompoundRotationFlow(max(self._input_dim, self._output_dim), compound_rotation_param) 
 
         z0_centered = z0-input_shift_vec
 
