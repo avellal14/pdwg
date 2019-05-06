@@ -1102,6 +1102,7 @@ def random_rot_mat(dim, mode='SO(n)'):
 
 	intermediate_rotation = np.zeros((dim, dim))
 	curr_rot = None
+	start = time.time()
 	for curr_dim in range(1, dim+1):
 		if curr_dim == 1:
 			if mode == 'SO(n)':
@@ -1118,6 +1119,9 @@ def random_rot_mat(dim, mode='SO(n)'):
 			substract = 2*np.dot(householder_dir, np.dot(householder_dir.T, intermediate_rotation[-curr_dim:, -curr_dim:]))
 			# substract = 2*np.dot(np.dot(householder_dir, householder_dir.T), intermediate_rotation[-curr_dim:, -curr_dim:]) # much slower
 			curr_rot = intermediate_rotation[-curr_dim:, -curr_dim:]-substract
+	
+	end = time.time()
+	print('It took (sec): ', dim, (end - start))
 	return curr_rot
 
 def euclidean_distance_squared(x, y, axis=[-1], keep_dims=True):
