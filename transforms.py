@@ -419,7 +419,7 @@ class OthogonalProjectionMap():
         if self._parameters is not None: self._parameters = self._parameter_scale*self._parameters
         self._input_dim = input_dim
         self._output_dim = output_dim
-        self._mode = 'vector'
+        self._mode = 'matrix'
 
     @property
     def input_dim(self):
