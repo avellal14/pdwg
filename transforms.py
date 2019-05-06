@@ -419,9 +419,9 @@ class OthogonalProjectionMap():
         if self._parameters is not None: self._parameters = self._parameter_scale*self._parameters
         self._input_dim = input_dim
         self._output_dim = output_dim
+        self._rotation_flow_class = CompoundRotationFlow # HouseholdRotationFlow
+        self._rotation_flow = None
         self._mode = 'matrix'
-        self._householder_flow = None
-        self._compound_rotation_flow = None
 
     @property
     def input_dim(self):
@@ -441,16 +441,13 @@ class OthogonalProjectionMap():
             self._parameters.get_shape().assert_is_compatible_with([None, OthogonalProjectionMap.required_num_parameters(self._input_dim, self._output_dim)])
         
         param_index = 0
-        # householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(max(self._input_dim, self._output_dim)))
-        compound_rotation_param, param_index = helper.slice_parameters(self._parameters, param_index, CompoundRotationFlow.required_num_parameters(max(self._input_dim, self._output_dim)))
+        rotation_param, param_index = helper.slice_parameters(self._parameters, param_index, self._rotation_flow_class.required_num_parameters(max(self._input_dim, self._output_dim)))
         input_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim)
         output_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._output_dim) 
         
-        # if self._householder_flow is None: self._householder_flow = HouseholdRotationFlow(max(self._input_dim, self._output_dim), householder_param) 
-        if self._compound_rotation_flow is None: self._compound_rotation_flow = CompoundRotationFlow(max(self._input_dim, self._output_dim), compound_rotation_param) 
+        if self._rotation_flow is None: self._rotation_flow = self._rotation_flow_class(max(self._input_dim, self._output_dim), rotation_param) 
 
-        # full_batched_rot_matrix = self._householder_flow.get_batched_rot_matrix()
-        full_batched_rot_matrix = self._compound_rotation_flow.get_batched_rot_matrix()
+        full_batched_rot_matrix = self._rotation_flow.get_batched_rot_matrix()
         batched_rot_matrix = full_batched_rot_matrix[:, :self._output_dim, :self._input_dim]
         if self._parameters is None or self._parameters.get_shape()[0].value == 1: #one set of parameters
             jacobian = tf.tile(batched_rot_matrix, [tf.shape(z0)[0], 1, 1])
@@ -464,19 +461,16 @@ class OthogonalProjectionMap():
         assert (self._mode == 'matrix' or self._mode == 'vector')
         
         param_index = 0
-        # householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(max(self._input_dim, self._output_dim)))
-        compound_rotation_param, param_index = helper.slice_parameters(self._parameters, param_index, CompoundRotationFlow.required_num_parameters(max(self._input_dim, self._output_dim)))
+        rotation_param, param_index = helper.slice_parameters(self._parameters, param_index, self._rotation_flow_class.required_num_parameters(max(self._input_dim, self._output_dim)))
         input_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim)
         output_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._output_dim) 
         
-        # if self._householder_flow is None: self._householder_flow = HouseholdRotationFlow(max(self._input_dim, self._output_dim), householder_param) 
-        if self._compound_rotation_flow is None: self._compound_rotation_flow = CompoundRotationFlow(max(self._input_dim, self._output_dim), compound_rotation_param) 
+        if self._rotation_flow is None: self._rotation_flow = self._rotation_flow_class(max(self._input_dim, self._output_dim), rotation_param) 
 
         z0_centered = z0-input_shift_vec
 
         if self._mode == 'matrix': # This is for debugging mostly, defer to householder flow mode in general.
-            # full_batched_rot_matrix = self._householder_flow.get_batched_rot_matrix()
-            full_batched_rot_matrix = self._compound_rotation_flow.get_batched_rot_matrix()
+            full_batched_rot_matrix = self._rotation_flow.get_batched_rot_matrix()
             batched_rot_matrix = full_batched_rot_matrix[:, :self._output_dim, :self._input_dim]
             if self._parameters is None or self._parameters.get_shape()[0].value == 1: #one set of parameters
                 z_proj = tf.matmul(z0_centered, batched_rot_matrix[0, :, :], transpose_a=False, transpose_b=True)
@@ -485,12 +479,10 @@ class OthogonalProjectionMap():
 
         elif self._mode == 'vector':
             if self._input_dim >= self._output_dim: 
-                # z_proj_full, _ = self._householder_flow.transform(z0_centered, tf.zeros((tf.shape(z0)[0], 1), tf.float32))
-                z_proj_full, _ = self._compound_rotation_flow.transform(z0_centered, tf.zeros((tf.shape(z0)[0], 1), tf.float32))
+                z_proj_full, _ = self._rotation_flow.transform(z0_centered, tf.zeros((tf.shape(z0)[0], 1), tf.float32))
                 z_proj = z_proj_full[:, :self._output_dim]
             elif self._output_dim > self._input_dim: 
-                # z_proj, _ = self._householder_flow.transform(tf.concat([z0_centered, tf.zeros((tf.shape(z0_centered)[0], self._output_dim-self._input_dim))], axis=1), tf.zeros((tf.shape(z0)[0], 1), tf.float32))
-                z_proj, _ = self._compound_rotation_flow.transform(tf.concat([z0_centered, tf.zeros((tf.shape(z0_centered)[0], self._output_dim-self._input_dim))], axis=1), tf.zeros((tf.shape(z0)[0], 1), tf.float32))
+                z_proj, _ = self._rotation_flow.transform(tf.concat([z0_centered, tf.zeros((tf.shape(z0_centered)[0], self._output_dim-self._input_dim))], axis=1), tf.zeros((tf.shape(z0)[0], 1), tf.float32))
 
         z = z_proj+output_shift_vec
         return z
