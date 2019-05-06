@@ -742,7 +742,7 @@ class HouseholdRotationFlow():
     max_steps = 5
 
     def __init__(self, input_dim, parameters, init_reflection=1, vector_mode_rate=1, name='household_rotation_transform'):   
-        self._parameter_scale = 1.
+        self._parameter_scale = 10.
         self._parameters = parameters
         if self._parameters is not None: self._parameters = self._parameter_scale*self._parameters
         self._input_dim = input_dim
@@ -798,7 +798,6 @@ class HouseholdRotationFlow():
                     reflected = curr_z[:, start_ind:]*curr_batched_householder_dir
                 else: 
                     start_ind = self._input_dim-curr_batched_householder_dir.get_shape().as_list()[1]
-                    if self._input_dim == 3072: pdb.set_trace()
                     reflected = curr_z[:, start_ind:]-2*curr_batched_householder_dir*tf.reduce_sum(curr_z[:, start_ind:]*curr_batched_householder_dir, axis=1, keep_dims=True)
                 curr_z = tf.concat([curr_z[:, :start_ind], reflected], axis=1)
             z = curr_z
