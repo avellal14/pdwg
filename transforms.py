@@ -574,9 +574,9 @@ class CompoundRotationFlow():
     
     def get_batched_rot_matrix(self):
         curr_batched_rot_matrix = None
-        for i in range(len(self._constant_rot_mats)):
-            if curr_batched_rot_matrix is None: curr_batched_rot_matrix = self._constant_rot_mats[i][np.newaxis, :, :]
-            else: curr_batched_rot_matrix = tf.matmul(self._constant_rot_mats[i][np.newaxis, :, :], curr_batched_rot_matrix, transpose_a=False, transpose_b=False)
+        for i in range(len(self._constant_rot_mats_list)):
+            if curr_batched_rot_matrix is None: curr_batched_rot_matrix = self._constant_rot_mats_list[i][np.newaxis, :, :]
+            else: curr_batched_rot_matrix = tf.matmul(self._constant_rot_mats_list[i][np.newaxis, :, :], curr_batched_rot_matrix, transpose_a=False, transpose_b=False)
             
             curr_batched_rot_matrix = tf.matmul(self._householder_flows_list[i].get_batched_rot_matrix(), curr_batched_rot_matrix, transpose_a=False, transpose_b=False)
         return curr_batched_rot_matrix
@@ -585,8 +585,8 @@ class CompoundRotationFlow():
         verify_size(z0, log_pdf_z0)
 
         curr_z, curr_log_pdf_z = z0, log_pdf_z0
-        for i in range(len(self._constant_rot_mats)):
-            curr_z_rand_rot = tf.matmul(curr_z, self._constant_rot_mats[i], transpose_a=False, transpose_b=True)
+        for i in range(len(self._constant_rot_mats_list)):
+            curr_z_rand_rot = tf.matmul(curr_z, self._constant_rot_mats_list[i], transpose_a=False, transpose_b=True)
             curr_log_pdf_z_rand_rot = curr_log_pdf_z
             curr_z, curr_log_pdf_z = self._householder_flows_list[i].transform(curr_z_rand_rot, curr_log_pdf_z_rand_rot)
         z, log_pdf_z = curr_z, curr_log_pdf_z
@@ -597,9 +597,9 @@ class CompoundRotationFlow():
 
         if self._parameters is None or self._parameters.get_shape()[0].value == 1: #one set of parameters
             curr_z, curr_log_pdf_z = z, log_pdf_z
-            for i in range(len(self._constant_rot_mats)-1, -1, -1):
+            for i in range(len(self._constant_rot_mats_list)-1, -1, -1):
                 curr_z_rand_rot, curr_log_pdf_z_rand_rot = self._householder_flows_list[i].inverse_transform(curr_z, curr_log_pdf_z)
-                curr_z = tf.matmul(curr_z_rand_rot, self._constant_rot_mats[i], transpose_a=False, transpose_b=False)
+                curr_z = tf.matmul(curr_z_rand_rot, self._constant_rot_mats_list[i], transpose_a=False, transpose_b=False)
                 curr_log_pdf_z = curr_log_pdf_z_rand_rot
             z0, log_pdf_z0 = curr_z, curr_log_pdf_z
 
