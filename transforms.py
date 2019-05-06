@@ -462,7 +462,8 @@ class OthogonalProjectionMap():
         input_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim)
         output_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._output_dim) 
         householder_flow = HouseholdRotationFlow(max(self._input_dim, self._output_dim), householder_param) 
-        z0_centered = z0-input_shift_vec
+        # z0_centered = z0-input_shift_vec
+        z0_centered = z0
        
         if self._mode == 'matrix': # This is for debugging mostly, defer to householder flow mode in general.
             full_batched_rot_matrix = householder_flow.get_batched_rot_matrix()
@@ -480,7 +481,8 @@ class OthogonalProjectionMap():
             elif self._output_dim > self._input_dim: 
                 z_proj, _ = householder_flow.transform(tf.concat([z0_centered, tf.zeros((tf.shape(z0_centered)[0], self._output_dim-self._input_dim))], axis=1), tf.zeros((tf.shape(z0)[0], 1), tf.float32))
 
-        z = z_proj+output_shift_vec
+        # z = z_proj+output_shift_vec
+        z = z_proj
         return z
 
 class ConnectedPiecewiseOrthogonalMap():
