@@ -635,7 +635,7 @@ class OthogonalProjectionMap():
         self._parameters.get_shape().assert_is_compatible_with([None, OthogonalProjectionMap.required_num_parameters(self._input_dim, self._output_dim)])
         
         param_index = 0
-        self._rotation_param, param_index = helper.slice_parameters(self._parameters, param_index, self._rotation_flow_class.required_num_parameters(max(self._input_dim, self._output_dim)))
+        self._rotation_param, param_index = helper.slice_parameters(self._parameters, param_index, OthogonalProjectionMap.rotation_flow_class.required_num_parameters(max(self._input_dim, self._output_dim)))
         self._input_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim)
         self._output_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._output_dim) 
         self._rotation_flow = OthogonalProjectionMap.rotation_flow_class(max(self._input_dim, self._output_dim), self._rotation_param) 
