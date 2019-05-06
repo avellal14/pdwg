@@ -1121,7 +1121,7 @@ def random_rot_mat(dim, mode='SO(n)'):
 			curr_rot = intermediate_rotation[-curr_dim:, -curr_dim:]-substract
 	
 	end = time.time()
-	print('It took (sec): ', dim, (end - start))
+	print('It took (sec): ', (end - start))
 	return curr_rot
 
 def euclidean_distance_squared(x, y, axis=[-1], keep_dims=True):
