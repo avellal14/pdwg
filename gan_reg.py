@@ -606,7 +606,6 @@ with tf.Graph().as_default():
     global_step = tf.Variable(0.0, name='global_step', trainable=False)
     with tf.variable_scope("training"):
         tf.set_random_seed(global_args.seed)
-        pdb.set_trace()
 
         additional_inputs_tf = tf.placeholder(tf.float32, [2])
         batch_tf, input_dict_func = helper.tf_batch_and_input_dict(batch, additional_inputs_tf)
