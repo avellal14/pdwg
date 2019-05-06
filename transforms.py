@@ -664,7 +664,7 @@ class OthogonalProjectionMap():
         return jacobian
 
     def transform(self, z0):
-        z0_centered = z0-input_shift_vec
+        z0_centered = z0-self._input_shift_vec
 
         if self._mode == 'matrix': # This is for debugging mostly, defer to rotation flow mode in general.
             full_batched_rot_matrix = self._rotation_flow.get_batched_rot_matrix()
@@ -681,7 +681,7 @@ class OthogonalProjectionMap():
             elif self._output_dim > self._input_dim: 
                 z_proj, _ = self._rotation_flow.transform(tf.concat([z0_centered, tf.zeros((tf.shape(z0_centered)[0], self._output_dim-self._input_dim))], axis=1), tf.zeros((tf.shape(z0)[0], 1), tf.float32))
 
-        z = z_proj+output_shift_vec
+        z = z_proj+self._output_shift_vec
         return z
 
 class ConnectedPiecewiseOrthogonalMap():
