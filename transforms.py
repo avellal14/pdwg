@@ -9,7 +9,6 @@ import pdb
 import numpy as np
 import math 
 from random import shuffle 
-from scipy.stats import special_ortho_group
 
 class PlanarFlow():
     """
@@ -867,9 +866,8 @@ class CompoundRotationFlow():
         self._n_steps = CompoundRotationFlow.n_steps
         
         self._constant_rot_mats = []
-        for i in range(self._n_steps): 
-            pdb.set_trace()
-            self._constant_rot_mats.append(tf.constant(special_ortho_group.rvs(self._input_dim), dtype=tf.float32))
+        for i in range(self._n_steps):             
+            self._constant_rot_mats.append(tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32))
 
     @property
     def input_dim(self):

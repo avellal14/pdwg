@@ -1095,6 +1095,31 @@ def ConvResnetLayer_v2(x, units, reduce_units=None, activation=None, reduce_acti
 	if activation is not None: out = activation(out)
 	return out
 
+def random_rot_mat(dim, mode='SO(n)'):
+	print('Creating uniformly random rotation matrix in ' + mode + ' with n=' + str(dim) + '.')
+	assert (mode == 'SO(n)' or mode == 'O(n)')
+	assert (dim > 0)
+
+	intermediate_rotation = np.zeros((dim, dim))
+	curr_rot = None
+	for curr_dim in range(1, dim+1):
+		if curr_dim == 1:
+			if mode == 'SO(n)':
+				if dim % 2 == 0: curr_rot = -1*np.ones((1,1))
+				else: curr_rot = 1*np.ones((1,1))
+			elif mode == 'O(n)':
+				curr_rot = (2*np.random.randint(2)-1)*np.ones((1,1))
+		else:
+			intermediate_rotation[-curr_dim+1:,-curr_dim+1:] = curr_rot
+			intermediate_rotation[-curr_dim, -curr_dim] = 1.
+			householder_vec = np.random.randn(curr_dim)[:, np.newaxis]
+			householder_norm = np.sqrt(np.sum(householder_vec**2))
+			householder_dir = householder_vec/householder_norm
+			substract = 2*np.dot(householder_dir, np.dot(householder_dir.T, intermediate_rotation[-curr_dim:, -curr_dim:]))
+			# substract = 2*np.dot(np.dot(householder_dir, householder_dir.T), intermediate_rotation[-curr_dim:, -curr_dim:]) # much slower
+			curr_rot = intermediate_rotation[-curr_dim:, -curr_dim:]-substract
+	return curr_rot
+
 def euclidean_distance_squared(x, y, axis=[-1], keep_dims=True):
     return tf.reduce_sum((x-y)**2, axis=axis, keep_dims=keep_dims)
 

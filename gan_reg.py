@@ -594,7 +594,6 @@ print("TENSORBOARD: Linux:\npython -m tensorflow.tensorboard --logdir=model1:"+\
 print("TENSORBOARD: Mac:\nhttp://0.0.0.0:"+str(20000+int(global_args.exp_dir[-4:-1], 16)))
 print("\n\n\n")
 
-pdb.set_trace()
 _, _, batch = next(data_loader)
 try: 
     fixed_batch_data = batch['observed']['data']['image'].copy()
