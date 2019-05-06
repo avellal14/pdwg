@@ -201,6 +201,9 @@ class Model():
         # self.reconst_sample = self.reconst_dist.sample(b_mode=True)
 
         self.transformed_latent_code, _ = self.flow_object.transform(self.posterior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
+        pdb.set_trace()
+        mask = tf.concat([(1+0*self.posterior_latent_code), 0*self.transformed_latent_code[:, self.config['n_latent']:]], axis=1)
+        self.transformed_latent_code = self.transformed_latent_code*mask
         self.reconst_param = {'flat': None, 'image': tf.reshape(self.transformed_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
         self.reconst_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.reconst_param)
         self.reconst_sample = self.reconst_dist.sample(b_mode=True)
