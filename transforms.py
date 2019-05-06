@@ -742,7 +742,7 @@ class HouseholdRotationFlow():
     max_steps = 5
 
     def __init__(self, input_dim, parameters, init_reflection=1, vector_mode_rate=1, name='household_rotation_transform'):   
-        self._parameter_scale = 10.
+        self._parameter_scale = 1.
         self._parameters = parameters
         if self._parameters is not None: self._parameters = self._parameter_scale*self._parameters
         self._input_dim = input_dim
