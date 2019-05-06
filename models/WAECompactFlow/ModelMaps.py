@@ -129,6 +129,7 @@ class FlowMap():
 			parameters_list.append(1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
 
 			n_output = np.prod(batch['observed']['properties']['image'][0]['size'][2:])
+			pdb.set_trace()
 			parameters_list.append(1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = transforms.RiemannianFlow.required_num_parameters(self.config['n_latent'], n_output, n_input_CPO=self.config['rnf_prop']['n_input_CPO'], n_output_CPO=self.config['rnf_prop']['n_output_CPO']), use_bias = False, activation = None))
 			parameters_list.append(1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = transforms.HouseholdRotationFlow.required_num_parameters(n_output), use_bias = False, activation = None))
 			parameters_list.append(1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = transforms.HouseholdRotationFlow.required_num_parameters(n_output), use_bias = False, activation = None))

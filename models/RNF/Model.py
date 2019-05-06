@@ -37,7 +37,7 @@ class Model():
         # self.InfoMap = ModelMaps.InfoMapBernoulli({**self.config, 'data_properties': batch['observed']['properties']})
         self.Diverger = ModelMaps.Diverger({**self.config, 'data_properties': batch['observed']['properties']})
         self.Encoder = ModelMaps.Encoder({**self.config, 'data_properties': batch['observed']['properties']})        
-        self.Generator = ModelMaps.Generator({**self.config, 'data_properties': batch['observed']['properties']})        
+        # self.Generator = ModelMaps.Generator({**self.config, 'data_properties': batch['observed']['properties']})        
         self.Critic = ModelMaps.Critic({**self.config, 'data_properties': batch['observed']['properties']})
         self.bModules = True
 
@@ -114,6 +114,7 @@ class Model():
                                                   transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
                                                   transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[2]), 
                                                   transforms.RiemannianFlow(input_dim=self.config['n_latent'], output_dim=n_output, n_input_CPO=self.config['rnf_prop']['n_input_CPO'], n_output_CPO=self.config['rnf_prop']['n_output_CPO'], parameters=self.flow_param_list[-5]),
+                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
                                                   transforms.HouseholdRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-4]),
                                                   transforms.HouseholdRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-3]),
                                                   transforms.HouseholdRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-2]),
