@@ -23,7 +23,17 @@ class PlanarFlow():
         self._parameter_scale = 1
         self._parameters = self._parameter_scale*parameters
         self._input_dim = input_dim
+        
         assert (self._input_dim > 1)
+
+        self._parameters.get_shape().assert_is_compatible_with([None, PlanarFlow.required_num_parameters(self._input_dim)])
+
+        self._w = tf.slice(self._parameters, [0, 0], [-1, self._input_dim])
+        self._u = tf.slice(self._parameters, [0, self._input_dim], [-1, self._input_dim])
+        self._b = tf.slice(self._parameters, [0, 2*self._input_dim], [-1, 1])
+        self._w_t_u = tf.reduce_sum(self._w*self._u, axis=[1], keep_dims=True)
+        self._w_t_w = tf.reduce_sum(self._w*self._w, axis=[1], keep_dims=True)
+        self._u_tilde = (self._u+(((tf.log(1e-7+1+tf.exp(self._w_t_u))-1)+self._w_t_u)/self._w_t_w)*self._w)
 
     @property
     def input_dim(self):
@@ -39,21 +49,13 @@ class PlanarFlow():
 
     def transform(self, z0, log_pdf_z0):
         verify_size(z0, log_pdf_z0)
-        self._parameters.get_shape().assert_is_compatible_with([None, PlanarFlow.required_num_parameters(self._input_dim)])
 
-        w = tf.slice(self._parameters, [0, 0], [-1, self._input_dim])
-        u = tf.slice(self._parameters, [0, self._input_dim], [-1, self._input_dim])
-        b = tf.slice(self._parameters, [0, 2*self._input_dim], [-1, 1])
-        w_t_u = tf.reduce_sum(w*u, axis=[1], keep_dims=True)
-        w_t_w = tf.reduce_sum(w*w, axis=[1], keep_dims=True)
-        u_tilde = (u+(((tf.log(1e-7+1+tf.exp(w_t_u))-1)+w_t_u)/w_t_w)*w)
-
-        affine = tf.reduce_sum(z0*w, axis=[1], keep_dims=True) + b
+        affine = tf.reduce_sum(z0*self._w, axis=[1], keep_dims=True) + self._b
         h = tf.tanh(affine)
-        z = z0+u_tilde*h
+        z = z0+self._u_tilde*h
 
-        h_prime_w = (1-tf.pow(h, 2))*w
-        log_abs_det_jacobian = tf.log(1e-7+tf.abs(1+tf.reduce_sum(h_prime_w*u_tilde, axis=[1], keep_dims=True)))
+        h_prime_w = (1-tf.pow(h, 2))*self._w
+        log_abs_det_jacobian = tf.log(1e-7+tf.abs(1+tf.reduce_sum(h_prime_w*self._u_tilde, axis=[1], keep_dims=True)))
         log_pdf_z = log_pdf_z0 - log_abs_det_jacobian
         return z, log_pdf_z
 
@@ -67,10 +69,19 @@ class RadialFlow():
       ValueError: 
     """
     def __init__(self, input_dim, parameters, name='radial_transform'):   
-        self._parameter_scale = 1#0.1
+        self._parameter_scale = 1
         self._parameters = self._parameter_scale*parameters
         self._input_dim = input_dim
+        
         assert (self._input_dim > 1)
+
+        self._parameters.get_shape().assert_is_compatible_with([None, RadialFlow.required_num_parameters(self._input_dim)])
+
+        self._alpha = tf.slice(self._parameters, [0, 0], [-1, 1])
+        self._beta = tf.slice(self._parameters, [0, 1], [-1, 1])
+        self._z_ref = tf.slice(self._parameters, [0, 2], [-1, self._input_dim])
+        self._alpha_tilde = tf.log(1e-7+1+tf.exp(self._alpha))
+        self._beta_tilde = tf.log(1e-7+1+tf.exp(self._beta)) - self._alpha_tilde
 
     @property
     def input_dim(self):
@@ -86,18 +97,11 @@ class RadialFlow():
 
     def transform(self, z0, log_pdf_z0):
         verify_size(z0, log_pdf_z0)
-        self._parameters.get_shape().assert_is_compatible_with([None, RadialFlow.required_num_parameters(self._input_dim)])
 
-        alpha = tf.slice(self._parameters, [0, 0], [-1, 1])
-        beta = tf.slice(self._parameters, [0, 1], [-1, 1])
-        z_ref = tf.slice(self._parameters, [0, 2], [-1, self._input_dim])
-        alpha_tilde = tf.log(1e-7+1+tf.exp(alpha))
-        beta_tilde = tf.log(1e-7+1+tf.exp(beta)) - alpha_tilde
-
-        z_diff = z0 - z_ref
+        z_diff = z0 - self._z_ref
         r = tf.sqrt(tf.reduce_sum(tf.square(z_diff), axis=[1], keep_dims=True))
-        h = 1/(alpha_tilde + r)
-        scale = beta_tilde * h
+        h = 1/(self._alpha_tilde + r)
+        scale = self._beta_tilde * h
         z = z0 + scale * z_diff
 
         log_abs_det_jacobian = tf.log(1e-7+tf.abs(tf.pow(1 + scale, self._input_dim - 1) * (1 + scale * (1 - h * r))))
@@ -121,6 +125,7 @@ class SpecificOrderDimensionFlow():
         else: self._order = order
         self._inverse_order = [-1]*self._input_dim
         for i in range(self._input_dim): self._inverse_order[self._order[i]] = i
+        
         assert (len(self._order) == self._input_dim)
         assert (len(self._inverse_order) == self._input_dim)
         assert (parameters is None)
@@ -140,12 +145,14 @@ class SpecificOrderDimensionFlow():
 
     def transform(self, z0, log_pdf_z0):
         verify_size(z0, log_pdf_z0)
+
         z = helper.tf_differentiable_specific_shuffle_with_axis(z0, self._order, axis=1)
         log_pdf_z = log_pdf_z0
         return z, log_pdf_z
 
     def inverse_transform(self, z, log_pdf_z):
         verify_size(z, log_pdf_z)
+
         z0 = helper.tf_differentiable_specific_shuffle_with_axis(z, self._inverse_order, axis=1)
         log_pdf_z0 = log_pdf_z
         return z0, log_pdf_z0
@@ -163,6 +170,7 @@ class CustomSpecificOrderDimensionFlow():
         self._input_dim = input_dim 
         self._sodf_1 = SpecificOrderDimensionFlow(input_dim=int(self._input_dim/2.))
         self._sodf_2 = SpecificOrderDimensionFlow(input_dim=int(self._input_dim/2.))
+        
         assert (self._input_dim % 2 == 0)
         assert (parameters is None)
         assert (self._input_dim > 1)
@@ -181,6 +189,7 @@ class CustomSpecificOrderDimensionFlow():
 
     def transform(self, z0, log_pdf_z0):
         verify_size(z0, log_pdf_z0)
+
         z0_1 = z0[:, :int(self._input_dim/2.)] 
         z0_2 = z0[:, int(self._input_dim/2.):]
         # z_1, _ = self._sodf_1.transform(z0_1, tf.zeros(shape=[tf.shape(z0_1)[0], 1]))
@@ -192,6 +201,7 @@ class CustomSpecificOrderDimensionFlow():
 
     def inverse_transform(self, z, log_pdf_z):
         verify_size(z, log_pdf_z)
+
         z_1 = z[:, :int(self._input_dim/2.)] 
         z_2 = z[:, int(self._input_dim/2.):]
         # z0_1, _ = self._sodf_1.inverse_transform(z_1, tf.zeros(shape=[tf.shape(z_1)[0], 1]))
@@ -229,6 +239,7 @@ class InverseOrderDimensionFlow():
 
     def transform(self, z0, log_pdf_z0):
         verify_size(z0, log_pdf_z0)
+
         z = tf.reverse(z0, axis=[-1,])
         log_pdf_z = log_pdf_z0
         return z, log_pdf_z
@@ -264,6 +275,7 @@ class PermuteDimensionFlow():
 
     def transform(self, z0, log_pdf_z0):
         verify_size(z0, log_pdf_z0)
+
         if self._slide_to_higher:
             z = tf.concat([tf.slice(z0, [0, self._n_slide_dims], [-1, self._input_dim-self._n_slide_dims]), tf.slice(z0, [0, 0], [-1, self._n_slide_dims])], axis=1)
         else:
@@ -300,8 +312,8 @@ class ScaleDimensionFlow():
 
     def transform(self, z0, log_pdf_z0):
         verify_size(z0, log_pdf_z0)
+
         z = z0*self._scale
-        
         log_abs_det_jacobian = self._input_dim*tf.log(1e-7+self._scale)
         log_pdf_z = log_pdf_z0 - log_abs_det_jacobian
         return z, log_pdf_z
@@ -335,6 +347,7 @@ class OpenIntervalDimensionFlow():
 
     def transform(self, z0, log_pdf_z0):
         verify_size(z0, log_pdf_z0)
+
         if self._zero_one:
             # z = tf.nn.sigmoid(z0)
             z = tf.nn.sigmoid(5.*z0)
@@ -352,6 +365,7 @@ class OpenIntervalDimensionFlow():
 
     def inverse_transform(self, z, log_pdf_z):
         verify_size(z, log_pdf_z)
+
         if self._zero_one:
             # z0 = (tf.log(z)-tf.log(1-z))
             z0 = (tf.log(z)-tf.log(1-z))/5.
@@ -395,11 +409,13 @@ class InverseOpenIntervalDimensionFlow():
 
     def transform(self, z0, log_pdf_z0):
         verify_size(z0, log_pdf_z0)
+
         z, log_pdf_z = self._inverse_flow_object.inverse_transform(z0, log_pdf_z0)
         return z, log_pdf_z
 
     def inverse_transform(self, z, log_pdf_z):
         verify_size(z, log_pdf_z)
+
         z0, log_pdf_z0 = self._inverse_flow_object.transform(z, log_pdf_z)
         return z0, log_pdf_z0
 
@@ -413,15 +429,26 @@ class OthogonalProjectionMap():
     Raises:
       ValueError: 
     """
+    rotation_flow_class = CompoundRotationFlow # HouseholdRotationFlow
+    
     def __init__(self, input_dim, output_dim, parameters, name='orthogonal_projection_transform'):   
         self._parameter_scale = 1.
         self._parameters = parameters
-        if self._parameters is not None: self._parameters = self._parameter_scale*self._parameters
+        self._parameters = self._parameter_scale*self._parameters
         self._input_dim = input_dim
         self._output_dim = output_dim
-        self._rotation_flow_class = CompoundRotationFlow # HouseholdRotationFlow
-        self._rotation_flow = None
-        self._mode = 'matrix'
+        self._mode = 'vector'
+
+        assert (self._mode == 'matrix' or self._mode == 'vector')
+        assert (self._input_dim > 0 and self._output_dim > 0)
+
+        self._parameters.get_shape().assert_is_compatible_with([None, OthogonalProjectionMap.required_num_parameters(self._input_dim, self._output_dim)])
+        
+        param_index = 0
+        self._rotation_param, param_index = helper.slice_parameters(self._parameters, param_index, self._rotation_flow_class.required_num_parameters(max(self._input_dim, self._output_dim)))
+        self._input_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim)
+        self._output_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._output_dim) 
+        self._rotation_flow = OthogonalProjectionMap.rotation_flow_class(max(self._input_dim, self._output_dim), self._rotation_param) 
 
     @property
     def input_dim(self):
@@ -433,20 +460,11 @@ class OthogonalProjectionMap():
 
     @staticmethod
     def required_num_parameters(input_dim, output_dim):
-        n_rot_param = HouseholdRotationFlow.required_num_parameters(max(input_dim, output_dim))
+        assert (input_dim > 0 and output_dim > 0)
+        n_rot_param = OthogonalProjectionMap.rotation_flow_class.required_num_parameters(max(input_dim, output_dim))
         return n_rot_param+input_dim+output_dim
 
     def jacobian(self, z0):        
-        if self._parameters is not None: 
-            self._parameters.get_shape().assert_is_compatible_with([None, OthogonalProjectionMap.required_num_parameters(self._input_dim, self._output_dim)])
-        
-        param_index = 0
-        rotation_param, param_index = helper.slice_parameters(self._parameters, param_index, self._rotation_flow_class.required_num_parameters(max(self._input_dim, self._output_dim)))
-        input_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim)
-        output_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._output_dim) 
-        
-        if self._rotation_flow is None: self._rotation_flow = self._rotation_flow_class(max(self._input_dim, self._output_dim), rotation_param) 
-
         full_batched_rot_matrix = self._rotation_flow.get_batched_rot_matrix()
         batched_rot_matrix = full_batched_rot_matrix[:, :self._output_dim, :self._input_dim]
         if self._parameters is None or self._parameters.get_shape()[0].value == 1: #one set of parameters
@@ -456,20 +474,9 @@ class OthogonalProjectionMap():
         return jacobian
 
     def transform(self, z0):
-        if self._parameters is not None: 
-            self._parameters.get_shape().assert_is_compatible_with([None, OthogonalProjectionMap.required_num_parameters(self._input_dim, self._output_dim)])
-        assert (self._mode == 'matrix' or self._mode == 'vector')
-        
-        param_index = 0
-        rotation_param, param_index = helper.slice_parameters(self._parameters, param_index, self._rotation_flow_class.required_num_parameters(max(self._input_dim, self._output_dim)))
-        input_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim)
-        output_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._output_dim) 
-        
-        if self._rotation_flow is None: self._rotation_flow = self._rotation_flow_class(max(self._input_dim, self._output_dim), rotation_param) 
-
         z0_centered = z0-input_shift_vec
 
-        if self._mode == 'matrix': # This is for debugging mostly, defer to householder flow mode in general.
+        if self._mode == 'matrix': # This is for debugging mostly, defer to rotation flow mode in general.
             full_batched_rot_matrix = self._rotation_flow.get_batched_rot_matrix()
             batched_rot_matrix = full_batched_rot_matrix[:, :self._output_dim, :self._input_dim]
             if self._parameters is None or self._parameters.get_shape()[0].value == 1: #one set of parameters
@@ -496,13 +503,34 @@ class ConnectedPiecewiseOrthogonalMap():
     Raises:
       ValueError: 
     """
+    rotation_flow_class = HouseholdRotationFlow # CompoundRotationFlow
+
     def __init__(self, input_dim, parameters, margin_mode='NoGradient', name='connected_piecewise_orthogonal_transform'):   
         self._parameter_scale = 1.
         self._parameters = parameters
-        if self._parameters is not None: self._parameters = self._parameter_scale*self._parameters
+        self._parameters = self._parameter_scale*self._parameters
         self._input_dim = input_dim
         self._margin_mode = margin_mode
+
         assert (self._margin_mode == 'NoGradient' or self._margin_mode == 'ST')
+
+        self._parameters.get_shape().assert_is_compatible_with([None, ConnectedPiecewiseOrthogonalMap.required_num_parameters(self._input_dim)])
+        
+        param_index = 0
+        self._pos_rotation_param, param_index = helper.slice_parameters(self._parameters, param_index, self._rotation_flow_class.required_num_parameters(self._input_dim))
+        self._neg_rotation_param, param_index = helper.slice_parameters(self._parameters, param_index, self._rotation_flow_class.required_num_parameters(self._input_dim))
+        self._pos_pre_scale, param_index = helper.slice_parameters(self._parameters, param_index, 1)
+        self._neg_pre_scale, param_index = helper.slice_parameters(self._parameters, param_index, 1)
+        self._hyper_pre_bias, param_index = helper.slice_parameters(self._parameters, param_index, 1)
+        self._hyper_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim) 
+        self._output_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim) 
+
+        self._pos_scale = tf.nn.softplus(self._pos_pre_scale)/np.log(1+np.exp(0))
+        self._neg_scale = tf.nn.softplus(self._neg_pre_scale)/np.log(1+np.exp(0))
+        self._hyper_bias = tf.nn.softplus(self._hyper_pre_bias)/np.log(1+np.exp(0))
+        self._hyper_vec_dir = self._hyper_vec/helper.safe_tf_sqrt(tf.reduce_sum(self._hyper_vec**2, axis=1, keep_dims=True))
+        self._pos_rotation_flow = ConnectedPiecewiseOrthogonalMap.rotation_flow_class(self._input_dim, self._pos_rotation_param) 
+        self._neg_rotation_flow = ConnectedPiecewiseOrthogonalMap.rotation_flow_class(self._input_dim, self._neg_rotation_param) 
 
     @property
     def input_dim(self):
@@ -514,80 +542,44 @@ class ConnectedPiecewiseOrthogonalMap():
 
     @staticmethod
     def required_num_parameters(input_dim):
-        n_rot_param = HouseholdRotationFlow.required_num_parameters(input_dim)
+        n_rot_param = ConnectedPiecewiseOrthogonalMap.rotation_flow_class.required_num_parameters(input_dim)
         return 2*n_rot_param+1+1+1+input_dim+input_dim
 
     def jacobian(self, z0):
-        if self._parameters is not None:
-            self._parameters.get_shape().assert_is_compatible_with([None, ConnectedPiecewiseOrthogonalMap.required_num_parameters(self._input_dim)])
-        
-        param_index = 0
-        pos_householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._input_dim))
-        neg_householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._input_dim))
-        pos_pre_scale, param_index = helper.slice_parameters(self._parameters, param_index, 1)
-        neg_pre_scale, param_index = helper.slice_parameters(self._parameters, param_index, 1)
-        hyper_pre_bias, param_index = helper.slice_parameters(self._parameters, param_index, 1)
-        hyper_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim) 
-        output_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim) 
+        z_centered = z0-self._hyper_vec_dir*self._hyper_bias
 
-        pos_scale = tf.nn.softplus(pos_pre_scale)/np.log(1+np.exp(0))
-        neg_scale = tf.nn.softplus(neg_pre_scale)/np.log(1+np.exp(0))
-        hyper_bias = tf.nn.softplus(hyper_pre_bias)/np.log(1+np.exp(0))
-        hyper_vec_dir = hyper_vec/helper.safe_tf_sqrt(tf.reduce_sum(hyper_vec**2, axis=1, keep_dims=True))
-        pos_householder_flow = HouseholdRotationFlow(self._input_dim, pos_householder_param) 
-        neg_householder_flow = HouseholdRotationFlow(self._input_dim, neg_householder_param) 
-
-        z_centered = z0-hyper_vec_dir*hyper_bias
-        margin = tf.reduce_sum(hyper_vec_dir*z_centered, axis=1, keep_dims=True)
+        margin = tf.reduce_sum(self._hyper_vec_dir*z_centered, axis=1, keep_dims=True)
         if self._margin_mode == 'NoGradient':
             pos_mask = tf.stop_gradient(tf.cast(margin>=0, tf.float32)) # margin >= 0 return 1 else 0 
         elif self._margin_mode == 'ST':
             pos_mask = helper.binaryStochastic_ST(margin) # margin >= ~9e-8 return 1 else 0
         neg_mask = 1-pos_mask
         
-        pos_batched_rot_matrix = pos_householder_flow.get_batched_rot_matrix()
-        neg_batched_rot_matrix = neg_householder_flow.get_batched_rot_matrix()
-        scaled_pos_batched_rot_matrix = pos_scale[:, :, np.newaxis]*pos_batched_rot_matrix
-        scaled_neg_batched_rot_matrix = neg_scale[:, :, np.newaxis]*neg_batched_rot_matrix
+        pos_batched_rot_matrix = self._pos_rotation_flow.get_batched_rot_matrix()
+        neg_batched_rot_matrix = self._neg_rotation_flow.get_batched_rot_matrix()
+        scaled_pos_batched_rot_matrix = self._pos_scale[:, :, np.newaxis]*pos_batched_rot_matrix
+        scaled_neg_batched_rot_matrix = self._neg_scale[:, :, np.newaxis]*neg_batched_rot_matrix
         jacobian = pos_mask[:, :, np.newaxis]*scaled_pos_batched_rot_matrix+neg_mask[:, :, np.newaxis]*scaled_neg_batched_rot_matrix
         return jacobian
 
     def transform(self, z0):
-        if self._parameters is not None:
-            self._parameters.get_shape().assert_is_compatible_with([None, ConnectedPiecewiseOrthogonalMap.required_num_parameters(self._input_dim)])
-        
-        param_index = 0
-        pos_householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._input_dim))
-        neg_householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._input_dim))
-        pos_pre_scale, param_index = helper.slice_parameters(self._parameters, param_index, 1)
-        neg_pre_scale, param_index = helper.slice_parameters(self._parameters, param_index, 1)
-        hyper_pre_bias, param_index = helper.slice_parameters(self._parameters, param_index, 1)
-        hyper_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim) 
-        output_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim) 
+        z_centered = z0-self._hyper_vec_dir*self._hyper_bias
 
-        pos_scale = tf.nn.softplus(pos_pre_scale)/np.log(1+np.exp(0))
-        neg_scale = tf.nn.softplus(neg_pre_scale)/np.log(1+np.exp(0))
-        hyper_bias = tf.nn.softplus(hyper_pre_bias)/np.log(1+np.exp(0))
-        hyper_vec_dir = hyper_vec/helper.safe_tf_sqrt(tf.reduce_sum(hyper_vec**2, axis=1, keep_dims=True))
-        pos_householder_flow = HouseholdRotationFlow(self._input_dim, pos_householder_param) 
-        neg_householder_flow = HouseholdRotationFlow(self._input_dim, neg_householder_param) 
-
-        z_centered = z0-hyper_vec_dir*hyper_bias
-        margin = tf.reduce_sum(hyper_vec_dir*z_centered, axis=1, keep_dims=True)
+        margin = tf.reduce_sum(self._hyper_vec_dir*z_centered, axis=1, keep_dims=True)
         if self._margin_mode == 'NoGradient':
             pos_mask = tf.stop_gradient(tf.cast(margin>=0, tf.float32)) # margin >= 0 return 1 else 0 
         elif self._margin_mode == 'ST':
             pos_mask = helper.binaryStochastic_ST(margin) # margin >= ~9e-8 return 1 else 0
         neg_mask = 1-pos_mask
         
-        z_pos_rot, _ = pos_householder_flow.transform(z_centered, tf.zeros(shape=(tf.shape(z0)[0], 1), dtype=tf.float32))
-        z_neg_rot, _ = neg_householder_flow.transform(z_centered, tf.zeros(shape=(tf.shape(z0)[0], 1), dtype=tf.float32))
-        z_pos_scale_rot = pos_scale*z_pos_rot
-        z_neg_scale_rot = neg_scale*z_neg_rot
+        z_pos_rot, _ = self._pos_rotation_flow.transform(z_centered, tf.zeros(shape=(tf.shape(z0)[0], 1), dtype=tf.float32))
+        z_neg_rot, _ = self._neg_rotation_flow.transform(z_centered, tf.zeros(shape=(tf.shape(z0)[0], 1), dtype=tf.float32))
+        z_pos_scale_rot = self._pos_scale*z_pos_rot
+        z_neg_scale_rot = self._neg_scale*z_neg_rot
 
         z_scale_rot = pos_mask*z_pos_scale_rot+neg_mask*z_neg_scale_rot
-        z = z_scale_rot+hyper_vec_dir*hyper_bias+output_shift_vec
-        scales = pos_mask*pos_scale+neg_mask*neg_scale 
+        z = z_scale_rot+self._hyper_vec_dir*self._hyper_bias+self._output_shift_vec
+        scales = pos_mask*self._pos_scale+neg_mask*self._neg_scale 
         return z, scales
 
 class RiemannianFlow():
@@ -607,7 +599,24 @@ class RiemannianFlow():
         self._additional_dim = self._output_dim-self._input_dim
         self._n_input_CPO = n_input_CPO
         self._n_output_CPO = n_output_CPO
+
         assert (self._output_dim > self._input_dim)
+
+        self._parameters.get_shape().assert_is_compatible_with([None, RiemannianFlow.required_num_parameters(self._input_dim, self._output_dim, self._n_input_CPO, self._n_output_CPO)])
+
+        param_index = 0
+        self._input_CPO_list = []
+        for i in range(self._n_input_CPO): 
+            curr_param, param_index = helper.slice_parameters(self._parameters, param_index, ConnectedPiecewiseOrthogonalMap.required_num_parameters(self._input_dim))
+            self._input_CPO_list.append(ConnectedPiecewiseOrthogonalMap(self._input_dim, curr_param))
+
+        proj_param, param_index = helper.slice_parameters(self._parameters, param_index, OthogonalProjectionMap.required_num_parameters(self._input_dim, self._additional_dim))
+        self._proj_map = OthogonalProjectionMap(self._input_dim, self._additional_dim, proj_param)
+
+        self._additional_CPO_list = []
+        for i in range(self._n_output_CPO): 
+            curr_param, param_index = helper.slice_parameters(self._parameters, param_index, ConnectedPiecewiseOrthogonalMap.required_num_parameters(self._additional_dim))
+            self._additional_CPO_list.append(ConnectedPiecewiseOrthogonalMap(self._additional_dim, curr_param))
 
     @property
     def input_dim(self):
@@ -624,6 +633,8 @@ class RiemannianFlow():
     @staticmethod
     def required_num_parameters(input_dim, output_dim, n_input_CPO, n_output_CPO): 
         assert (output_dim > input_dim)
+        assert (n_input_CPO >= 0 and n_output_CPO >= 0)
+
         additional_dim = output_dim-input_dim
         n_input_CPO_param = n_input_CPO*ConnectedPiecewiseOrthogonalMap.required_num_parameters(input_dim)
         n_proj_param = OthogonalProjectionMap.required_num_parameters(input_dim, additional_dim)
@@ -632,38 +643,23 @@ class RiemannianFlow():
 
     def jacobian(self, z0, mode='full'):
         assert (mode == 'full' or mode == 'additional')
-        self._parameters.get_shape().assert_is_compatible_with([None, RiemannianFlow.required_num_parameters(self._input_dim, self._output_dim, self._n_input_CPO, self._n_output_CPO)])
-
-        param_index = 0
-        input_CPO_list = []
-        for i in range(self._n_input_CPO): 
-            curr_param, param_index = helper.slice_parameters(self._parameters, param_index, ConnectedPiecewiseOrthogonalMap.required_num_parameters(self._input_dim))
-            input_CPO_list.append(ConnectedPiecewiseOrthogonalMap(self._input_dim, curr_param))
-
-        proj_param, param_index = helper.slice_parameters(self._parameters, param_index, OthogonalProjectionMap.required_num_parameters(self._input_dim, self._additional_dim))
-        proj_map = OthogonalProjectionMap(self._input_dim, self._additional_dim, proj_param)
-
-        additional_CPO_list = []
-        for i in range(self._n_output_CPO): 
-            curr_param, param_index = helper.slice_parameters(self._parameters, param_index, ConnectedPiecewiseOrthogonalMap.required_num_parameters(self._additional_dim))
-            additional_CPO_list.append(ConnectedPiecewiseOrthogonalMap(self._additional_dim, curr_param))
 
         curr_z = z0
         input_CPO_Js = []
-        for i in range(len(input_CPO_list)): 
-            curr_J = input_CPO_list[i].jacobian(curr_z)
-            curr_z, curr_delta_log_pdf_z = input_CPO_list[i].transform(curr_z)
+        for i in range(len(self._input_CPO_list)): 
+            curr_J = self._input_CPO_list[i].jacobian(curr_z)
+            curr_z, curr_delta_log_pdf_z = self._input_CPO_list[i].transform(curr_z)
             input_CPO_Js.append(curr_J)
 
         input_CPO_z = curr_z
-        proj_input_CPO_z = proj_map.transform(input_CPO_z)
-        proj_map_J = proj_map.jacobian(input_CPO_z)
+        proj_input_CPO_z = self._proj_map.transform(input_CPO_z)
+        proj_map_J = self._proj_map.jacobian(input_CPO_z)
 
         curr_z = proj_input_CPO_z
         additional_CPO_Js = []
-        for i in range(len(additional_CPO_list)): 
-            curr_J = additional_CPO_list[i].jacobian(curr_z)
-            curr_z, curr_delta_log_pdf_z = additional_CPO_list[i].transform(curr_z)
+        for i in range(len(self._additional_CPO_list)): 
+            curr_J = self._additional_CPO_list[i].jacobian(curr_z)
+            curr_z, curr_delta_log_pdf_z = self._additional_CPO_list[i].transform(curr_z)
             additional_CPO_Js.append(curr_J)
 
         overall_input_CPO_Js = None
@@ -691,35 +687,20 @@ class RiemannianFlow():
     def transform(self, z0, log_pdf_z0, mode='regular'):
         assert (mode == 'regular' or mode == 'scales')
         verify_size(z0, log_pdf_z0)
-        self._parameters.get_shape().assert_is_compatible_with([None, RiemannianFlow.required_num_parameters(self._input_dim, self._output_dim, self._n_input_CPO, self._n_output_CPO)])
-
-        param_index = 0
-        input_CPO_list = []
-        for i in range(self._n_input_CPO): 
-            curr_param, param_index = helper.slice_parameters(self._parameters, param_index, ConnectedPiecewiseOrthogonalMap.required_num_parameters(self._input_dim))
-            input_CPO_list.append(ConnectedPiecewiseOrthogonalMap(self._input_dim, curr_param))
-
-        proj_param, param_index = helper.slice_parameters(self._parameters, param_index, OthogonalProjectionMap.required_num_parameters(self._input_dim, self._additional_dim))
-        proj_map = OthogonalProjectionMap(self._input_dim, self._additional_dim, proj_param)
-
-        additional_CPO_list = []
-        for i in range(self._n_output_CPO): 
-            curr_param, param_index = helper.slice_parameters(self._parameters, param_index, ConnectedPiecewiseOrthogonalMap.required_num_parameters(self._additional_dim))
-            additional_CPO_list.append(ConnectedPiecewiseOrthogonalMap(self._additional_dim, curr_param))
 
         curr_z = z0
         input_CPO_log_scales = []
-        for i in range(len(input_CPO_list)): 
-            curr_z, curr_scales = input_CPO_list[i].transform(curr_z)
+        for i in range(len(self._input_CPO_list)): 
+            curr_z, curr_scales = self._input_CPO_list[i].transform(curr_z)
             input_CPO_log_scales.append(tf.log(curr_scales))
 
         input_CPO_z = curr_z
-        proj_input_CPO_z = proj_map.transform(input_CPO_z)
+        proj_input_CPO_z = self._proj_map.transform(input_CPO_z)
 
         curr_z = proj_input_CPO_z
         additional_CPO_log_scales = []
-        for i in range(len(additional_CPO_list)): 
-            curr_z, curr_scales = additional_CPO_list[i].transform(curr_z)
+        for i in range(len(self._additional_CPO_list)): 
+            curr_z, curr_scales = self._additional_CPO_list[i].transform(curr_z)
             additional_CPO_log_scales.append(tf.log(curr_scales))
         additional_CPO_z = curr_z
         z = tf.concat([z0, additional_CPO_z], axis=1)
@@ -737,7 +718,7 @@ class RiemannianFlow():
 
 class HouseholdRotationFlow():
     """
-    Household Rotation Flow class.
+    Household Rotation Flow class. SO(n) make sure reflection is even??????
     Args:
       parameters: parameters of transformation all appended.
       input_dim : input dimensionality of the transformation. 
@@ -752,13 +733,23 @@ class HouseholdRotationFlow():
         if self._parameters is not None: self._parameters = self._parameter_scale*self._parameters
         self._input_dim = input_dim
         self._k_start = max(self._input_dim-HouseholdRotationFlow.max_steps+1, 1)
-        self._steps = self._input_dim-self._k_start+1
+        self._n_steps = self._input_dim-self._k_start+1
         self._init_reflection = init_reflection
         self._vector_mode_rate = vector_mode_rate
-        if float(self._steps)/float(self._input_dim) <= self._vector_mode_rate: self._mode = 'vector'
+        if float(self._n_steps)/float(self._input_dim) <= self._vector_mode_rate: self._mode = 'vector'
         else: self._mode = 'matrix'
-        print('Household Rotation Flow (steps, input_dim, mode): ', (self._steps, self._input_dim, self._mode))
+        print('Household Rotation Flow (# steps, input_dim, mode): ', (self._n_steps, self._input_dim, self._mode))
+        
         assert (self._init_reflection == 1 or self._init_reflection == -1)
+        assert (self._mode == 'matrix' or self._mode == 'vector')
+
+        if self._parameters is not None:
+            self._parameters.get_shape().assert_is_compatible_with([None, HouseholdRotationFlow.required_num_parameters(self._input_dim)])
+
+        if self._mode == 'matrix':
+            self._batched_rot_matrix = self.get_batched_rot_matrix() 
+        elif self._mode == 'vector':
+            self._list_batched_householder_dirs =  self.get_list_batched_householder_vectors() 
 
     @property
     def input_dim(self):
@@ -781,22 +772,17 @@ class HouseholdRotationFlow():
         
     def transform(self, z0, log_pdf_z0):
         verify_size(z0, log_pdf_z0)
-        if self._parameters is not None:
-            self._parameters.get_shape().assert_is_compatible_with([None, HouseholdRotationFlow.required_num_parameters(self._input_dim)])
-        assert (self._mode == 'matrix' or self._mode == 'vector')
 
         if self._mode == 'matrix':
-            batched_rot_matrix = self.get_batched_rot_matrix()  
             if self._parameters is None or self._parameters.get_shape()[0].value == 1: #one set of parameters
-                z = tf.matmul(z0, batched_rot_matrix[0, :, :], transpose_a=False, transpose_b=True)
+                z = tf.matmul(z0, self._batched_rot_matrix[0, :, :], transpose_a=False, transpose_b=True)
             else: # batched parameters
-                z = tf.matmul(batched_rot_matrix, z0[:,:,np.newaxis])[:, :, 0]
+                z = tf.matmul(self._batched_rot_matrix, z0[:,:,np.newaxis])[:, :, 0]
 
         elif self._mode == 'vector':
-            list_batched_householder_dirs =  self.get_list_batched_householder_vectors() 
             curr_z = z0 
-            for i in range(len(list_batched_householder_dirs)):
-                curr_batched_householder_dir = list_batched_householder_dirs[i]
+            for i in range(len(self._list_batched_householder_dirs)):
+                curr_batched_householder_dir = self._list_batched_householder_dirs[i]
                 start_ind = None
                 if isinstance(curr_batched_householder_dir, float): 
                     start_ind = self._input_dim-1
@@ -812,20 +798,18 @@ class HouseholdRotationFlow():
 
     def inverse_transform(self, z, log_pdf_z):
         verify_size(z, log_pdf_z)
-        if self._parameters is not None:
-            self._parameters.get_shape().assert_is_compatible_with([None, HouseholdRotationFlow.required_num_parameters(self._input_dim)])
         
         if self._parameters is None or self._parameters.get_shape()[0].value == 1: #one set of parameters
             if self._mode == 'matrix':
-                batched_rot_matrix = self.get_batched_rot_matrix()      
-                batched_rot_inv_matrix = tf.transpose(batched_rot_matrix, [0, 2, 1])
-                z0 = tf.matmul(z, batched_rot_inv_matrix[0, :, :], transpose_a=False, transpose_b=True)
+                # batched_rot_inv_matrix = tf.transpose(self._batched_rot_matrix, [0, 2, 1])
+                # z0 = tf.matmul(z, batched_rot_inv_matrix[0, :, :], transpose_a=False, transpose_b=True)
+                pdb.set_trace() # test this
+                z0 = tf.matmul(z, self._batched_rot_matrix[0, :, :], transpose_a=False, transpose_b=False)
 
             elif self._mode == 'vector':
-                list_batched_householder_dirs =  self.get_list_batched_householder_vectors() 
                 curr_z = z
-                for i in range(len(list_batched_householder_dirs)):
-                    curr_batched_householder_dir = list_batched_householder_dirs[len(list_batched_householder_dirs)-i-1]
+                for i in range(len(self._list_batched_householder_dirs)):
+                    curr_batched_householder_dir = self._list_batched_householder_dirs[len(self._list_batched_householder_dirs)-i-1]
                     start_ind = None
                     if isinstance(curr_batched_householder_dir, float): 
                         start_ind = self._input_dim-1
@@ -845,7 +829,7 @@ class HouseholdRotationFlow():
 
 class CompoundRotationFlow():
     """
-    Compound Rotation Flow class.
+    Compound Rotation Flow class. SO(n) make sure reflection is even??????
     Args:
       parameters: parameters of transformation all appended.
       input_dim : input dimensionality of the transformation. 
@@ -855,17 +839,24 @@ class CompoundRotationFlow():
     n_steps = 3
 
     def __init__(self, input_dim, parameters, name='compound_rotation_transform'):  
-        pdb.set_trace() 
         self._parameter_scale = 1.
         self._parameters = parameters
         if self._parameters is not None: self._parameters = self._parameter_scale*self._parameters
         self._input_dim = input_dim
-        self._n_steps = CompoundRotationFlow.n_steps
         
-        self._constant_rot_mats = []
-        for i in range(self._n_steps):             
-            self._constant_rot_mats.append(tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32))
-        self._householder_flow_objects = None
+        if self._parameters is not None:
+            self._parameters.get_shape().assert_is_compatible_with([None, CompoundRotationFlow.required_num_parameters(self._input_dim)])
+        
+        param_index = 0
+        self._householder_flows_list = []
+        for i in range(CompoundRotationFlow.n_steps):
+            curr_householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._input_dim))
+            self._householder_flows_list.append(HouseholdRotationFlow(self._input_dim, curr_householder_param))
+
+        self._constant_rot_mats_list = []
+        for i in range(CompoundRotationFlow.n_steps):             
+            self._constant_rot_mats_list.append(tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32))
+        
     @property
     def input_dim(self):
         return self._input_dim
@@ -879,61 +870,32 @@ class CompoundRotationFlow():
         return CompoundRotationFlow.n_steps*HouseholdRotationFlow.required_num_parameters(input_dim)
     
     def get_batched_rot_matrix(self):
-        if self._parameters is not None:
-            self._parameters.get_shape().assert_is_compatible_with([None, CompoundRotationFlow.required_num_parameters(self._input_dim)])
-        
-        if self._householder_flow_objects is None:
-            param_index = 0
-            self._householder_flow_objects = []
-            for i in range(self._n_steps):
-                curr_householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._input_dim))
-                self._householder_flow_objects.append(HouseholdRotationFlow(self._input_dim, curr_householder_param))
-
         curr_batched_rot_matrix = None
-        for i in range(self._n_steps):
+        for i in range(len(self._constant_rot_mats)):
             if curr_batched_rot_matrix is None: curr_batched_rot_matrix = self._constant_rot_mats[i][np.newaxis, :, :]
             else: curr_batched_rot_matrix = tf.matmul(self._constant_rot_mats[i][np.newaxis, :, :], curr_batched_rot_matrix, transpose_a=False, transpose_b=False)
-            curr_batched_rot_matrix = tf.matmul(self._householder_flow_objects[i].get_batched_rot_matrix(), curr_batched_rot_matrix, transpose_a=False, transpose_b=False)
-
+            
+            curr_batched_rot_matrix = tf.matmul(self._householder_flows_list[i].get_batched_rot_matrix(), curr_batched_rot_matrix, transpose_a=False, transpose_b=False)
         return curr_batched_rot_matrix
         
     def transform(self, z0, log_pdf_z0):
         verify_size(z0, log_pdf_z0)
-        if self._parameters is not None:
-            self._parameters.get_shape().assert_is_compatible_with([None, CompoundRotationFlow.required_num_parameters(self._input_dim)])
-        
-        if self._householder_flow_objects is None:
-            param_index = 0
-            self._householder_flow_objects = []
-            for i in range(self._n_steps):
-                curr_householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._input_dim))
-                self._householder_flow_objects.append(HouseholdRotationFlow(self._input_dim, curr_householder_param))
 
         curr_z, curr_log_pdf_z = z0, log_pdf_z0
-        for i in range(self._n_steps):
+        for i in range(len(self._constant_rot_mats)):
             curr_z_rand_rot = tf.matmul(curr_z, self._constant_rot_mats[i], transpose_a=False, transpose_b=True)
             curr_log_pdf_z_rand_rot = curr_log_pdf_z
-            curr_z, curr_log_pdf_z = self._householder_flow_objects[i].transform(curr_z_rand_rot, curr_log_pdf_z_rand_rot)
+            curr_z, curr_log_pdf_z = self._householder_flows_list[i].transform(curr_z_rand_rot, curr_log_pdf_z_rand_rot)
         z, log_pdf_z = curr_z, curr_log_pdf_z
-
         return z, log_pdf_z
 
     def inverse_transform(self, z, log_pdf_z):
         verify_size(z, log_pdf_z)
-        if self._parameters is not None:
-            self._parameters.get_shape().assert_is_compatible_with([None, CompoundRotationFlow.required_num_parameters(self._input_dim)])
-        
-        if self._householder_flow_objects is None:
-            param_index = 0
-            self._householder_flow_objects = []
-            for i in range(self._n_steps):
-                curr_householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._input_dim))
-                self._householder_flow_objects.append(HouseholdRotationFlow(self._input_dim, curr_householder_param))
 
         if self._parameters is None or self._parameters.get_shape()[0].value == 1: #one set of parameters
             curr_z, curr_log_pdf_z = z, log_pdf_z
-            for i in range(self._n_steps-1, -1, -1):
-                curr_z_rand_rot, curr_log_pdf_z_rand_rot = self._householder_flow_objects[i].inverse_transform(curr_z, curr_log_pdf_z)
+            for i in range(len(self._constant_rot_mats)-1, -1, -1):
+                curr_z_rand_rot, curr_log_pdf_z_rand_rot = self._householder_flows_list[i].inverse_transform(curr_z, curr_log_pdf_z)
                 curr_z = tf.matmul(curr_z_rand_rot, self._constant_rot_mats[i], transpose_a=False, transpose_b=False)
                 curr_log_pdf_z = curr_log_pdf_z_rand_rot
             z0, log_pdf_z0 = curr_z, curr_log_pdf_z
@@ -948,7 +910,7 @@ class LinearIARFlow():
     """
     Linear Inverse Autoregressive Flow class. (not really, why does it not change the density? It is a subset version of it namely volume preserving skewing.)
 
-    This is only to be used with a non-centered diagonal-covariance gaussian to archive the full
+    This is only to be used before a non-centered diagonal-covariance gaussian to archive the full
     flexibility since it does the minimal, which is volume preserving skewing (and no scaling or translation).
     Args:
       parameters: parameters of transformation all appended.
