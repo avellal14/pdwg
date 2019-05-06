@@ -468,12 +468,12 @@ class OthogonalProjectionMap():
             full_batched_rot_matrix = householder_flow.get_batched_rot_matrix()
             batched_rot_matrix = full_batched_rot_matrix[:, :self._output_dim, :self._input_dim]
             if self._parameters is None or self._parameters.get_shape()[0].value == 1: #one set of parameters
-                pdb.set_trace()
                 z_proj = tf.matmul(z0_centered, batched_rot_matrix[0, :, :], transpose_a=False, transpose_b=True)
             else: # batched parameters
                 z_proj = tf.matmul(batched_rot_matrix, z0_centered[:,:,np.newaxis])[:, :, 0]
 
         elif self._mode == 'vector':
+            pdb.set_trace()
             if self._input_dim >= self._output_dim: 
                 z_proj_full, _ = householder_flow.transform(z0_centered, tf.zeros((tf.shape(z0)[0], 1), tf.float32))
                 z_proj = z_proj_full[:, :self._output_dim]
