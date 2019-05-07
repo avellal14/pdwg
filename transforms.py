@@ -447,7 +447,7 @@ class HouseholdRotationFlow():
     Raises:
       ValueError: 
     """
-    max_steps = 5
+    max_steps = 4
 
     def __init__(self, input_dim, parameters, vector_mode_rate=1, name='household_rotation_transform'):   
         self._parameter_scale = 1.
@@ -1783,7 +1783,7 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 
 # # print('n_steps of reflection: ', transform1._n_steps)
 # # print('initial reflection: ', transform1._init_reflection)
-# # print('rotation matrix diag: ')
+# print('rotation matrix diag: ')
 # print(np.diag(rot_mat_np[0]))
 
 # print('rotation determinant: ', np.linalg.det(rot_mat_np[0]))
@@ -1798,7 +1798,7 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 
 # # last_vec_np = sess.run(transform1._list_batched_householder_dirs[-1])
 # # print(last_vec_np)
-# pdb.set_trace()
+# # pdb.set_trace()
 
 # import matplotlib.pyplot as plt
 # import numpy as np
