@@ -708,8 +708,8 @@ class ConnectedPiecewiseOrthogonalMap():
         self._parameters.get_shape().assert_is_compatible_with([None, ConnectedPiecewiseOrthogonalMap.required_num_parameters(self._input_dim)])
         
         param_index = 0
-        self._pos_rotation_param, param_index = helper.slice_parameters(self._parameters, param_index, self._rotation_flow_class.required_num_parameters(self._input_dim))
-        self._neg_rotation_param, param_index = helper.slice_parameters(self._parameters, param_index, self._rotation_flow_class.required_num_parameters(self._input_dim))
+        self._pos_rotation_param, param_index = helper.slice_parameters(self._parameters, param_index, ConnectedPiecewiseOrthogonalMap.rotation_flow_class.required_num_parameters(self._input_dim))
+        self._neg_rotation_param, param_index = helper.slice_parameters(self._parameters, param_index, ConnectedPiecewiseOrthogonalMap.rotation_flow_class.required_num_parameters(self._input_dim))
         self._pos_pre_scale, param_index = helper.slice_parameters(self._parameters, param_index, 1)
         self._neg_pre_scale, param_index = helper.slice_parameters(self._parameters, param_index, 1)
         self._hyper_pre_bias, param_index = helper.slice_parameters(self._parameters, param_index, 1)
