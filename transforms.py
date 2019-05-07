@@ -558,8 +558,8 @@ class CompoundRotationFlow():
 
         self._constant_rot_mats_list = []
         for i in range(CompoundRotationFlow.n_steps):             
-            # self._constant_rot_mats_list.append(tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32))
-            self._constant_rot_mats_list.append(tf.constant(np.eye(self._input_dim), dtype=tf.float32))
+            self._constant_rot_mats_list.append(tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32))
+            # self._constant_rot_mats_list.append(tf.constant(np.eye(self._input_dim), dtype=tf.float32))
         
     @property
     def input_dim(self):

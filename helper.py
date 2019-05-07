@@ -1096,6 +1096,7 @@ def ConvResnetLayer_v2(x, units, reduce_units=None, activation=None, reduce_acti
 	return out
 
 def random_rot_mat(dim, mode='SO(n)'):
+	# https://statweb.stanford.edu/~cgates/PERSI/papers/subgroup-rand-var.pdf
 	print('Creating uniformly random rotation matrix in ' + mode + ' with n=' + str(dim) + '.')
 	assert (mode == 'SO(n)' or mode == 'O(n)')
 	assert (dim > 0)
@@ -1113,13 +1114,22 @@ def random_rot_mat(dim, mode='SO(n)'):
 		else:
 			intermediate_rotation[-curr_dim+1:,-curr_dim+1:] = curr_rot
 			intermediate_rotation[-curr_dim, -curr_dim] = 1.
-			householder_vec = np.random.randn(curr_dim)[:, np.newaxis]
+
+			e1 = np.zeros(curr_dim)[:, np.newaxis]
+			e1[0, 0] = 1
+			v_vec = np.random.randn(curr_dim)[:, np.newaxis]
+			v_norm = np.sqrt(np.sum(v_vec**2))
+			v = v_vec/v_norm
+
+			householder_vec = (e1-v)
+			# householder_vec = np.random.randn(curr_dim)[:, np.newaxis] # leads to non-uniform dist
 			householder_norm = np.sqrt(np.sum(householder_vec**2))
 			householder_dir = householder_vec/householder_norm
+
 			substract = 2*np.dot(householder_dir, np.dot(householder_dir.T, intermediate_rotation[-curr_dim:, -curr_dim:]))
 			# substract = 2*np.dot(np.dot(householder_dir, householder_dir.T), intermediate_rotation[-curr_dim:, -curr_dim:]) # much slower
 			curr_rot = intermediate_rotation[-curr_dim:, -curr_dim:]-substract
-	
+
 	end = time.time()
 	print('It took (sec): ', (end - start))
 	return curr_rot
