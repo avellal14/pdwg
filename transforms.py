@@ -1636,49 +1636,49 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 
 
 
-n_tests = 1
-batch_size = 5
-n_latent = 50
-name = 'transform'
-for transform_to_check in [\
-                           # PlanarFlow, \
-                           # RadialFlow, \
-                           # SpecificOrderDimensionFlow, \
-                           # InverseOrderDimensionFlow, \
-                           # PermuteDimensionFlow, \
-                           # ScaleDimensionFlow, \
-                           # OpenIntervalDimensionFlow, \
-                           # InverseOpenIntervalDimensionFlow, \
-                           # HouseholdRotationFlow, \
-                           # CompoundRotationFlow, \
-                           # LinearIARFlow, \
-                           NonLinearIARFlow, \
-                           # RealNVPFlow, \
-                           ]:
-    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-    print('\n\n\n')
-    print('            '+str(transform_to_check)+'               ')
-    print('\n\n\n')    
-    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+# n_tests = 1
+# batch_size = 5
+# n_latent = 50
+# name = 'transform'
+# for transform_to_check in [\
+#                            # PlanarFlow, \
+#                            # RadialFlow, \
+#                            # SpecificOrderDimensionFlow, \
+#                            # InverseOrderDimensionFlow, \
+#                            # PermuteDimensionFlow, \
+#                            # ScaleDimensionFlow, \
+#                            # OpenIntervalDimensionFlow, \
+#                            # InverseOpenIntervalDimensionFlow, \
+#                            # HouseholdRotationFlow, \
+#                            # CompoundRotationFlow, \
+#                            # LinearIARFlow, \
+#                            NonLinearIARFlow, \
+#                            # RealNVPFlow, \
+#                            ]:
+#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+#     print('\n\n\n')
+#     print('            '+str(transform_to_check)+'               ')
+#     print('\n\n\n')    
+#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
-    n_parameter = transform_to_check.required_num_parameters(n_latent)
+#     n_parameter = transform_to_check.required_num_parameters(n_latent)
 
-    for parameter_scale in [1, 10]:
-        parameters = None
-        if n_parameter > 0: parameters = parameter_scale*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
-        transform_object =  transform_to_check(input_dim=n_latent, parameters=parameters)
+#     for parameter_scale in [1, 10]:
+#         parameters = None
+#         if n_parameter > 0: parameters = parameter_scale*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
+#         transform_object =  transform_to_check(input_dim=n_latent, parameters=parameters)
 
-        # z0 = tf.random_normal((batch_size, n_latent), 0, 1, dtype=tf.float32)
-        z0 = tf.random_uniform(shape=(batch_size, n_latent), dtype=tf.float32)
-        log_pdf_z0 = tf.zeros(shape=(batch_size, 1), dtype=tf.float32)
+#         # z0 = tf.random_normal((batch_size, n_latent), 0, 1, dtype=tf.float32)
+#         z0 = tf.random_uniform(shape=(batch_size, n_latent), dtype=tf.float32)
+#         log_pdf_z0 = tf.zeros(shape=(batch_size, 1), dtype=tf.float32)
                 
-        for repeat in range(n_tests): _check_logdet(transform_object, z0, log_pdf_z0)
+#         for repeat in range(n_tests): _check_logdet(transform_object, z0, log_pdf_z0)
 
-pdb.set_trace()
+# pdb.set_trace()
 
 
 
