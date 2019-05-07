@@ -1677,7 +1677,7 @@ def householder_matrix_tf(batch, n, k, init_reflection=1, u_var=None):
 	if k == 1:
 		H_ref = np.sign(init_reflection)*tf.tile(tf.eye(k)[np.newaxis, :, :], [batch, 1, 1])
 	else:
-		if u_var is None: u_var = tf.random_normal((batch, k, 1), 0, 1, dtype=tf.float32)
+		if u_var is None: pdb.set_trace() # u_var = tf.random_normal((batch, k, 1), 0, 1, dtype=tf.float32)
 		else: u_var = u_var[:, :, np.newaxis]
 		H_ref = tf.eye(k)[np.newaxis, :, :] - (2./tf.matmul(u_var, u_var, transpose_a=True))*tf.matmul(u_var, u_var, transpose_b=True)
 	
@@ -1686,7 +1686,9 @@ def householder_matrix_tf(batch, n, k, init_reflection=1, u_var=None):
 	H_mat = tf.concat([H_mat_id, H_ref_column], axis=2)
 	return H_mat
 
-def householder_rotations_tf(n, k_start=1, init_reflection=1, params=None):
+def householder_rotations_tf(n, k_start=1, init_reflection=1, params=None, mode='uniform'):
+	assert (mode == 'uniform' or mode == 'simple')
+
 	M_k_start_list = []
 	W = None 
 	batch = 1
@@ -1699,13 +1701,22 @@ def householder_rotations_tf(n, k_start=1, init_reflection=1, params=None):
 		if k % 20 == 0: print('Householder rotation progress: '+ str(k) + '/' + str(n))
 		if params is None or k == 1: u_var = None
 		else: u_var = params_split[k-max(2, k_start)]
-		H_k = householder_matrix_tf(batch, n, k, float(init_reflection), u_var)
+
+		if u_var is None or mode == 'simple':
+			H_k = householder_matrix_tf(batch, n, k, float(init_reflection), u_var)
+		elif mode == 'uniform':
+			e1_tf = tf_standard_basis_vector(u_var.get_shape().as_list()[1], 0)[np.newaxis, :]
+			e1_minus_v = e1_tf-(u_var/safe_tf_sqrt(tf.reduce_sum(u_var**2, axis=1, keep_dims=True)))
+			H_k = householder_matrix_tf(batch, n, k, float(init_reflection), e1_minus_v)
+		
 		M_k_start_list.append(H_k)
 		if W is None: W = H_k
 		else: W = tf.matmul(H_k, W)
 	return W
 
-def householder_rotation_vectors_tf(n, k_start=1, init_reflection=1, params=None):
+def householder_rotation_vectors_tf(n, k_start=1, init_reflection=1, params=None, mode='uniform'):
+	assert (mode == 'uniform' or mode == 'simple')
+
 	list_householder_dir_vecs = []
 	batch = 1
 	if params.get_shape().as_list()[1] == 0: params = None
@@ -1722,11 +1733,22 @@ def householder_rotation_vectors_tf(n, k_start=1, init_reflection=1, params=None
 			list_householder_dir_vecs.append(float(init_reflection))
 		else:
 			if u_var is None: 
-				pdb.set_trace()
-				u_var = tf.random_normal((batch, k), 0, 1, dtype=tf.float32)
-			u_dir = u_var/safe_tf_sqrt(tf.reduce_sum(u_var**2, axis=1, keep_dims=True))
+				pdb.set_trace() # u_var = tf.random_normal((batch, k), 0, 1, dtype=tf.float32)
+			
+			if mode == 'uniform':
+				e1_tf = tf_standard_basis_vector(u_var.get_shape().as_list()[1], 0)[np.newaxis, :]
+				e1_minus_v = e1_tf-(u_var/safe_tf_sqrt(tf.reduce_sum(u_var**2, axis=1, keep_dims=True)))
+				u_dir = e1_minus_v/safe_tf_sqrt(tf.reduce_sum(e1_minus_v**2, axis=1, keep_dims=True))
+			elif mode == 'simple':
+				u_dir = u_var/safe_tf_sqrt(tf.reduce_sum(u_var**2, axis=1, keep_dims=True))
+
 			list_householder_dir_vecs.append(u_dir)
 	return list_householder_dir_vecs
+
+def tf_standard_basis_vector(dim, index):
+	vec = np.zeros(dim)
+	vec[index] = 1
+	return tf.constant(vec, tf.float32)
 
 def tf_resize_image(x, resize_ratios=[2,2]):
 	return tf.image.resize_images(x, [resize_ratios[0]*x.get_shape().as_list()[1], resize_ratios[1]*x.get_shape().as_list()[2]], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)

@@ -428,7 +428,7 @@ class HouseholdRotationFlow():
     Raises:
       ValueError: 
     """
-    max_steps = 20
+    max_steps = 30
 
     def __init__(self, input_dim, parameters, vector_mode_rate=1, name='household_rotation_transform'):   
         self._parameter_scale = 1.
@@ -1582,41 +1582,57 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 # print('\n\n\n')
 # pdb.set_trace()
 
-batch_size = 3
-n_latent = 11
-name = 'transform'
-# transform_to_check = CompoundRotationFlow
-transform_to_check = HouseholdRotationFlow
-n_parameter = transform_to_check.required_num_parameters(n_latent)
+# batch_size = 1000
+# n_latent = 50
+# name = 'transform'
+# # transform_to_check = CompoundRotationFlow
+# transform_to_check = HouseholdRotationFlow
+# n_parameter = transform_to_check.required_num_parameters(n_latent)
 
-parameters = None
-if n_parameter > 0: parameters = 10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
+# parameters = None
+# if n_parameter > 0: parameters = 10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
 
-z0 = tf.random_normal((batch_size, n_latent), 0, 1, dtype=tf.float32)
-log_pdf_z0 = tf.zeros(shape=(batch_size, 1), dtype=tf.float32)
-transform1 = transform_to_check(input_dim=n_latent, parameters=parameters)
-z, log_pdf_z = transform1.transform(z0, log_pdf_z0)
-z0_inv, log_pdf_z0_inv = transform1.inverse_transform(z, log_pdf_z)
-rot_mat = transform1.get_batched_rot_matrix()
+# z0 = tf.random_normal((batch_size, n_latent), 0, 1, dtype=tf.float32)
+# log_pdf_z0 = tf.zeros(shape=(batch_size, 1), dtype=tf.float32)
+# transform1 = transform_to_check(input_dim=n_latent, parameters=parameters)
+# z, log_pdf_z = transform1.transform(z0, log_pdf_z0)
+# z0_inv, log_pdf_z0_inv = transform1.inverse_transform(z, log_pdf_z)
+# rot_mat = transform1.get_batched_rot_matrix()
 
-# transform1._mode = 'matrix'
-# z_2, log_pdf_z = transform1.transform(z0, log_pdf_z0)
-# z0_inv_2, log_pdf_z0_inv = transform1.inverse_transform(z_2, log_pdf_z)
+# # transform1._mode = 'matrix'
+# # z_2, log_pdf_z = transform1.transform(z0, log_pdf_z0)
+# # z0_inv_2, log_pdf_z0_inv = transform1.inverse_transform(z_2, log_pdf_z)
 
-init = tf.initialize_all_variables()
-sess = tf.InteractiveSession()  
-sess.run(init)
-z0_np, log_pdf_z0_np, z_np, log_pdf_z_np, z0_inv_np, log_pdf_z0_inv_np, rot_mat_np = sess.run([z0, log_pdf_z0, z, log_pdf_z, z0_inv, log_pdf_z0_inv, rot_mat])
-# z0_np, log_pdf_z0_np, z_np, z_np_2, log_pdf_z_np, z0_inv_np, log_pdf_z0_inv_np = sess.run([z0, log_pdf_z0, z, z_2, log_pdf_z, z0_inv, log_pdf_z0_inv])
-# rot_mat_np = sess.run(transform1.get_batched_rot_matrix())
+# init = tf.initialize_all_variables()
+# sess = tf.InteractiveSession()  
+# sess.run(init)
+# z0_np, log_pdf_z0_np, z_np, log_pdf_z_np, z0_inv_np, log_pdf_z0_inv_np, rot_mat_np = sess.run([z0, log_pdf_z0, z, log_pdf_z, z0_inv, log_pdf_z0_inv, rot_mat])
+# # z0_np, log_pdf_z0_np, z_np, z_np_2, log_pdf_z_np, z0_inv_np, log_pdf_z0_inv_np = sess.run([z0, log_pdf_z0, z, z_2, log_pdf_z, z0_inv, log_pdf_z0_inv])
+# # rot_mat_np = sess.run(transform1.get_batched_rot_matrix())
+# print('n_steps of reflection: ', transform1._n_steps)
+# print('initial reflection: ', transform1._init_reflection)
+# print('rotation matrix diag: ')
+# print(np.diag(rot_mat_np[0]))
 
-print('rotation determinant: ', np.linalg.det(rot_mat_np[0]))
-print(np.dot(rot_mat_np[0], rot_mat_np[0].T))
-print(np.abs(np.dot(z0_np, rot_mat_np[0].T)-z_np).max())
+# print('rotation determinant: ', np.linalg.det(rot_mat_np[0]))
+# print(np.dot(rot_mat_np[0], rot_mat_np[0].T))
+# print(np.abs(np.dot(z0_np, rot_mat_np[0].T)-z_np).max())
 
-print(np.max(np.abs(z0_np-z0_inv_np)))
-print(np.max(np.abs(log_pdf_z0_np-log_pdf_z0_inv_np)))
-pdb.set_trace()
+# print(np.max(np.abs(z0_np-z0_inv_np)))
+# print(np.max(np.abs(log_pdf_z0_np-log_pdf_z0_inv_np)))
+
+# print('Mean absolute differences:')
+# print(np.mean(np.abs((z0_np-z_np)),axis=0))
+
+# # last_vec_np = sess.run(transform1._list_batched_householder_dirs[-1])
+# # print(last_vec_np)
+
+# import matplotlib.pyplot as plt
+# import numpy as np
+# print(rot_mat_np[0])
+# plt.imshow(rot_mat_np[0], cmap='hot', interpolation='nearest')
+# plt.show()
+
 
 
 
