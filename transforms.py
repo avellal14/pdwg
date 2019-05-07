@@ -969,7 +969,7 @@ class NonLinearIARFlow():
     """
     layer_expansions = [2,]
 
-    def __init__(self, input_dim, parameters, mode='VolumePreserving', name='nonlinearIAR_transform'):   #real
+    def __init__(self, input_dim, parameters, mode='ScaleShift', name='nonlinearIAR_transform'):   #real
         self._parameter_scale = 1
         self._parameters = self._parameter_scale*parameters
         self._input_dim = input_dim
@@ -1651,9 +1651,9 @@ for transform_to_check in [\
                            # InverseOpenIntervalDimensionFlow, \
                            # HouseholdRotationFlow, \
                            # CompoundRotationFlow, \
-                           LinearIARFlow, \
+                           # LinearIARFlow, \
                            NonLinearIARFlow, \
-                           RealNVPFlow, \
+                           # RealNVPFlow, \
                            ]:
     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
@@ -1675,6 +1675,7 @@ for transform_to_check in [\
         # z0 = tf.random_normal((batch_size, n_latent), 0, 1, dtype=tf.float32)
         z0 = tf.random_uniform(shape=(batch_size, n_latent), dtype=tf.float32)
         log_pdf_z0 = tf.zeros(shape=(batch_size, 1), dtype=tf.float32)
+                
         for repeat in range(n_tests): _check_logdet(transform_object, z0, log_pdf_z0)
 
 pdb.set_trace()
