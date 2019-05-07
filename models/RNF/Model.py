@@ -108,24 +108,10 @@ class Model():
         
         n_output = np.prod(batch['observed']['properties']['image'][0]['size'][2:])
 
-        rnf = transforms.RiemannianFlow(input_dim=self.config['n_latent'], output_dim=n_output, n_input_CPO=self.config['rnf_prop']['n_input_CPO'], n_output_CPO=self.config['rnf_prop']['n_output_CPO'], parameters=self.flow_param_list[-5])
         self.flow_object = transforms.SerialFlow([\
-                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[0]), 
-                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[1]), 
-                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[2]), 
-                                                  rnf,
-                                                  # transforms.RiemannianFlow(input_dim=self.config['n_latent'], output_dim=n_output, n_input_CPO=self.config['rnf_prop']['n_input_CPO'], n_output_CPO=self.config['rnf_prop']['n_output_CPO'], parameters=self.flow_param_list[-5]),
-                                                  # transforms.SpecificOrderDimensionFlow(input_dim=n_output), 
-                                                  # transforms.HouseholdRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-4]),
-                                                  # transforms.SpecificOrderDimensionFlow(input_dim=n_output), 
-                                                  # transforms.HouseholdRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-3]),
-                                                  # transforms.SpecificOrderDimensionFlow(input_dim=n_output), 
-                                                  # transforms.HouseholdRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-2]),
-                                                  # transforms.SpecificOrderDimensionFlow(input_dim=n_output), 
-                                                  # transforms.HouseholdRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-1]),
-                                                  # transforms.SpecificOrderDimensionFlow(input_dim=n_output), 
+                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[0]), 
+                                                  transforms.RiemannianFlow(input_dim=self.config['n_latent'], output_dim=n_output, n_input_CPO=self.config['rnf_prop']['n_input_CPO'], n_output_CPO=self.config['rnf_prop']['n_output_CPO'], parameters=self.flow_param_list[-2]),
+                                                  transforms.CompoundRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-1]),
                                                   ])
 
         self.prior_param = self.PriorMap.forward((tf.zeros(shape=(self.batch_size_tf, 1)),))
@@ -202,13 +188,8 @@ class Model():
         # self.reconst_param = self.Generator.forward(self.posterior_latent_code[:, np.newaxis, :]) 
         # self.reconst_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.reconst_param)
         # self.reconst_sample = self.reconst_dist.sample(b_mode=True)
-        
-        jrnf = rnf.jacobian(self.posterior_latent_code, mode='additional')
-        self.particular = jrnf[0]
 
         self.transformed_latent_code, _ = self.flow_object.transform(self.posterior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
-        # mask = tf.concat([(1+0*self.posterior_latent_code), 0*self.transformed_latent_code[:, self.config['n_latent']:]], axis=1)
-        # self.transformed_latent_code = self.transformed_latent_code*mask
         self.reconst_param = {'flat': None, 'image': tf.reshape(self.transformed_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
         self.reconst_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.reconst_param)
         self.reconst_sample = self.reconst_dist.sample(b_mode=True)
@@ -273,7 +254,12 @@ class Model():
 
 
 
+        
+        # jrnf = rnf.jacobian(self.posterior_latent_code, mode='additional')
+        # self.particular = jrnf[0]
 
+        # mask = tf.concat([(1+0*self.posterior_latent_code), 0*self.transformed_latent_code[:, self.config['n_latent']:]], axis=1)
+        # self.transformed_latent_code = self.transformed_latent_code*mask
 
 
 
