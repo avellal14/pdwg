@@ -55,7 +55,7 @@ if Algorithm == 'RNF':
                              'encoder_mode': 'Deterministic', 'divergence_mode': 'None', 'dual_dist_mode': '',  'infomax_mode': 'None',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 0, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 0, 'enc_inv_MMD_n_trans': 0, 'enc_inv_MMD_strength': 0,
-                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {}, 'rnf_prop': {'n_input_CPO': 0, 'n_output_CPO': 0}}
+                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {}, 'rnf_prop': {'n_input_CPO': 10, 'n_output_CPO': 10}}
 elif Algorithm == 'WAE':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.5, 'beta2': 0.9,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 128, 'n_flat': 400, 
@@ -938,20 +938,6 @@ with tf.Graph().as_default():
             for batch_idx, curr_batch_size, batch in data_loader: 
                 curr_feed_dict = input_dict_func(batch, hyper_param)    
 
-                # if batch_idx == 1:
-                #     if hasattr(model, 'particular'):
-                #         DEBUG_particular, DEBUG_transformed_latent_code = sess.run([model.particular, model.transformed_latent_code], feed_dict = curr_feed_dict)
-                #         # np.mean(DEBUG_transformed_latent_code[0,:512])
-                #         # np.std(DEBUG_transformed_latent_code[0,:512])
-                #         # np.mean(DEBUG_transformed_latent_code[0,512:1024])
-                #         # np.std(DEBUG_transformed_latent_code[0,512:1024])
-                #         # np.mean(DEBUG_transformed_latent_code[0,1024:])
-                #         # np.std(DEBUG_transformed_latent_code[0,1024:])
-                #         # DEBUG_transformed_latent_code[0,1024:1024+512]
-                #         np.max(np.abs(DEBUG_particular), axis=1)[:512]
-                #         np.max(np.abs(DEBUG_particular), axis=1)[512:]
-                #         pdb.set_trace()
-
                 if mode=='test' and ((global_args.latent_vis_TSNE_epoch_rate[0]>0 and global_args.curr_epoch % global_args.latent_vis_TSNE_epoch_rate[0] == global_args.latent_vis_TSNE_epoch_rate[1]) or \
                                      (global_args.latent_vis_UMAP_epoch_rate[0]>0 and global_args.curr_epoch % global_args.latent_vis_UMAP_epoch_rate[0] == global_args.latent_vis_UMAP_epoch_rate[1])): 
                     np_posterior_latent_code, np_prior_latent_code = sess.run([model.posterior_latent_code, model.prior_latent_code], feed_dict = curr_feed_dict)
@@ -1268,7 +1254,19 @@ with tf.Graph().as_default():
 
 
 
-
+  # if batch_idx == 1:
+                #     if hasattr(model, 'particular'):
+                #         DEBUG_particular, DEBUG_transformed_latent_code = sess.run([model.particular, model.transformed_latent_code], feed_dict = curr_feed_dict)
+                #         # np.mean(DEBUG_transformed_latent_code[0,:512])
+                #         # np.std(DEBUG_transformed_latent_code[0,:512])
+                #         # np.mean(DEBUG_transformed_latent_code[0,512:1024])
+                #         # np.std(DEBUG_transformed_latent_code[0,512:1024])
+                #         # np.mean(DEBUG_transformed_latent_code[0,1024:])
+                #         # np.std(DEBUG_transformed_latent_code[0,1024:])
+                #         # DEBUG_transformed_latent_code[0,1024:1024+512]
+                #         np.max(np.abs(DEBUG_particular), axis=1)[:512]
+                #         np.max(np.abs(DEBUG_particular), axis=1)[512:]
+                #         pdb.set_trace()
 
 
 
