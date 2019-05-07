@@ -428,7 +428,7 @@ class HouseholdRotationFlow():
     Raises:
       ValueError: 
     """
-    max_steps = 5
+    max_steps = 20
 
     def __init__(self, input_dim, parameters, init_reflection=1, vector_mode_rate=1, name='household_rotation_transform'):   
         self._parameter_scale = 1.
@@ -539,7 +539,7 @@ class CompoundRotationFlow():
     Raises:
       ValueError: 
     """
-    n_steps = 3
+    n_steps = 1
 
     def __init__(self, input_dim, parameters, name='compound_rotation_transform'):  
         self._parameter_scale = 1.
@@ -559,7 +559,6 @@ class CompoundRotationFlow():
         self._constant_rot_mats_list = []
         for i in range(CompoundRotationFlow.n_steps):             
             self._constant_rot_mats_list.append(tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32))
-            # self._constant_rot_mats_list.append(tf.constant(np.eye(self._input_dim), dtype=tf.float32))
         
     @property
     def input_dim(self):
@@ -1675,7 +1674,7 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 #         # z0 = tf.random_normal((batch_size, n_latent), 0, 1, dtype=tf.float32)
 #         z0 = tf.random_uniform(shape=(batch_size, n_latent), dtype=tf.float32)
 #         log_pdf_z0 = tf.zeros(shape=(batch_size, 1), dtype=tf.float32)
-                
+
 #         for repeat in range(n_tests): _check_logdet(transform_object, z0, log_pdf_z0)
 
 # pdb.set_trace()
