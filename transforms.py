@@ -967,17 +967,35 @@ class NonLinearIARFlow():
     Raises:
       ValueError: 
     """
-    layer_expansions=[2,]
+    layer_expansions = [2,]
 
     def __init__(self, input_dim, parameters, mode='VolumePreserving', name='nonlinearIAR_transform'):   #real
         self._parameter_scale = 1
         self._parameters = self._parameter_scale*parameters
         self._input_dim = input_dim
-        self._layer_expansions = NonLinearIARFlow.layer_expansions
         self._nonlinearity = helper.LeakyReLU # tf.nn.tanh
         self._mode = mode
         
         assert (self._input_dim > 1)
+
+        self._parameters.get_shape().assert_is_compatible_with([None, NonLinearIARFlow.required_num_parameters(self._input_dim)])
+
+        self._mask_tensors = helper.tf_get_mask_list_for_MADE(self._input_dim-1, NonLinearIARFlow.layer_expansions, add_mu_log_sigma_layer=True)
+        self._pre_mu_for_1 = self._parameters[:, 0, np.newaxis]
+        self._pre_scale_for_1 = self._parameters[:, 1, np.newaxis]
+        self._layerwise_parameters = []
+
+        start_ind = 2
+        concat_layer_expansions = [1, *NonLinearIARFlow.layer_expansions, 2]
+        for l in range(len(concat_layer_expansions)-1):
+            W_num_param = concat_layer_expansions[l]*(self._input_dim-1)*concat_layer_expansions[l+1]*(self._input_dim-1) # matrix
+            B_num_param = concat_layer_expansions[l+1]*(self._input_dim-1) # bias
+            W_l_flat = tf.slice(self._parameters, [0, start_ind], [-1, W_num_param])
+            B_l_flat = tf.slice(self._parameters, [0, start_ind+W_num_param], [-1, B_num_param])
+            W_l = tf.reshape(W_l_flat, [-1, concat_layer_expansions[l+1]*(self._input_dim-1), concat_layer_expansions[l]*(self._input_dim-1)])              
+            B_l = tf.reshape(B_l_flat, [-1, concat_layer_expansions[l+1]*(self._input_dim-1)])
+            self._layerwise_parameters.append((W_l, B_l))  
+            start_ind += (W_num_param+B_num_param)
 
     @property
     def input_dim(self):
@@ -1047,26 +1065,10 @@ class NonLinearIARFlow():
 
     def transform(self, z0, log_pdf_z0):
         verify_size(z0, log_pdf_z0)
-        self._parameters.get_shape().assert_is_compatible_with([None, NonLinearIARFlow.required_num_parameters(self._input_dim)])
-        mask_tensors = helper.tf_get_mask_list_for_MADE(self._input_dim-1, NonLinearIARFlow.layer_expansions, add_mu_log_sigma_layer=True)
-        
-        pre_mu_for_1 = self._parameters[:, 0, np.newaxis]
-        pre_scale_for_1 = self._parameters[:, 1, np.newaxis]
-        start_ind = 2
-        concat_layer_expansions = [1, *NonLinearIARFlow.layer_expansions, 2]
-        layerwise_parameters = []
 
-        for l in range(len(concat_layer_expansions)-1):
-            W_num_param = concat_layer_expansions[l]*(self._input_dim-1)*concat_layer_expansions[l+1]*(self._input_dim-1) # matrix
-            B_num_param = concat_layer_expansions[l+1]*(self._input_dim-1) # bias
-            W_l_flat = tf.slice(self._parameters, [0, start_ind], [-1, W_num_param])
-            B_l_flat = tf.slice(self._parameters, [0, start_ind+W_num_param], [-1, B_num_param])
-            W_l = tf.reshape(W_l_flat, [-1, concat_layer_expansions[l+1]*(self._input_dim-1), concat_layer_expansions[l]*(self._input_dim-1)])              
-            B_l = tf.reshape(B_l_flat, [-1, concat_layer_expansions[l+1]*(self._input_dim-1)])
-            layerwise_parameters.append((W_l, B_l))  
-            start_ind += (W_num_param+B_num_param)
-
-        pre_mu_for_2toD, pre_scale_for_2toD = self.MADE(z0[:, :-1], layerwise_parameters, mask_tensors, self._nonlinearity)
+        pre_mu_for_1 = self._pre_mu_for_1
+        pre_scale_for_1 = self._pre_scale_for_1
+        pre_mu_for_2toD, pre_scale_for_2toD = self.MADE(z0[:, :-1], self._layerwise_parameters, self._mask_tensors, self._nonlinearity)
         if pre_mu_for_1.get_shape().as_list()[0] == 1:            
             pre_mu = tf.concat([tf.tile(pre_mu_for_1, [tf.shape(z0)[0],1]), pre_mu_for_2toD], axis=1)
             pre_scale = tf.concat([tf.tile(pre_scale_for_1, [tf.shape(z0)[0], 1]), pre_scale_for_2toD], axis=1)
@@ -1111,26 +1113,11 @@ class NonLinearIARFlow():
     
     def inverse_transform(self, z, log_pdf_z):
         verify_size(z, log_pdf_z)
-        self._parameters.get_shape().assert_is_compatible_with([None, NonLinearIARFlow.required_num_parameters(self._input_dim)])
-        mask_tensors = helper.tf_get_mask_list_for_MADE(self._input_dim-1, NonLinearIARFlow.layer_expansions, add_mu_log_sigma_layer=True)
-
-        pre_mu_for_1 = self._parameters[:, 0, np.newaxis]
-        pre_scale_for_1 = self._parameters[:, 1, np.newaxis]
-        start_ind = 2
-        concat_layer_expansions = [1, *NonLinearIARFlow.layer_expansions, 2]
-        layerwise_parameters = []
-        for l in range(len(concat_layer_expansions)-1):
-            W_num_param = concat_layer_expansions[l]*(self._input_dim-1)*concat_layer_expansions[l+1]*(self._input_dim-1) # matrix
-            B_num_param = concat_layer_expansions[l+1]*(self._input_dim-1) # bias
-            W_l_flat = tf.slice(self._parameters, [0, start_ind], [-1, W_num_param])
-            B_l_flat = tf.slice(self._parameters, [0, start_ind+W_num_param], [-1, B_num_param])
-            W_l = tf.reshape(W_l_flat, [-1, concat_layer_expansions[l+1]*(self._input_dim-1), concat_layer_expansions[l]*(self._input_dim-1)])              
-            B_l = tf.reshape(B_l_flat, [-1, concat_layer_expansions[l+1]*(self._input_dim-1)])
-            layerwise_parameters.append((W_l, B_l))  
-            start_ind += (W_num_param+B_num_param)
 
         pre_mu_list = []
         pre_scale_list = []
+        pre_mu_for_1 = self._pre_mu_for_1
+        pre_scale_for_1 = self._pre_scale_for_1
         if pre_mu_for_1.get_shape().as_list()[0] == 1:
             pre_mu_list.append(tf.tile(pre_mu_for_1, [tf.shape(z)[0], 1]))
             pre_scale_list.append(tf.tile(pre_scale_for_1, [tf.shape(z)[0], 1]))
@@ -1146,7 +1133,7 @@ class NonLinearIARFlow():
             if i == 0:
                 pre_mu_i, pre_scale_i = pre_mu_list[i], pre_scale_list[i]
             else:
-                pre_mu_i, pre_scale_i = self.MADE_single(tf.concat(z0_list[:i], axis=1), layerwise_parameters, mask_tensors, self._nonlinearity)
+                pre_mu_i, pre_scale_i = self.MADE_single(tf.concat(z0_list[:i], axis=1), self._layerwise_parameters, self._mask_tensors, self._nonlinearity)
                 pre_mu_list.append(pre_mu_i)
                 pre_scale_list.append(pre_scale_i)
 
@@ -1201,21 +1188,39 @@ class RealNVPFlow():
     Raises:
       ValueError: 
     """
-    layer_expansions=[2,]
-    same_dim=None
+    layer_expansions = [2,]
+    same_dim = None
 
     def __init__(self, input_dim, parameters, mode='BoundedScaleShift', name='realNVP_transform'):   #real
         self._parameter_scale = 1
         self._parameters = self._parameter_scale*parameters
         self._input_dim = input_dim
         self._layer_expansions = RealNVPFlow.layer_expansions
-        self._nonlinearity = helper.LeakyReLU
-        # self._nonlinearity = tf.nn.tanh
+        self._nonlinearity = helper.LeakyReLU # tf.nn.tanh
         self._mode = mode
         if RealNVPFlow.same_dim is None: self._same_dim = int(float(self._input_dim)/2.)
         else: self._same_dim = RealNVPFlow.same_dim
         self._change_dim = self._input_dim - self._same_dim
+        
         assert (self._input_dim > 1)
+        assert (self._input_dim % 2 == 0)
+
+        self._parameters.get_shape().assert_is_compatible_with([None, RealNVPFlow.required_num_parameters(self._input_dim)])
+
+        self._layerwise_parameters = []
+        start_ind = 0
+        concat_layer_expansions = [1, *RealNVPFlow.layer_expansions, 2]
+        for l in range(len(concat_layer_expansions)-1):
+            if l == 0: W_num_param = concat_layer_expansions[l]*(self._same_dim)*concat_layer_expansions[l+1]*(self._change_dim) # matrix
+            else: W_num_param = concat_layer_expansions[l]*(self._change_dim)*concat_layer_expansions[l+1]*(self._change_dim) # matrix
+            B_num_param = concat_layer_expansions[l+1]*(self._change_dim) # bias
+            W_l_flat = tf.slice(self._parameters, [0, start_ind], [-1, W_num_param])
+            B_l_flat = tf.slice(self._parameters, [0, start_ind+W_num_param], [-1, B_num_param])
+            if l == 0: W_l = tf.reshape(W_l_flat, [-1, concat_layer_expansions[l+1]*(self._change_dim), concat_layer_expansions[l]*(self._same_dim)])              
+            else: W_l = tf.reshape(W_l_flat, [-1, concat_layer_expansions[l+1]*(self._change_dim), concat_layer_expansions[l]*(self._change_dim)])              
+            B_l = tf.reshape(B_l_flat, [-1, concat_layer_expansions[l+1]*(self._change_dim)])
+            self._layerwise_parameters.append((W_l, B_l))  
+            start_ind += (W_num_param+B_num_param)
 
     @property
     def input_dim(self):
@@ -1226,14 +1231,13 @@ class RealNVPFlow():
         return self._input_dim
 
     @staticmethod
-    def required_num_parameters(input_dim, layer_expansions=None):
+    def required_num_parameters(input_dim):
         if RealNVPFlow.same_dim is None: same_dim = int(float(input_dim)/2.)
         else: same_dim = RealNVPFlow.same_dim
         change_dim = input_dim-same_dim
 
-        if layer_expansions is None: layer_expansions = RealNVPFlow.layer_expansions
         n_parameters = 0
-        concat_layer_expansions = [1, *layer_expansions, 2]
+        concat_layer_expansions = [1, *RealNVPFlow.layer_expansions, 2]
         for l in range(len(concat_layer_expansions)-1):
             if l == 0: n_parameters += concat_layer_expansions[l]*(same_dim)*concat_layer_expansions[l+1]*(change_dim) # matrix
             else: n_parameters += concat_layer_expansions[l]*(change_dim)*concat_layer_expansions[l+1]*(change_dim) # matrix
@@ -1258,27 +1262,10 @@ class RealNVPFlow():
 
     def transform(self, z0, log_pdf_z0):
         verify_size(z0, log_pdf_z0)
-        self._parameters.get_shape().assert_is_compatible_with([None, RealNVPFlow.required_num_parameters(self._input_dim, self._layer_expansions)])
         
-        start_ind = 0
-        concat_layer_expansions = [1, *self._layer_expansions, 2]
-        layerwise_parameters = []
-
-        for l in range(len(concat_layer_expansions)-1):
-            if l == 0: W_num_param = concat_layer_expansions[l]*(self._same_dim)*concat_layer_expansions[l+1]*(self._change_dim) # matrix
-            else: W_num_param = concat_layer_expansions[l]*(self._change_dim)*concat_layer_expansions[l+1]*(self._change_dim) # matrix
-            B_num_param = concat_layer_expansions[l+1]*(self._change_dim) # bias
-            W_l_flat = tf.slice(self._parameters, [0, start_ind], [-1, W_num_param])
-            B_l_flat = tf.slice(self._parameters, [0, start_ind+W_num_param], [-1, B_num_param])
-            if l == 0: W_l = tf.reshape(W_l_flat, [-1, concat_layer_expansions[l+1]*(self._change_dim), concat_layer_expansions[l]*(self._same_dim)])              
-            else: W_l = tf.reshape(W_l_flat, [-1, concat_layer_expansions[l+1]*(self._change_dim), concat_layer_expansions[l]*(self._change_dim)])              
-            B_l = tf.reshape(B_l_flat, [-1, concat_layer_expansions[l+1]*(self._change_dim)])
-            layerwise_parameters.append((W_l, B_l))  
-            start_ind += (W_num_param+B_num_param)
-
         z0_same = z0[:, :self._same_dim]
         z0_change = z0[:, self._same_dim:]
-        pre_mu, pre_scale = self.transformFunction(z0_same, layerwise_parameters, self._nonlinearity)
+        pre_mu, pre_scale = self.transformFunction(z0_same, self._layerwise_parameters, self._nonlinearity)
 
         if self._mode == 'RNN':
             mu = pre_mu
@@ -1318,27 +1305,10 @@ class RealNVPFlow():
     
     def inverse_transform(self, z, log_pdf_z):
         verify_size(z, log_pdf_z)
-        self._parameters.get_shape().assert_is_compatible_with([None, RealNVPFlow.required_num_parameters(self._input_dim, self._layer_expansions)])
         
-        start_ind = 0
-        concat_layer_expansions = [1, *self._layer_expansions, 2]
-        layerwise_parameters = []
-
-        for l in range(len(concat_layer_expansions)-1):
-            if l == 0: W_num_param = concat_layer_expansions[l]*(self._same_dim)*concat_layer_expansions[l+1]*(self._change_dim) # matrix
-            else: W_num_param = concat_layer_expansions[l]*(self._change_dim)*concat_layer_expansions[l+1]*(self._change_dim) # matrix
-            B_num_param = concat_layer_expansions[l+1]*(self._change_dim) # bias
-            W_l_flat = tf.slice(self._parameters, [0, start_ind], [-1, W_num_param])
-            B_l_flat = tf.slice(self._parameters, [0, start_ind+W_num_param], [-1, B_num_param])
-            if l == 0: W_l = tf.reshape(W_l_flat, [-1, concat_layer_expansions[l+1]*(self._change_dim), concat_layer_expansions[l]*(self._same_dim)])              
-            else: W_l = tf.reshape(W_l_flat, [-1, concat_layer_expansions[l+1]*(self._change_dim), concat_layer_expansions[l]*(self._change_dim)])              
-            B_l = tf.reshape(B_l_flat, [-1, concat_layer_expansions[l+1]*(self._change_dim)])
-            layerwise_parameters.append((W_l, B_l))  
-            start_ind += (W_num_param+B_num_param)
-
         z_same = z[:, :self._same_dim]
         z_change = z[:, self._same_dim:]
-        pre_mu, pre_scale = self.transformFunction(z_same, layerwise_parameters, self._nonlinearity)
+        pre_mu, pre_scale = self.transformFunction(z_same, self._layerwise_parameters, self._nonlinearity)
 
         if self._mode == 'RNN':
             mu = pre_mu
@@ -1666,47 +1636,48 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 
 
 
-# n_tests = 1
-# batch_size = 5
-# n_latent = 50
-# name = 'transform'
-# for transform_to_check in [\
-#                            # PlanarFlow, \
-#                            # RadialFlow, \
-#                            SpecificOrderDimensionFlow, \
-#                            # InverseOrderDimensionFlow, \
-#                            # PermuteDimensionFlow, \
-#                            # ScaleDimensionFlow, \
-#                            # OpenIntervalDimensionFlow, \
-#                            # InverseOpenIntervalDimensionFlow, \
-#                            # HouseholdRotationFlow, \
-#                            # LinearIARFlow, \
-#                            # NonLinearIARFlow, \
-#                            # RealNVPFlow, \
-#                            ]:
-#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-#     print('\n\n\n')
-#     print('            '+str(transform_to_check)+'               ')
-#     print('\n\n\n')    
-#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+n_tests = 1
+batch_size = 5
+n_latent = 50
+name = 'transform'
+for transform_to_check in [\
+                           # PlanarFlow, \
+                           # RadialFlow, \
+                           # SpecificOrderDimensionFlow, \
+                           # InverseOrderDimensionFlow, \
+                           # PermuteDimensionFlow, \
+                           # ScaleDimensionFlow, \
+                           # OpenIntervalDimensionFlow, \
+                           # InverseOpenIntervalDimensionFlow, \
+                           # HouseholdRotationFlow, \
+                           # CompoundRotationFlow, \
+                           LinearIARFlow, \
+                           NonLinearIARFlow, \
+                           RealNVPFlow, \
+                           ]:
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    print('\n\n\n')
+    print('            '+str(transform_to_check)+'               ')
+    print('\n\n\n')    
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
-#     n_parameter = transform_to_check.required_num_parameters(n_latent)
+    n_parameter = transform_to_check.required_num_parameters(n_latent)
 
-#     for parameter_scale in [1, 10]:
-#         parameters = None
-#         if n_parameter > 0: parameters = parameter_scale*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
-#         transform_object =  transform_to_check(input_dim=n_latent, parameters=parameters)
+    for parameter_scale in [1, 10]:
+        parameters = None
+        if n_parameter > 0: parameters = parameter_scale*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
+        transform_object =  transform_to_check(input_dim=n_latent, parameters=parameters)
 
-#         # z0 = tf.random_normal((batch_size, n_latent), 0, 1, dtype=tf.float32)
-#         z0 = tf.random_uniform(shape=(batch_size, n_latent), dtype=tf.float32)
-#         log_pdf_z0 = tf.zeros(shape=(batch_size, 1), dtype=tf.float32)
-#         for repeat in range(n_tests): _check_logdet(transform_object, z0, log_pdf_z0)
+        # z0 = tf.random_normal((batch_size, n_latent), 0, 1, dtype=tf.float32)
+        z0 = tf.random_uniform(shape=(batch_size, n_latent), dtype=tf.float32)
+        log_pdf_z0 = tf.zeros(shape=(batch_size, 1), dtype=tf.float32)
+        for repeat in range(n_tests): _check_logdet(transform_object, z0, log_pdf_z0)
 
-# pdb.set_trace()
+pdb.set_trace()
 
 
 
