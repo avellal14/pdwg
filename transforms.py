@@ -421,7 +421,7 @@ class InverseOpenIntervalDimensionFlow():
 
 class HouseholdRotationFlow():
     """
-    Household Rotation Flow class. SO(n) make sure reflection is even??????
+    Householder Rotation Flow class. SO(n)
     Args:
       parameters: parameters of transformation all appended.
       input_dim : input dimensionality of the transformation. 
@@ -430,14 +430,14 @@ class HouseholdRotationFlow():
     """
     max_steps = 20
 
-    def __init__(self, input_dim, parameters, init_reflection=1, vector_mode_rate=1, name='household_rotation_transform'):   
+    def __init__(self, input_dim, parameters, vector_mode_rate=1, name='household_rotation_transform'):   
         self._parameter_scale = 1.
         self._parameters = parameters
         if self._parameters is not None: self._parameters = self._parameter_scale*self._parameters
         self._input_dim = input_dim
         self._k_start = max(self._input_dim-HouseholdRotationFlow.max_steps+1, 1)
         self._n_steps = self._input_dim-self._k_start+1
-        self._init_reflection = init_reflection
+        self._init_reflection = (-1)**(self._input_dim-1)
         self._vector_mode_rate = vector_mode_rate
         if float(self._n_steps)/float(self._input_dim) <= self._vector_mode_rate: self._mode = 'vector'
         else: self._mode = 'matrix'
@@ -445,6 +445,7 @@ class HouseholdRotationFlow():
         
         assert (self._init_reflection == 1 or self._init_reflection == -1)
         assert (self._mode == 'matrix' or self._mode == 'vector')
+        assert (HouseholdRotationFlow.max_steps % 2 == 0) # Required for SO(n)
 
         if self._parameters is not None:
             self._parameters.get_shape().assert_is_compatible_with([None, HouseholdRotationFlow.required_num_parameters(self._input_dim)])
@@ -464,6 +465,7 @@ class HouseholdRotationFlow():
 
     @staticmethod
     def required_num_parameters(input_dim): 
+        assert (HouseholdRotationFlow.max_steps % 2 == 0) # Required for SO(n)
         k_start = max(input_dim-HouseholdRotationFlow.max_steps+1, 1)
         return sum(list(range(max(2, k_start), input_dim+1)))
     
@@ -504,11 +506,7 @@ class HouseholdRotationFlow():
         
         if self._parameters is None or self._parameters.get_shape()[0].value == 1: #one set of parameters
             if self._mode == 'matrix':
-                # batched_rot_inv_matrix = tf.transpose(self._batched_rot_matrix, [0, 2, 1])
-                # z0 = tf.matmul(z, batched_rot_inv_matrix[0, :, :], transpose_a=False, transpose_b=True)
-                pdb.set_trace() # test this
                 z0 = tf.matmul(z, self._batched_rot_matrix[0, :, :], transpose_a=False, transpose_b=False)
-
             elif self._mode == 'vector':
                 curr_z = z
                 for i in range(len(self._list_batched_householder_dirs)):
@@ -1584,55 +1582,55 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 # print('\n\n\n')
 # pdb.set_trace()
 
-# batch_size = 3
-# n_latent = 4
-# name = 'transform'
+batch_size = 3
+n_latent = 11
+name = 'transform'
 # transform_to_check = CompoundRotationFlow
-# n_parameter = transform_to_check.required_num_parameters(n_latent)
+transform_to_check = HouseholdRotationFlow
+n_parameter = transform_to_check.required_num_parameters(n_latent)
 
-# parameters = None
-# if n_parameter > 0: parameters = 10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
+parameters = None
+if n_parameter > 0: parameters = 10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
 
-# z0 = tf.random_normal((batch_size, n_latent), 0, 1, dtype=tf.float32)
-# log_pdf_z0 = tf.zeros(shape=(batch_size, 1), dtype=tf.float32)
-# transform1 = transform_to_check(input_dim=n_latent, parameters=parameters)
-# z, log_pdf_z = transform1.transform(z0, log_pdf_z0)
-# z0_inv, log_pdf_z0_inv = transform1.inverse_transform(z, log_pdf_z)
-# rot_mat = transform1.get_batched_rot_matrix()
+z0 = tf.random_normal((batch_size, n_latent), 0, 1, dtype=tf.float32)
+log_pdf_z0 = tf.zeros(shape=(batch_size, 1), dtype=tf.float32)
+transform1 = transform_to_check(input_dim=n_latent, parameters=parameters)
+z, log_pdf_z = transform1.transform(z0, log_pdf_z0)
+z0_inv, log_pdf_z0_inv = transform1.inverse_transform(z, log_pdf_z)
+rot_mat = transform1.get_batched_rot_matrix()
 
-# # transform1._mode = 'matrix'
-# # z_2, log_pdf_z = transform1.transform(z0, log_pdf_z0)
-# # z0_inv_2, log_pdf_z0_inv = transform1.inverse_transform(z_2, log_pdf_z)
+# transform1._mode = 'matrix'
+# z_2, log_pdf_z = transform1.transform(z0, log_pdf_z0)
+# z0_inv_2, log_pdf_z0_inv = transform1.inverse_transform(z_2, log_pdf_z)
 
-# init = tf.initialize_all_variables()
-# sess = tf.InteractiveSession()  
-# sess.run(init)
-# z0_np, log_pdf_z0_np, z_np, log_pdf_z_np, z0_inv_np, log_pdf_z0_inv_np, rot_mat_np = sess.run([z0, log_pdf_z0, z, log_pdf_z, z0_inv, log_pdf_z0_inv, rot_mat])
-# # z0_np, log_pdf_z0_np, z_np, z_np_2, log_pdf_z_np, z0_inv_np, log_pdf_z0_inv_np = sess.run([z0, log_pdf_z0, z, z_2, log_pdf_z, z0_inv, log_pdf_z0_inv])
-# # rot_mat_np = sess.run(transform1.get_batched_rot_matrix())
+init = tf.initialize_all_variables()
+sess = tf.InteractiveSession()  
+sess.run(init)
+z0_np, log_pdf_z0_np, z_np, log_pdf_z_np, z0_inv_np, log_pdf_z0_inv_np, rot_mat_np = sess.run([z0, log_pdf_z0, z, log_pdf_z, z0_inv, log_pdf_z0_inv, rot_mat])
+# z0_np, log_pdf_z0_np, z_np, z_np_2, log_pdf_z_np, z0_inv_np, log_pdf_z0_inv_np = sess.run([z0, log_pdf_z0, z, z_2, log_pdf_z, z0_inv, log_pdf_z0_inv])
+# rot_mat_np = sess.run(transform1.get_batched_rot_matrix())
 
-# # print(np.dot(rot_mat_np[0], rot_mat_np[0].T))
+print('rotation determinant: ', np.linalg.det(rot_mat_np[0]))
+print(np.dot(rot_mat_np[0], rot_mat_np[0].T))
+print(np.abs(np.dot(z0_np, rot_mat_np[0].T)-z_np).max())
 
-# # np.dot(z0_np, rot_mat_np[0].T).T 
-
-# # import time
-# # print('Start Timer: ', transform1._mode)
-# # start = time.time();
-# # for i in range(1000):
-# #     z0_np, log_pdf_z0_np, z_np, log_pdf_z_np, z0_inv_np, log_pdf_z0_inv_np = sess.run([z0, log_pdf_z0, z, log_pdf_z, z0_inv, log_pdf_z0_inv])
-
-# # end = time.time()
-# # print('Time: {:.3f}\n'.format((end - start)))
-# # print(np.max(np.abs(z_np-z_np_2)))
-# print(np.max(np.abs(z0_np-z0_inv_np)))
-# print(np.max(np.abs(log_pdf_z0_np-log_pdf_z0_inv_np)))
-# pdb.set_trace()
+print(np.max(np.abs(z0_np-z0_inv_np)))
+print(np.max(np.abs(log_pdf_z0_np-log_pdf_z0_inv_np)))
+pdb.set_trace()
 
 
 
 
 
 
+# import time
+# print('Start Timer: ', transform1._mode)
+# start = time.time();
+# for i in range(1000):
+#     z0_np, log_pdf_z0_np, z_np, log_pdf_z_np, z0_inv_np, log_pdf_z0_inv_np = sess.run([z0, log_pdf_z0, z, log_pdf_z, z0_inv, log_pdf_z0_inv])
+
+# end = time.time()
+# print('Time: {:.3f}\n'.format((end - start)))
 
 
 # n_tests = 1
