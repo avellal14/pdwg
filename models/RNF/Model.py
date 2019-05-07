@@ -114,10 +114,8 @@ class Model():
                                                   transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[1]),
                                                   transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
                                                   transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[2]),
-                                                  transforms.RiemannianFlow(input_dim=self.config['n_latent'], output_dim=n_output, n_input_CPO=self.config['rnf_prop']['n_input_CPO'], n_output_CPO=self.config['rnf_prop']['n_output_CPO'], parameters=self.flow_param_list[-4]),
-                                                  transforms.CompoundRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-3]),
-                                                  transforms.HouseholderRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-2]),
-                                                  transforms.HouseholderRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-1]),
+                                                  transforms.RiemannianFlow(input_dim=self.config['n_latent'], output_dim=n_output, n_input_CPO=self.config['rnf_prop']['n_input_CPO'], n_output_CPO=self.config['rnf_prop']['n_output_CPO'], parameters=self.flow_param_list[-2]),
+                                                  transforms.CompoundRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-1]),
                                                   ])
 
         self.prior_param = self.PriorMap.forward((tf.zeros(shape=(self.batch_size_tf, 1)),))

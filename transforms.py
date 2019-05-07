@@ -9,6 +9,7 @@ import pdb
 import numpy as np
 import math 
 from random import shuffle 
+import time
 
 class PlanarFlow():
     """
@@ -120,8 +121,21 @@ class SpecificOrderDimensionFlow():
     def __init__(self, input_dim, order=None, parameters=None, name='specific_order_dimension_transform'):   
         self._input_dim = input_dim 
         if order is None: # a specific but random order
-            self._order = [*range(self._input_dim)]
-            shuffle(self._order) 
+            # self._order = [*range(self._input_dim)]
+            # shuffle(self._order) # works for subset of O(n) but not SO(n) 
+            print('SpecificOrderDimensionFlow, creating random order: ')
+            start = time.time()
+            n_swaps = 10*self._input_dim
+            self._order = [*range(self._input_dim)]     
+            for t in range(n_swaps):
+                index_1 = np.random.randint(len(self._order))
+                index_2 = index_1
+                while index_2 == index_1: index_2 = np.random.randint(len(self._order))
+                temp = self._order[index_1]
+                self._order[index_1] = self._order[index_2]
+                self._order[index_2] = temp
+            assert (n_swaps % 2 == 0) # SO(n)
+            print('Time: {:.3f}\n'.format((time.time() - start)))
         else: self._order = order
         self._inverse_order = [-1]*self._input_dim
         for i in range(self._input_dim): self._inverse_order[self._order[i]] = i
@@ -142,6 +156,11 @@ class SpecificOrderDimensionFlow():
     @staticmethod
     def required_num_parameters(input_dim):  
         return 0
+
+    def get_batched_rot_matrix(self):
+        batched_rot_matrix_np = np.zeros((1, self._input_dim, self._input_dim))
+        for i in range(len(self._order)): batched_rot_matrix_np[0, i, self._order[i]] = 1
+        return tf.constant(batched_rot_matrix_np, tf.float32)
 
     def transform(self, z0, log_pdf_z0):
         verify_size(z0, log_pdf_z0)
@@ -428,7 +447,7 @@ class HouseholdRotationFlow():
     Raises:
       ValueError: 
     """
-    max_steps = 30
+    max_steps = 20
 
     def __init__(self, input_dim, parameters, vector_mode_rate=1, name='household_rotation_transform'):   
         self._parameter_scale = 1.
@@ -530,14 +549,14 @@ class HouseholdRotationFlow():
 
 class CompoundRotationFlow():
     """
-    Compound Rotation Flow class. SO(n) make sure reflection is even??????
+    Compound Rotation Flow class. SO(n)
     Args:
       parameters: parameters of transformation all appended.
       input_dim : input dimensionality of the transformation. 
     Raises:
       ValueError: 
     """
-    n_steps = 1
+    compound_structure = ['C', 'H', 'P', 'H', 'P', 'H', 'P']
 
     def __init__(self, input_dim, parameters, name='compound_rotation_transform'):  
         self._parameter_scale = 1.
@@ -549,15 +568,17 @@ class CompoundRotationFlow():
             self._parameters.get_shape().assert_is_compatible_with([None, CompoundRotationFlow.required_num_parameters(self._input_dim)])
         
         param_index = 0
-        self._householder_flows_list = []
-        for i in range(CompoundRotationFlow.n_steps):
-            curr_householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._input_dim))
-            self._householder_flows_list.append(HouseholdRotationFlow(self._input_dim, curr_householder_param))
+        self._constant_rot_mats_list, self._householder_flows_list, self._specific_order_dimension_flows_list = [], [], []
+        for i in range(len(CompoundRotationFlow.compound_structure)):
+            if CompoundRotationFlow.compound_structure[i] == 'C':
+                self._constant_rot_mats_list.append(tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32))
+            elif CompoundRotationFlow.compound_structure[i] == 'H':
+                curr_householder_param, param_index = helper.slice_parameters(self._parameters, param_index, HouseholdRotationFlow.required_num_parameters(self._input_dim))
+                self._householder_flows_list.append(HouseholdRotationFlow(self._input_dim, curr_householder_param))
+            elif CompoundRotationFlow.compound_structure[i] == 'P':
+                self._specific_order_dimension_flows_list.append(SpecificOrderDimensionFlow(self._input_dim))
+            else: assert (False)
 
-        self._constant_rot_mats_list = []
-        for i in range(CompoundRotationFlow.n_steps):             
-            self._constant_rot_mats_list.append(tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32))
-        
     @property
     def input_dim(self):
         return self._input_dim
@@ -568,25 +589,52 @@ class CompoundRotationFlow():
 
     @staticmethod
     def required_num_parameters(input_dim): 
-        return CompoundRotationFlow.n_steps*HouseholdRotationFlow.required_num_parameters(input_dim)
+        n_parameters = 0
+        for i in range(len(CompoundRotationFlow.compound_structure)):
+            if CompoundRotationFlow.compound_structure[i] == 'H':
+                n_parameters += HouseholdRotationFlow.required_num_parameters(input_dim)
+        return n_parameters 
     
     def get_batched_rot_matrix(self):
         curr_batched_rot_matrix = None
-        for i in range(len(self._constant_rot_mats_list)):
-            if curr_batched_rot_matrix is None: curr_batched_rot_matrix = self._constant_rot_mats_list[i][np.newaxis, :, :]
-            else: curr_batched_rot_matrix = tf.matmul(self._constant_rot_mats_list[i][np.newaxis, :, :], curr_batched_rot_matrix, transpose_a=False, transpose_b=False)
-            
-            curr_batched_rot_matrix = tf.matmul(self._householder_flows_list[i].get_batched_rot_matrix(), curr_batched_rot_matrix, transpose_a=False, transpose_b=False)
+
+        c_index, h_index, p_index = 0, 0, 0
+        for i in range(len(CompoundRotationFlow.compound_structure)):
+            if CompoundRotationFlow.compound_structure[i] == 'C':
+                curr_mat = self._constant_rot_mats_list[c_index][np.newaxis, :, :]
+                c_index += 1
+            elif CompoundRotationFlow.compound_structure[i] == 'H':
+                curr_mat = self._householder_flows_list[h_index].get_batched_rot_matrix()
+                h_index += 1
+            elif CompoundRotationFlow.compound_structure[i] == 'P':
+                curr_mat = self._specific_order_dimension_flows_list[p_index].get_batched_rot_matrix()
+                p_index += 1
+
+            if curr_batched_rot_matrix is None: curr_batched_rot_matrix = curr_mat
+            else: curr_batched_rot_matrix = tf.matmul(curr_mat, curr_batched_rot_matrix, transpose_a=False, transpose_b=False)
+
+        assert ((c_index+h_index+p_index) == len(CompoundRotationFlow.compound_structure))
         return curr_batched_rot_matrix
         
     def transform(self, z0, log_pdf_z0):
         verify_size(z0, log_pdf_z0)
 
+        c_index, h_index, p_index = 0, 0, 0
         curr_z, curr_log_pdf_z = z0, log_pdf_z0
-        for i in range(len(self._constant_rot_mats_list)):
-            curr_z_rand_rot = tf.matmul(curr_z, self._constant_rot_mats_list[i], transpose_a=False, transpose_b=True)
-            curr_log_pdf_z_rand_rot = curr_log_pdf_z
-            curr_z, curr_log_pdf_z = self._householder_flows_list[i].transform(curr_z_rand_rot, curr_log_pdf_z_rand_rot)
+        for i in range(len(CompoundRotationFlow.compound_structure)):
+            # print('c_index, h_index, p_index ', c_index, h_index, p_index)
+            if CompoundRotationFlow.compound_structure[i] == 'C':
+                curr_z, curr_log_pdf_z = tf.matmul(curr_z, self._constant_rot_mats_list[c_index], transpose_a=False, transpose_b=True), curr_log_pdf_z
+                c_index += 1
+            elif CompoundRotationFlow.compound_structure[i] == 'H':
+                curr_z, curr_log_pdf_z = self._householder_flows_list[h_index].transform(curr_z, curr_log_pdf_z)
+                h_index += 1
+            elif CompoundRotationFlow.compound_structure[i] == 'P':
+                curr_z, curr_log_pdf_z = self._specific_order_dimension_flows_list[p_index].transform(curr_z, curr_log_pdf_z)
+                p_index += 1
+
+        assert ((c_index+h_index+p_index) == len(CompoundRotationFlow.compound_structure))
+
         z, log_pdf_z = curr_z, curr_log_pdf_z
         return z, log_pdf_z
 
@@ -594,13 +642,24 @@ class CompoundRotationFlow():
         verify_size(z, log_pdf_z)
 
         if self._parameters is None or self._parameters.get_shape()[0].value == 1: #one set of parameters
+            c_index = np.sum((np.asarray(CompoundRotationFlow.compound_structure) == 'C'))
+            h_index = np.sum((np.asarray(CompoundRotationFlow.compound_structure) == 'H'))
+            p_index = np.sum((np.asarray(CompoundRotationFlow.compound_structure) == 'P'))
             curr_z, curr_log_pdf_z = z, log_pdf_z
-            for i in range(len(self._constant_rot_mats_list)-1, -1, -1):
-                curr_z_rand_rot, curr_log_pdf_z_rand_rot = self._householder_flows_list[i].inverse_transform(curr_z, curr_log_pdf_z)
-                curr_z = tf.matmul(curr_z_rand_rot, self._constant_rot_mats_list[i], transpose_a=False, transpose_b=False)
-                curr_log_pdf_z = curr_log_pdf_z_rand_rot
-            z0, log_pdf_z0 = curr_z, curr_log_pdf_z
+            for i in range(len(CompoundRotationFlow.compound_structure)-1, -1, -1):
+                # print('c_index, h_index, p_index ', c_index, h_index, p_index)
+                if CompoundRotationFlow.compound_structure[i] == 'C':
+                    c_index -= 1
+                    curr_z, curr_log_pdf_z = tf.matmul(curr_z, self._constant_rot_mats_list[c_index], transpose_a=False, transpose_b=False), curr_log_pdf_z
+                elif CompoundRotationFlow.compound_structure[i] == 'H':
+                    h_index -= 1
+                    curr_z, curr_log_pdf_z = self._householder_flows_list[h_index].inverse_transform(curr_z, curr_log_pdf_z)
+                elif CompoundRotationFlow.compound_structure[i] == 'P':
+                    p_index -= 1
+                    curr_z, curr_log_pdf_z = self._specific_order_dimension_flows_list[p_index].inverse_transform(curr_z, curr_log_pdf_z)
+                assert (c_index >= 0 and h_index >= 0 and p_index >= 0)
 
+            z0, log_pdf_z0 = curr_z, curr_log_pdf_z
         else: # batched parameters
             print('Parameters depend on unknown z0. Therefore, there is no analytical inverse.')
             quit()
@@ -1582,11 +1641,11 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 # print('\n\n\n')
 # pdb.set_trace()
 
-# batch_size = 1000
+# batch_size = 4
 # n_latent = 50
 # name = 'transform'
-# # transform_to_check = CompoundRotationFlow
-# transform_to_check = HouseholdRotationFlow
+# transform_to_check = CompoundRotationFlow
+# # transform_to_check = HouseholdRotationFlow
 # n_parameter = transform_to_check.required_num_parameters(n_latent)
 
 # parameters = None
@@ -1609,9 +1668,10 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 # z0_np, log_pdf_z0_np, z_np, log_pdf_z_np, z0_inv_np, log_pdf_z0_inv_np, rot_mat_np = sess.run([z0, log_pdf_z0, z, log_pdf_z, z0_inv, log_pdf_z0_inv, rot_mat])
 # # z0_np, log_pdf_z0_np, z_np, z_np_2, log_pdf_z_np, z0_inv_np, log_pdf_z0_inv_np = sess.run([z0, log_pdf_z0, z, z_2, log_pdf_z, z0_inv, log_pdf_z0_inv])
 # # rot_mat_np = sess.run(transform1.get_batched_rot_matrix())
-# print('n_steps of reflection: ', transform1._n_steps)
-# print('initial reflection: ', transform1._init_reflection)
-# print('rotation matrix diag: ')
+
+# # print('n_steps of reflection: ', transform1._n_steps)
+# # print('initial reflection: ', transform1._init_reflection)
+# # print('rotation matrix diag: ')
 # print(np.diag(rot_mat_np[0]))
 
 # print('rotation determinant: ', np.linalg.det(rot_mat_np[0]))
@@ -1626,6 +1686,7 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 
 # # last_vec_np = sess.run(transform1._list_batched_householder_dirs[-1])
 # # print(last_vec_np)
+# pdb.set_trace()
 
 # import matplotlib.pyplot as plt
 # import numpy as np
@@ -1633,6 +1694,7 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 # plt.imshow(rot_mat_np[0], cmap='hot', interpolation='nearest')
 # plt.show()
 
+# pdb.set_trace()
 
 
 
