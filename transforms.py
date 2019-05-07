@@ -556,7 +556,7 @@ class CompoundRotationFlow():
     Raises:
       ValueError: 
     """
-    compound_structure = ['C', 'H', 'P', 'H', 'P', 'H', 'P']
+    compound_structure = ['C', 'H']
 
     def __init__(self, input_dim, parameters, name='compound_rotation_transform'):  
         self._parameter_scale = 1.
