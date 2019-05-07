@@ -925,7 +925,15 @@ class LinearIARFlow():
         self._input_dim = input_dim
         self._mask_mat_ones = helper.triangular_ones([self._input_dim, self._input_dim], trilmode=-1)
         self._diag_mat_ones = helper.block_diagonal_ones([self._input_dim, self._input_dim], [1, 1])
+        
         assert (self._input_dim > 1)
+        
+        self._parameters.get_shape().assert_is_compatible_with([None, LinearIARFlow.required_num_parameters(self._input_dim)])
+        
+        self._param_matrix = tf.reshape(self._parameters, [-1, self._input_dim, self._input_dim])
+        self._mask_matrix = tf.reshape(self._mask_mat_ones, [1, self._input_dim, self._input_dim]) 
+        self._diag_matrix = tf.reshape(self._diag_mat_ones, [1, self._input_dim, self._input_dim]) 
+        self._cho = self._mask_matrix*self._param_matrix+self._diag_matrix
 
     @property
     def input_dim(self):
@@ -941,15 +949,11 @@ class LinearIARFlow():
 
     def transform(self, z0, log_pdf_z0):
         verify_size(z0, log_pdf_z0)
-        self._parameters.get_shape().assert_is_compatible_with([None, LinearIARFlow.required_num_parameters(self._input_dim)])
-        param_matrix = tf.reshape(self._parameters, [-1, self._input_dim, self._input_dim])
-        mask_matrix = tf.reshape(self._mask_mat_ones, [1, self._input_dim, self._input_dim]) 
-        diag_matrix = tf.reshape(self._diag_mat_ones, [1, self._input_dim, self._input_dim]) 
-        cho = mask_matrix*param_matrix+diag_matrix
-        if cho.get_shape()[0].value == 1: #one set of parameters
-            z = tf.matmul(z0, cho[0, :, :], transpose_a=False, transpose_b=True)
+
+        if self._parameters.get_shape()[0].value == 1: #one set of parameters
+            z = tf.matmul(z0, self._cho[0, :, :], transpose_a=False, transpose_b=True)
         else: # batched parameters
-            z = tf.matmul(cho, z0[:,:,np.newaxis])[:, :, 0]
+            z = tf.matmul(self._cho, z0[:,:,np.newaxis])[:, :, 0]
         log_pdf_z = log_pdf_z0 
         return z, log_pdf_z
 
@@ -970,9 +974,9 @@ class NonLinearIARFlow():
         self._parameters = self._parameter_scale*parameters
         self._input_dim = input_dim
         self._layer_expansions = NonLinearIARFlow.layer_expansions
-        self._nonlinearity = helper.LeakyReLU
-        # self._nonlinearity = tf.nn.tanh
+        self._nonlinearity = helper.LeakyReLU # tf.nn.tanh
         self._mode = mode
+        
         assert (self._input_dim > 1)
 
     @property
@@ -984,10 +988,9 @@ class NonLinearIARFlow():
         return self._input_dim
 
     @staticmethod
-    def required_num_parameters(input_dim, layer_expansions=None):
-        if layer_expansions is None: layer_expansions = NonLinearIARFlow.layer_expansions
+    def required_num_parameters(input_dim):
         n_parameters = 0
-        concat_layer_expansions = [1, *layer_expansions, 2]
+        concat_layer_expansions = [1, *NonLinearIARFlow.layer_expansions, 2]
         for l in range(len(concat_layer_expansions)-1):
             n_parameters += concat_layer_expansions[l]*(input_dim-1)*concat_layer_expansions[l+1]*(input_dim-1) # matrix
             n_parameters += concat_layer_expansions[l+1]*(input_dim-1) # bias
@@ -1022,9 +1025,9 @@ class NonLinearIARFlow():
             mask = masks[l]
             curr_input_dim = curr_input.get_shape().as_list()[1]
             if l < len(layerwise_parameters)-1: 
-                W = tf.slice(W, [0, 0, 0], [-1, input_dim*self._layer_expansions[l], curr_input_dim])
-                mask = tf.slice(mask, [0, 0, 0], [-1, input_dim*self._layer_expansions[l], curr_input_dim])
-                bias = tf.slice(bias, [0, 0], [-1, input_dim*self._layer_expansions[l]])
+                W = tf.slice(W, [0, 0, 0], [-1, input_dim*NonLinearIARFlow.layer_expansions[l], curr_input_dim])
+                mask = tf.slice(mask, [0, 0, 0], [-1, input_dim*NonLinearIARFlow.layer_expansions[l], curr_input_dim])
+                bias = tf.slice(bias, [0, 0], [-1, input_dim*NonLinearIARFlow.layer_expansions[l]])
             else: 
                 W = tf.concat([tf.slice(W, [0, input_dim-1, 0], [-1, 1, curr_input_dim]), tf.slice(W, [0, original_input_dim+input_dim-1, 0], [-1, 1, curr_input_dim])] , axis=1)
                 mask = tf.concat([tf.slice(mask, [0, input_dim-1, 0], [-1, 1, curr_input_dim]), tf.slice(mask, [0, original_input_dim+input_dim-1, 0], [-1, 1, curr_input_dim])] , axis=1)
@@ -1044,13 +1047,13 @@ class NonLinearIARFlow():
 
     def transform(self, z0, log_pdf_z0):
         verify_size(z0, log_pdf_z0)
-        self._parameters.get_shape().assert_is_compatible_with([None, NonLinearIARFlow.required_num_parameters(self._input_dim, self._layer_expansions)])
-        mask_tensors = helper.tf_get_mask_list_for_MADE(self._input_dim-1, self._layer_expansions, add_mu_log_sigma_layer=True)
+        self._parameters.get_shape().assert_is_compatible_with([None, NonLinearIARFlow.required_num_parameters(self._input_dim)])
+        mask_tensors = helper.tf_get_mask_list_for_MADE(self._input_dim-1, NonLinearIARFlow.layer_expansions, add_mu_log_sigma_layer=True)
         
         pre_mu_for_1 = self._parameters[:, 0, np.newaxis]
         pre_scale_for_1 = self._parameters[:, 1, np.newaxis]
         start_ind = 2
-        concat_layer_expansions = [1, *self._layer_expansions, 2]
+        concat_layer_expansions = [1, *NonLinearIARFlow.layer_expansions, 2]
         layerwise_parameters = []
 
         for l in range(len(concat_layer_expansions)-1):
@@ -1108,13 +1111,13 @@ class NonLinearIARFlow():
     
     def inverse_transform(self, z, log_pdf_z):
         verify_size(z, log_pdf_z)
-        self._parameters.get_shape().assert_is_compatible_with([None, NonLinearIARFlow.required_num_parameters(self._input_dim, self._layer_expansions)])
-        mask_tensors = helper.tf_get_mask_list_for_MADE(self._input_dim-1, self._layer_expansions, add_mu_log_sigma_layer=True)
+        self._parameters.get_shape().assert_is_compatible_with([None, NonLinearIARFlow.required_num_parameters(self._input_dim)])
+        mask_tensors = helper.tf_get_mask_list_for_MADE(self._input_dim-1, NonLinearIARFlow.layer_expansions, add_mu_log_sigma_layer=True)
 
         pre_mu_for_1 = self._parameters[:, 0, np.newaxis]
         pre_scale_for_1 = self._parameters[:, 1, np.newaxis]
         start_ind = 2
-        concat_layer_expansions = [1, *self._layer_expansions, 2]
+        concat_layer_expansions = [1, *NonLinearIARFlow.layer_expansions, 2]
         layerwise_parameters = []
         for l in range(len(concat_layer_expansions)-1):
             W_num_param = concat_layer_expansions[l]*(self._input_dim-1)*concat_layer_expansions[l+1]*(self._input_dim-1) # matrix
