@@ -184,7 +184,7 @@ class Model():
         self.reconst_sample = self.reconst_dist.sample(b_mode=True)
         
         self.mean_transformed_posterior_log_pdf = tf.reduce_mean(self.transformed_posterior_log_pdf)
-        self.enc_reg_cost = self.mean_transformed_posterior_log_pdf
+        self.enc_reg_cost = -self.mean_transformed_posterior_log_pdf
         #############################################################################
         # REGULARIZER
 
@@ -206,7 +206,7 @@ class Model():
         ### Generator
         self.gen_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.enc_reg_cost
 
-    
+
 
             # alpha_MMD = 0.5
             # n_transformations = 10
