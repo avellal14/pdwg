@@ -941,12 +941,6 @@ with tf.Graph().as_default():
                 # if batch_idx == 1:
                 #     if hasattr(model, 'posterior_prior_log_pdf'):
                 #         DEBUG_posterior_prior_log_pdf, DEBUG_posterior_latent_code = sess.run([model.posterior_prior_log_pdf, model.posterior_latent_code], feed_dict = curr_feed_dict)
-                #         pdb.set_trace()
-
-
-
-
-
 
                 if mode=='test' and ((global_args.latent_vis_TSNE_epoch_rate[0]>0 and global_args.curr_epoch % global_args.latent_vis_TSNE_epoch_rate[0] == global_args.latent_vis_TSNE_epoch_rate[1]) or \
                                      (global_args.latent_vis_UMAP_epoch_rate[0]>0 and global_args.curr_epoch % global_args.latent_vis_UMAP_epoch_rate[0] == global_args.latent_vis_UMAP_epoch_rate[1])): 
