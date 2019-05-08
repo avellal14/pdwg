@@ -33,8 +33,8 @@ else:
 # dataset_to_use = 'IMAGENET'
 # dataset_to_use = 'BEDROOM'
 # dataset_to_use = 'CELEB'
-dataset_to_use = 'CIFAR10'
-# dataset_to_use = 'MNIST'
+# dataset_to_use = 'CIFAR10'
+dataset_to_use = 'MNIST'
 # dataset_to_use = 'CAT'
 # dataset_to_use = 'FLOWERS'
 # dataset_to_use = 'CUB'
@@ -464,7 +464,7 @@ elif dataset_to_use == 'MNIST':
 
     parser.add_argument('--n_context', type=int, default=1, help='n_context.')
     parser.add_argument('--n_state', type=int, default=1, help='n_state.')
-    parser.add_argument('--n_latent', type=int, default=100, help='n_latent.')
+    parser.add_argument('--n_latent', type=int, default=512, help='n_latent.')
     # parser.add_argument('--n_latent', type=int, default=512, help='n_latent.')
     # parser.add_argument('--n_latent', type=int, default=28*28*3, help='n_latent.')
     parser.add_argument('--n_filter', type=int, default=alg_specific_settings['n_filter'], help='n_filter.')
