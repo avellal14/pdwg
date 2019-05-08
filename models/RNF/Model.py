@@ -93,21 +93,7 @@ class Model():
         #############################################################################
         # GENERATOR 
         self.flow_param_list = self.FlowMap.forward(batch)
-        # self.flow_object = transforms.SerialFlow([\
-        #                                           transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[0]), 
-        #                                           # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-        #                                           # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[1]),
-        #                                           # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-        #                                           # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[2]),
-        #                                           # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-        #                                           # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[3]),
-        #                                           # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-        #                                           # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[4]),
-        #                                           transforms.OpenIntervalDimensionFlow(input_dim=self.config['n_latent']), 
-        #                                           ])
-        
         n_output = np.prod(batch['observed']['properties']['image'][0]['size'][2:])
-
         self.flow_object = transforms.SerialFlow([\
                                                   transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[0]), 
                                                   transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
@@ -191,6 +177,8 @@ class Model():
         # self.reconst_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.reconst_param)
         # self.reconst_sample = self.reconst_dist.sample(b_mode=True)
 
+        pdb.set_trace()
+
         self.transformed_latent_code, _ = self.flow_object.transform(self.posterior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
         self.reconst_param = {'flat': None, 'image': tf.reshape(self.transformed_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
         self.reconst_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.reconst_param)
@@ -216,10 +204,6 @@ class Model():
 
         ### Generator
         self.gen_cost = self.mean_OT_primal
-
-
-
-
 
 
 
