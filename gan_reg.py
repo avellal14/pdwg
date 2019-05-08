@@ -938,10 +938,10 @@ with tf.Graph().as_default():
             for batch_idx, curr_batch_size, batch in data_loader: 
                 curr_feed_dict = input_dict_func(batch, hyper_param)    
 
-                if batch_idx == 1:
-                    if hasattr(model, 'posterior_prior_log_pdf'):
-                        DEBUG_posterior_prior_log_pdf, DEBUG_posterior_latent_code = sess.run([model.posterior_prior_log_pdf, model.posterior_latent_code], feed_dict = curr_feed_dict)
-                        pdb.set_trace()
+                # if batch_idx == 1:
+                #     if hasattr(model, 'posterior_prior_log_pdf'):
+                #         DEBUG_posterior_prior_log_pdf, DEBUG_posterior_latent_code = sess.run([model.posterior_prior_log_pdf, model.posterior_latent_code], feed_dict = curr_feed_dict)
+                #         pdb.set_trace()
 
 
 
