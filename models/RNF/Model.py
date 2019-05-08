@@ -190,7 +190,7 @@ class Model():
         
         self.enc_reg_cost = -tf.reduce_mean(self.transformed_posterior_log_pdf)
         self.cri_reg_cost = -tf.reduce_mean(self.posterior_prior_log_pdf)
-        self.cri_reg_cost = -tf.reduce_mean(self.prior_prior_latent_code)
+        self.gen_reg_cost = -tf.reduce_mean(self.prior_prior_latent_code)
         #############################################################################
         # REGULARIZER
 
