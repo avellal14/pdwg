@@ -194,7 +194,7 @@ class Model():
 
         self.MMD = helper.compute_MMD(self.posterior_latent_code, self.prior_dist.sample())
         self.enc_reg_cost = self.MMD
-        self.cri_reg_cost = -tf.reduce_mean(self.transformed_posterior_log_pdf)
+        # self.cri_reg_cost = -tf.reduce_mean(self.transformed_posterior_log_pdf)
 
 
         #############################################################################
