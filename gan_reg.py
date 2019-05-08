@@ -1211,6 +1211,7 @@ with tf.Graph().as_default():
     print('Starting training.')
     memory_node = tf.contrib.memory_stats.MaxBytesInUse()
     while global_args.curr_epoch < global_args.epochs + 1:
+        test()
         print('=== Memory at start of epoch: ' + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) +' MB  '+ str(helper.convert_size(sess.run(memory_node))))
         train()
         gc.collect(); gc.collect()
