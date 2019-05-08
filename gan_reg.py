@@ -721,6 +721,7 @@ with tf.Graph().as_default():
     # tf_check = tf.add_check_numerics_ops()
 
     def train():
+        b_zero_one_range = True
         global optimize_bool, all_step_tf, all_cost_tf, all_opt_keys, random_batch_data, fixed_batch_data
         step_counts = {'div': 0, 'enc': 0, 'cri': 0, 'gen': 0}
         np_costs = {'div': 0, 'enc': 0, 'cri': 0, 'gen': 0}
@@ -801,7 +802,7 @@ with tf.Graph().as_default():
                         curr_feed_dict = input_dict_func(batch, hyper_param)
                         distributions.visualizeProductDistribution4(sess, model, model, curr_feed_dict, batch, model.input_dist, model.reg_dist, 
                         model.reg_target_dist, model.reconst_dist, model.obs_sample_dist, model.gen_obs_sample_dist, real_data = real_data_large_batch,
-                        save_dir=global_args.exp_dir+'Visualization/train_'+mode, postfix='train_'+mode+'_'+str(global_args.curr_epoch)+'_e', postfix2='train_'+mode+'_m')
+                        save_dir=global_args.exp_dir+'Visualization/train_'+mode, postfix='train_'+mode+'_'+str(global_args.curr_epoch)+'_e', postfix2='train_'+mode+'_m', b_zero_one_range=b_zero_one_range)
         
         train_div_loss_accum /= train_batch_size_accum
         train_enc_loss_accum /= train_batch_size_accum
@@ -829,10 +830,11 @@ with tf.Graph().as_default():
                 curr_feed_dict = input_dict_func(batch, hyper_param)
                 distributions.visualizeProductDistribution4(sess, model, curr_feed_dict, batch, model.input_dist, model.reg_dist, 
                 model.reg_target_dist, model.reconst_dist, model.obs_sample_dist, model.gen_obs_sample_dist, real_data = real_data_large_batch,
-                save_dir=global_args.exp_dir+'Visualization/train_'+mode, postfix='train_'+mode+'_'+str(global_args.curr_epoch)+'_e', postfix2='train_'+mode+'_m')
+                save_dir=global_args.exp_dir+'Visualization/train_'+mode, postfix='train_'+mode+'_'+str(global_args.curr_epoch)+'_e', postfix2='train_'+mode+'_m', b_zero_one_range=b_zero_one_range)
 
         
     def test():
+        b_zero_one_range = True
         global random_batch_data, fixed_batch_data
         test_np_costs = {'div': 0, 'enc': 0, 'cri': 0, 'gen': 0}
 
@@ -906,7 +908,7 @@ with tf.Graph().as_default():
             curr_feed_dict = input_dict_func(batch, hyper_param)
             distributions.visualizeProductDistribution4(sess, model, curr_feed_dict, batch, model.input_dist, model.reg_dist, 
             model.reg_target_dist, model.reconst_dist, model.obs_sample_dist, model.gen_obs_sample_dist, real_data = real_data_large_batch,
-            save_dir=global_args.exp_dir+'Visualization/test_'+mode, postfix='test_'+mode+'_'+str(global_args.curr_epoch)+'_e', postfix2='test_'+mode+'_m')
+            save_dir=global_args.exp_dir+'Visualization/test_'+mode, postfix='test_'+mode+'_'+str(global_args.curr_epoch)+'_e', postfix2='test_'+mode+'_m', b_zero_one_range=b_zero_one_range)
 
 
     def visualize(mode='train'):
