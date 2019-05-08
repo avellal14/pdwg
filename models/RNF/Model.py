@@ -177,12 +177,13 @@ class Model():
         # self.reconst_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.reconst_param)
         # self.reconst_sample = self.reconst_dist.sample(b_mode=True)
 
-        pdb.set_trace()
-
-        self.transformed_latent_code, _ = self.flow_object.transform(self.posterior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
+        self.posterior_prior_log_pdf = self.prior_dist.log_pdf(self.posterior_latent_code)
+        self.transformed_latent_code, self.transformed_posterior_log_pdf = self.flow_object.transform(self.posterior_latent_code, self.posterior_prior_log_pdf)
         self.reconst_param = {'flat': None, 'image': tf.reshape(self.transformed_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
         self.reconst_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.reconst_param)
         self.reconst_sample = self.reconst_dist.sample(b_mode=True)
+        
+        self.mean_transformed_posterior_log_pdf = tf.reduce_mean(self.transformed_posterior_log_pdf)
 
         #############################################################################
         # REGULARIZER
@@ -200,10 +201,10 @@ class Model():
         self.OT_primal = self.sample_distance_function(self.input_sample, self.reconst_sample)
         self.mean_OT_primal = tf.reduce_mean(self.OT_primal)
 
-        self.enc_cost = self.mean_OT_primal 
+        self.enc_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.mean_transformed_posterior_log_pdf
 
         ### Generator
-        self.gen_cost = self.mean_OT_primal
+        self.gen_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.mean_transformed_posterior_log_pdf
 
 
 
