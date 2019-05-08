@@ -638,7 +638,7 @@ def visualizeProductDistribution3(sess, input_dict, batch, obs_dist, transport_d
 				# helper.visualize_images2(samples_params_np_interleaved, block_size=[sample_split[0].shape[0], len(samples_params_np)], save_dir=save_dir+'2/', postfix=postfix+'_'+obs_type+'_2')
 
 
-def visualizeProductDistribution4(sess, model, input_dict, batch, real_dist, transport_dist, reg_target_dist, rec_dist, obs_dist, sample_obs_dist, real_data = None, save_dir = '.', postfix = '', postfix2 = None, b_zero_one_range=False):
+def visualizeProductDistribution4(sess, model, input_dict, batch, real_dist, transport_dist, reg_target_dist, rec_dist, obs_dist, sample_obs_dist, real_data = None, save_dir = '.', postfix = '', postfix2 = None, b_zero_one_range=True):
 	sample = batch['observed']['data']
 	sample_properties = batch['observed']['properties']
 	for obs_type in ['flat', 'image']:
