@@ -203,12 +203,12 @@ global_experiment_name = str(Path.home())+'/ExperimentalResults/EEEexperimentsSt
 
 parser = argparse.ArgumentParser(description='Tensorflow Gan Models')
 parser.add_argument('--exp_dir_postfix', type=str, default='', help='Directory to put the experiment postfix.')
-parser.add_argument('--save_checkpoints_epoch_rate', type=list, default=[25,1], help='epoch rate for storing checkpoints')
+parser.add_argument('--save_checkpoints_epoch_rate', type=list, default=[0,1], help='epoch rate for storing checkpoints')
 parser.add_argument('--restore_dir', type=str, default='/799f428b8f7e42459281ed51f2c8ba46/', help='Directory of restore experiment.')
 parser.add_argument('--restore', type=bool, default=False, help='Restore model.')
 parser.add_argument('--gpu', type=str, default='0', help='gpu to use.')
 parser.add_argument('--epochs', type=int, default=1000000000, help='Number of epochs to train.')
-parser.add_argument('--batch_size', type=int, default=100, help='Input batch size for training.')
+parser.add_argument('--batch_size', type=int, default=50, help='Input batch size for training.')
 parser.add_argument('--time_steps', type=int, default=1, help='Number of timesteps')
 parser.add_argument('--seed', type=int, default=1123124, help='random seed')
 
