@@ -55,7 +55,7 @@ if Algorithm == 'RNF':
                              'encoder_mode': 'Deterministic', 'divergence_mode': 'None', 'dual_dist_mode': '',  'infomax_mode': 'None',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 10, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 0, 'enc_inv_MMD_n_trans': 0, 'enc_inv_MMD_strength': 0,
-                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {}, 'rnf_prop': {'n_input_CPO': 10, 'n_output_CPO': 10}}
+                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {}, 'rnf_prop': {'n_input_CPO': 2, 'n_output_CPO': 2}}
 elif Algorithm == 'WAE':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.5, 'beta2': 0.9,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 128, 'n_flat': 400, 
@@ -208,7 +208,7 @@ parser.add_argument('--restore_dir', type=str, default='/799f428b8f7e42459281ed5
 parser.add_argument('--restore', type=bool, default=False, help='Restore model.')
 parser.add_argument('--gpu', type=str, default='0', help='gpu to use.')
 parser.add_argument('--epochs', type=int, default=1000000000, help='Number of epochs to train.')
-parser.add_argument('--batch_size', type=int, default=50, help='Input batch size for training.')
+parser.add_argument('--batch_size', type=int, default=10, help='Input batch size for training.')
 parser.add_argument('--time_steps', type=int, default=1, help='Number of timesteps')
 parser.add_argument('--seed', type=int, default=1123124, help='random seed')
 
