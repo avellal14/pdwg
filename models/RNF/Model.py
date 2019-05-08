@@ -188,9 +188,15 @@ class Model():
         self.reconst_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.reconst_param)
         self.reconst_sample = self.reconst_dist.sample(b_mode=True)
         
-        self.enc_reg_cost = -tf.reduce_mean(self.transformed_posterior_log_pdf)
-        self.cri_reg_cost = -tf.reduce_mean(self.posterior_prior_log_pdf)
-        self.gen_reg_cost = -tf.reduce_mean(self.prior_prior_latent_code)
+        # self.enc_reg_cost = -tf.reduce_mean(self.transformed_posterior_log_pdf)
+        # self.cri_reg_cost = -tf.reduce_mean(self.posterior_prior_log_pdf)
+        # self.gen_reg_cost = -tf.reduce_mean(self.prior_prior_latent_code)
+
+        self.MMD = helper.compute_MMD(self.posterior_latent_code, self.prior_dist.sample())
+        self.enc_reg_cost = self.MMD
+        self.cri_reg_cost = -tf.reduce_mean(self.transformed_posterior_log_pdf)
+
+
         #############################################################################
         # REGULARIZER
 
@@ -210,7 +216,7 @@ class Model():
         self.enc_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.enc_reg_cost
 
         ### Generator
-        self.gen_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.enc_reg_cost
+        self.gen_cost = self.mean_OT_primal #+self.config['enc_reg_strength']*self.cri_reg_cost
 
 
 
