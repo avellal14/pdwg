@@ -559,7 +559,7 @@ class CompoundHouseholdRotationFlow():
     """
     max_steps = 100
 
-    def __init__(self, input_dim, parameters, vector_mode_rate=0, name='compound_household_rotation_transform'):   
+    def __init__(self, input_dim, parameters, vector_mode_rate=1, name='compound_household_rotation_transform'):   
         self._parameter_scale = 1.
         self._parameters = parameters
         if self._parameters is not None: self._parameters = self._parameter_scale*self._parameters
