@@ -674,9 +674,8 @@ def visualizeProductDistribution4(sess, model, input_dict, batch, real_dist, tra
 					np.clip(rec_split[0], 0, 1, out=rec_split[0])
 					np.clip(param_split[0], 0, 1, out=param_split[0])
 					np.clip(rand_param_split[0], 0, 1, out=rand_param_split[0])
-					np.clip(rand_param_split2[0], 0, 1, out=rand_param_split2[0])
-				pdb.set_trace()
-				
+					np.clip(rand_param_split2, 0, 1, out=rand_param_split2)
+
 				samples_params_np = np.array([np.array([]), *real_split, *transport_split, *reg_target_split, *rec_split, *param_split, *rand_param_split])[1:]
 				samples_params_np_interleaved = helper.interleave_data(samples_params_np)
 				helper.visualize_images2(samples_params_np_interleaved, block_size=[sample_split[0].shape[0], len(samples_params_np)], save_dir=save_dir+'_normal/', postfix='normal_'+postfix, postfix2='normal_'+postfix2)
