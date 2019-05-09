@@ -194,7 +194,7 @@ class Model():
 
         self.MMD = helper.compute_MMD(self.posterior_latent_code, self.prior_dist.sample())
         self.enc_reg_cost = self.MMD
-        # self.cri_reg_cost = -tf.reduce_mean(self.transformed_posterior_log_pdf)
+        self.cri_reg_cost = -tf.reduce_mean(self.transformed_posterior_log_pdf)
 
 
         #############################################################################
@@ -216,7 +216,7 @@ class Model():
         self.enc_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.enc_reg_cost
 
         ### Generator
-        self.gen_cost = self.mean_OT_primal #+self.config['enc_reg_strength']*self.cri_reg_cost
+        self.gen_cost = self.mean_OT_primal+self.config['cri_reg_strength']*self.cri_reg_cost
 
 
 
