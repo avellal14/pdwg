@@ -180,7 +180,7 @@ class Model():
         self.prior_prior_latent_code = self.prior_dist.log_pdf(self.prior_latent_code)
         self.posterior_prior_log_pdf = self.prior_dist.log_pdf(self.posterior_latent_code)
         
-        # self.transformed_prior_latent_code, self.transformed_prior_log_pdf = self.flow_object.transform(self.prior_latent_code, self.prior_prior_latent_code)
+        self.transformed_prior_latent_code, self.transformed_prior_log_pdf = self.flow_object.transform(self.prior_latent_code, self.prior_prior_latent_code)
         self.transformed_posterior_latent_code, self.transformed_posterior_log_pdf = self.flow_object.transform(self.posterior_latent_code, self.posterior_prior_log_pdf)
         
         self.reconst_param = {'flat': None, 'image': tf.reshape(self.transformed_posterior_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
@@ -193,7 +193,7 @@ class Model():
 
         self.enc_reg_cost = helper.compute_MMD(self.posterior_latent_code, self.prior_dist.sample())
         # self.enc_reg_cost = -tf.reduce_mean(self.posterior_prior_log_pdf)
-        self.cri_reg_cost = -tf.reduce_mean(self.transformed_posterior_log_pdf)
+        self.cri_reg_cost = -tf.reduce_mean(self.transformed_posterior_log_pdf)+tf.reduce_mean(self.transformed_prior_log_pdf)
         
 
 
