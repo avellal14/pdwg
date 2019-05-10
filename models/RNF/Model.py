@@ -196,7 +196,7 @@ class Model():
         # self.cri_reg_cost = -tf.reduce_mean(self.transformed_posterior_log_pdf)
         # self.cri_reg_cost = (-tf.reduce_mean(self.transformed_posterior_log_pdf)+tf.reduce_mean(self.transformed_prior_log_pdf))**2
         self.cri_reg_cost = tf.constant([0],tf.float32)[0]
-        
+        # self.cri_reg_cost = tf.nn.relu(tf.reduce_mean(self.transformed_prior_log_pdf)-tf.reduce_mean(self.transformed_posterior_log_pdf))
 
 
         #############################################################################
