@@ -851,6 +851,7 @@ class OthogonalProjectionMap():
         z = z_proj+self._output_shift_vec
         return z
 
+
 class ConnectedPiecewiseOrthogonalMap():
     """
     Connected Piecewise Orthogonal Map class with Jacobians specified as scaled multiples of orthogonal matrices.
@@ -937,7 +938,84 @@ class ConnectedPiecewiseOrthogonalMap():
         z_scale_rot = pos_mask*z_pos_scale_rot+neg_mask*z_neg_scale_rot
         z = z_scale_rot+self._hyper_vec_dir*self._hyper_bias+self._output_shift_vec
         scales = pos_mask*self._pos_scale+neg_mask*self._neg_scale 
-        return z, scales
+        log_scales = tf.log(scales)
+        return z, log_scales
+
+class PiecewisePlanarScalingMap():
+    """
+    Connected Piecewise Scaling Map class with Jacobians specified as scaled multiples of diagonal matrices.
+    Args:
+      parameters: parameters of transformation all appended.
+      input_dim : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+    n_steps = 10
+
+    def __init__(self, input_dim, parameters, margin_mode='NoGradient', name='piecewise_planar_scaling_transform'):   
+        self._parameter_scale = 1.
+        self._parameters = parameters
+        self._parameters = self._parameter_scale*self._parameters
+        self._input_dim = input_dim
+        self._margin_mode = margin_mode
+
+        assert (self._margin_mode == 'NoGradient' or self._margin_mode == 'ST')
+
+        self._parameters.get_shape().assert_is_compatible_with([None, PiecewisePlanarScalingMap.required_num_parameters(self._input_dim)])
+        
+        param_index = 0
+        self._pos_pre_scale, param_index = helper.slice_parameters(self._parameters, param_index, PiecewisePlanarScalingMap.n_steps)
+        self._neg_pre_scale, param_index = helper.slice_parameters(self._parameters, param_index, PiecewisePlanarScalingMap.n_steps)
+        self._hyper_pre_bias, param_index = helper.slice_parameters(self._parameters, param_index, PiecewisePlanarScalingMap.n_steps)
+        self._hyper_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim*PiecewisePlanarScalingMap.n_steps) 
+        self._output_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim*PiecewisePlanarScalingMap.n_steps) 
+        
+        self._hyper_vec = tf.reshape(self._hyper_vec, [-1, PiecewisePlanarScalingMap.n_steps, self._input_dim])
+        self._output_shift_vec = tf.reshape(self._output_shift_vec, [-1, PiecewisePlanarScalingMap.n_steps, self._input_dim])
+
+        self._pos_scale = tf.nn.softplus(self._pos_pre_scale)/np.log(1+np.exp(0))
+        self._neg_scale = tf.nn.softplus(self._neg_pre_scale)/np.log(1+np.exp(0))
+        self._hyper_bias = tf.nn.softplus(self._hyper_pre_bias)/np.log(1+np.exp(0))
+        self._hyper_vec_dir = self._hyper_vec/helper.safe_tf_sqrt(tf.reduce_sum(self._hyper_vec**2, axis=2, keep_dims=True))
+
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim
+
+    @staticmethod
+    def required_num_parameters(input_dim):
+        return PiecewisePlanarScalingMap.n_steps*(input_dim+input_dim+1+1+1)
+
+    def jacobian(self, z0): 
+        z, log_scales = self.transform(z0)
+        scales = tf.exp(log_scales)
+        return scales[:,:,np.newaxis]*tf.constant(np.eye(self._input_dim), tf.float32)[np.newaxis,:,:]
+
+    def transform(self, z0):
+        curr_z = z0
+        log_scales = 0
+        for i in range(PiecewisePlanarScalingMap.n_steps):
+            curr_wb = self._hyper_vec_dir[:,i,:]*self._hyper_bias[:,i,np.newaxis]
+            curr_z_centered = curr_z-curr_wb
+
+            curr_margin = tf.reduce_sum(self._hyper_vec_dir[:,i,:]*curr_z_centered, axis=1, keep_dims=True)
+            if self._margin_mode == 'NoGradient':
+                curr_pos_mask = tf.stop_gradient(tf.cast(curr_margin>=0, tf.float32)) # margin >= 0 return 1 else 0 
+            elif self._margin_mode == 'ST':
+                curr_pos_mask = helper.binaryStochastic_ST(curr_margin) # margin >= ~9e-8 return 1 else 0
+            curr_neg_mask = 1-curr_pos_mask
+
+            curr_scales = curr_pos_mask*self._pos_scale[:,i,np.newaxis]+curr_neg_mask*self._neg_scale[:,i,np.newaxis]
+            curr_z = curr_scales*curr_z_centered+curr_wb+self._output_shift_vec[:,i,:]
+            log_scales = log_scales+tf.log(curr_scales)
+        
+        z = curr_z
+        return z, log_scales
+
 
 class RiemannianFlow():
     """
@@ -948,6 +1026,8 @@ class RiemannianFlow():
     Raises:
       ValueError: 
     """
+    nonlinear_class = ConnectedPiecewiseOrthogonalMap
+    
     def __init__(self, input_dim, output_dim, n_input_CPO, n_output_CPO, parameters, name='riemannian_transform'):   
         self._parameter_scale = 1.
         self._parameters = self._parameter_scale*parameters
@@ -964,16 +1044,16 @@ class RiemannianFlow():
         param_index = 0
         self._input_CPO_list = []
         for i in range(self._n_input_CPO): 
-            curr_param, param_index = helper.slice_parameters(self._parameters, param_index, ConnectedPiecewiseOrthogonalMap.required_num_parameters(self._input_dim))
-            self._input_CPO_list.append(ConnectedPiecewiseOrthogonalMap(self._input_dim, curr_param))
+            curr_param, param_index = helper.slice_parameters(self._parameters, param_index, RiemannianFlow.nonlinear_class.required_num_parameters(self._input_dim))
+            self._input_CPO_list.append(RiemannianFlow.nonlinear_class(self._input_dim, curr_param))
 
         proj_param, param_index = helper.slice_parameters(self._parameters, param_index, OthogonalProjectionMap.required_num_parameters(self._input_dim, self._additional_dim))
         self._proj_map = OthogonalProjectionMap(self._input_dim, self._additional_dim, proj_param)
 
         self._additional_CPO_list = []
         for i in range(self._n_output_CPO): 
-            curr_param, param_index = helper.slice_parameters(self._parameters, param_index, ConnectedPiecewiseOrthogonalMap.required_num_parameters(self._additional_dim))
-            self._additional_CPO_list.append(ConnectedPiecewiseOrthogonalMap(self._additional_dim, curr_param))
+            curr_param, param_index = helper.slice_parameters(self._parameters, param_index, RiemannianFlow.nonlinear_class.required_num_parameters(self._additional_dim))
+            self._additional_CPO_list.append(RiemannianFlow.nonlinear_class(self._additional_dim, curr_param))
 
     @property
     def input_dim(self):
@@ -993,9 +1073,9 @@ class RiemannianFlow():
         assert (n_input_CPO >= 0 and n_output_CPO >= 0)
 
         additional_dim = output_dim-input_dim
-        n_input_CPO_param = n_input_CPO*ConnectedPiecewiseOrthogonalMap.required_num_parameters(input_dim)
+        n_input_CPO_param = n_input_CPO*RiemannianFlow.nonlinear_class.required_num_parameters(input_dim)
         n_proj_param = OthogonalProjectionMap.required_num_parameters(input_dim, additional_dim)
-        n_output_CPO_param = n_output_CPO*ConnectedPiecewiseOrthogonalMap.required_num_parameters(additional_dim)
+        n_output_CPO_param = n_output_CPO*RiemannianFlow.nonlinear_class.required_num_parameters(additional_dim)
         return n_input_CPO_param+n_proj_param+n_output_CPO_param
 
     def jacobian(self, z0, mode='full'):
@@ -1004,9 +1084,8 @@ class RiemannianFlow():
         curr_z = z0
         input_CPO_Js = []
         for i in range(len(self._input_CPO_list)): 
-            curr_J = self._input_CPO_list[i].jacobian(curr_z)
-            curr_z, curr_delta_log_pdf_z = self._input_CPO_list[i].transform(curr_z)
-            input_CPO_Js.append(curr_J)
+            input_CPO_Js.append(self._input_CPO_list[i].jacobian(curr_z))
+            curr_z, _ = self._input_CPO_list[i].transform(curr_z)
 
         input_CPO_z = curr_z
         proj_input_CPO_z = self._proj_map.transform(input_CPO_z)
@@ -1015,9 +1094,8 @@ class RiemannianFlow():
         curr_z = proj_input_CPO_z
         additional_CPO_Js = []
         for i in range(len(self._additional_CPO_list)): 
-            curr_J = self._additional_CPO_list[i].jacobian(curr_z)
-            curr_z, curr_delta_log_pdf_z = self._additional_CPO_list[i].transform(curr_z)
-            additional_CPO_Js.append(curr_J)
+            additional_CPO_Js.append(self._additional_CPO_list[i].jacobian(curr_z))
+            curr_z, _ = self._additional_CPO_list[i].transform(curr_z)
 
         overall_input_CPO_Js = None
         for i in range(len(input_CPO_Js)):
@@ -1048,18 +1126,19 @@ class RiemannianFlow():
         curr_z = z0
         input_CPO_log_scales = []
         for i in range(len(self._input_CPO_list)): 
-            curr_z, curr_scales = self._input_CPO_list[i].transform(curr_z)
-            input_CPO_log_scales.append(tf.log(curr_scales))
-
+            curr_z, curr_log_scales = self._input_CPO_list[i].transform(curr_z)
+            input_CPO_log_scales.append(curr_log_scales)
         input_CPO_z = curr_z
+
         proj_input_CPO_z = self._proj_map.transform(input_CPO_z)
 
         curr_z = proj_input_CPO_z
         additional_CPO_log_scales = []
         for i in range(len(self._additional_CPO_list)): 
-            curr_z, curr_scales = self._additional_CPO_list[i].transform(curr_z)
-            additional_CPO_log_scales.append(tf.log(curr_scales))
+            curr_z, curr_log_scales = self._additional_CPO_list[i].transform(curr_z)
+            additional_CPO_log_scales.append(curr_log_scales)
         additional_CPO_z = curr_z
+        
         z = tf.concat([z0, additional_CPO_z], axis=1)
         
         if len(input_CPO_log_scales) > 0: input_CPO_log_scales_sum = tf.add_n(input_CPO_log_scales)
@@ -1689,17 +1768,19 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 # batch_size = 20
 # n_latent = 4
 # name = 'transform'
-# transform_to_check = ConnectedPiecewiseOrthogonalMap
+# # transform_to_check = ConnectedPiecewiseOrthogonalMap
+# transform_to_check = PiecewisePlanarScalingMap
 # n_parameter = transform_to_check.required_num_parameters(n_latent)
 
 # parameters = None
-# if n_parameter > 0: parameters = 10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
+# if n_parameter > 0: parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
 
 # z0 = tf.random_normal((batch_size, n_latent), 0, 1, dtype=tf.float32)
 # log_pdf_z0 = tf.zeros(shape=(batch_size, 1), dtype=tf.float32)
 # transform1 = transform_to_check(input_dim=n_latent, parameters=parameters)
-# z, log_scales = transform1.transform(z0, log_pdf_z0)
+# z, log_scales = transform1.transform(z0)
 # jacobian = transform1.jacobian(z0)
+# log_pdf_z = log_pdf_z0
 
 # init = tf.initialize_all_variables()
 # sess = tf.InteractiveSession()  
@@ -1713,7 +1794,7 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 # print('Example Jacobian^T*Jacobian:\n', np.dot(jacobian_np[0, :, :].T, jacobian_np[0, :, :]))
 # print('\n\n\n')
 
-# all_scales = ((np.exp(-log_scales_np)**2))[:,0]
+# all_scales = ((np.exp(log_scales_np)**2))[:,0]
 # for i in range(jacobian_np.shape[0]):
 #     JJT = np.dot(jacobian_np[i, :, :], jacobian_np[i, :, :].T)
 #     # JTJ = np.dot(jacobian_np[i, :, :].T, jacobian_np[i, :, :])
@@ -1883,6 +1964,93 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 
 
 
+# class ConnectedPiecewiseOrthogonalMap():
+#     """
+#     Connected Piecewise Orthogonal Map class with Jacobians specified as scaled multiples of orthogonal matrices.
+#     Args:
+#       parameters: parameters of transformation all appended.
+#       input_dim : input dimensionality of the transformation. 
+#     Raises:
+#       ValueError: 
+#     """
+#     rotation_flow_class = HouseholdRotationFlow # CompoundRotationFlow
+
+#     def __init__(self, input_dim, parameters, margin_mode='NoGradient', name='connected_piecewise_orthogonal_transform'):   
+#         self._parameter_scale = 1.
+#         self._parameters = parameters
+#         self._parameters = self._parameter_scale*self._parameters
+#         self._input_dim = input_dim
+#         self._margin_mode = margin_mode
+
+#         assert (self._margin_mode == 'NoGradient' or self._margin_mode == 'ST')
+
+#         self._parameters.get_shape().assert_is_compatible_with([None, ConnectedPiecewiseOrthogonalMap.required_num_parameters(self._input_dim)])
+        
+#         param_index = 0
+#         self._pos_rotation_param, param_index = helper.slice_parameters(self._parameters, param_index, ConnectedPiecewiseOrthogonalMap.rotation_flow_class.required_num_parameters(self._input_dim))
+#         self._neg_rotation_param, param_index = helper.slice_parameters(self._parameters, param_index, ConnectedPiecewiseOrthogonalMap.rotation_flow_class.required_num_parameters(self._input_dim))
+#         self._pos_pre_scale, param_index = helper.slice_parameters(self._parameters, param_index, 1)
+#         self._neg_pre_scale, param_index = helper.slice_parameters(self._parameters, param_index, 1)
+#         self._hyper_pre_bias, param_index = helper.slice_parameters(self._parameters, param_index, 1)
+#         self._hyper_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim) 
+#         self._output_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim) 
+
+#         self._pos_scale = tf.nn.softplus(self._pos_pre_scale)/np.log(1+np.exp(0))
+#         self._neg_scale = tf.nn.softplus(self._neg_pre_scale)/np.log(1+np.exp(0))
+#         self._hyper_bias = tf.nn.softplus(self._hyper_pre_bias)/np.log(1+np.exp(0))
+#         self._hyper_vec_dir = self._hyper_vec/helper.safe_tf_sqrt(tf.reduce_sum(self._hyper_vec**2, axis=1, keep_dims=True))
+#         self._pos_rotation_flow = ConnectedPiecewiseOrthogonalMap.rotation_flow_class(self._input_dim, self._pos_rotation_param) 
+#         self._neg_rotation_flow = ConnectedPiecewiseOrthogonalMap.rotation_flow_class(self._input_dim, self._neg_rotation_param) 
+
+#     @property
+#     def input_dim(self):
+#         return self._input_dim
+
+#     @property
+#     def output_dim(self):
+#         return self._input_dim
+
+#     @staticmethod
+#     def required_num_parameters(input_dim):
+#         n_rot_param = ConnectedPiecewiseOrthogonalMap.rotation_flow_class.required_num_parameters(input_dim)
+#         return 2*n_rot_param+1+1+1+input_dim+input_dim
+
+#     def jacobian(self, z0):
+#         z_centered = z0-self._hyper_vec_dir*self._hyper_bias
+
+#         margin = tf.reduce_sum(self._hyper_vec_dir*z_centered, axis=1, keep_dims=True)
+#         if self._margin_mode == 'NoGradient':
+#             pos_mask = tf.stop_gradient(tf.cast(margin>=0, tf.float32)) # margin >= 0 return 1 else 0 
+#         elif self._margin_mode == 'ST':
+#             pos_mask = helper.binaryStochastic_ST(margin) # margin >= ~9e-8 return 1 else 0
+#         neg_mask = 1-pos_mask
+        
+#         pos_batched_rot_matrix = self._pos_rotation_flow.get_batched_rot_matrix()
+#         neg_batched_rot_matrix = self._neg_rotation_flow.get_batched_rot_matrix()
+#         scaled_pos_batched_rot_matrix = self._pos_scale[:, :, np.newaxis]*pos_batched_rot_matrix
+#         scaled_neg_batched_rot_matrix = self._neg_scale[:, :, np.newaxis]*neg_batched_rot_matrix
+#         jacobian = pos_mask[:, :, np.newaxis]*scaled_pos_batched_rot_matrix+neg_mask[:, :, np.newaxis]*scaled_neg_batched_rot_matrix
+#         return jacobian
+
+#     def transform(self, z0):
+#         z_centered = z0-self._hyper_vec_dir*self._hyper_bias
+
+#         margin = tf.reduce_sum(self._hyper_vec_dir*z_centered, axis=1, keep_dims=True)
+#         if self._margin_mode == 'NoGradient':
+#             pos_mask = tf.stop_gradient(tf.cast(margin>=0, tf.float32)) # margin >= 0 return 1 else 0 
+#         elif self._margin_mode == 'ST':
+#             pos_mask = helper.binaryStochastic_ST(margin) # margin >= ~9e-8 return 1 else 0
+#         neg_mask = 1-pos_mask
+        
+#         z_pos_rot, _ = self._pos_rotation_flow.transform(z_centered, tf.zeros(shape=(tf.shape(z0)[0], 1), dtype=tf.float32))
+#         z_neg_rot, _ = self._neg_rotation_flow.transform(z_centered, tf.zeros(shape=(tf.shape(z0)[0], 1), dtype=tf.float32))
+#         z_pos_scale_rot = self._pos_scale*z_pos_rot
+#         z_neg_scale_rot = self._neg_scale*z_neg_rot
+
+#         z_scale_rot = pos_mask*z_pos_scale_rot+neg_mask*z_neg_scale_rot
+#         z = z_scale_rot+self._hyper_vec_dir*self._hyper_bias+self._output_shift_vec
+#         scales = pos_mask*self._pos_scale+neg_mask*self._neg_scale 
+#         return z, scales
 
 
 
@@ -2063,11 +2231,6 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 #         log_volume_increase_ratio = tf.reduce_sum(0.5*tf.log(1e-7+(nonlinK_J*pre_scale*post_scale)**2+1), axis=[1], keep_dims=True)
 #         log_pdf_z = log_pdf_z0 - log_volume_increase_ratio
 #         return z, log_pdf_z
-
-
-
-
-
 
 
 
