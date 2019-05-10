@@ -1016,7 +1016,6 @@ class PiecewisePlanarScalingMap():
         z = curr_z
         return z, log_scales
 
-
 class RiemannianFlow():
     """
     Projective Flow class.
@@ -1026,7 +1025,7 @@ class RiemannianFlow():
     Raises:
       ValueError: 
     """
-    nonlinear_class = ConnectedPiecewiseOrthogonalMap
+    nonlinear_class = PiecewisePlanarScalingMap
     
     def __init__(self, input_dim, output_dim, n_input_CPO, n_output_CPO, parameters, name='riemannian_transform'):   
         self._parameter_scale = 1.
