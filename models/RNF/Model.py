@@ -191,9 +191,10 @@ class Model():
         # self.cri_reg_cost = -tf.reduce_mean(self.posterior_prior_log_pdf)
         # self.gen_reg_cost = -tf.reduce_mean(self.prior_prior_latent_code)
 
-        self.enc_reg_cost = helper.compute_MMD(self.posterior_latent_code, self.prior_dist.sample())
+        # self.enc_reg_cost = helper.compute_MMD(self.posterior_latent_code, self.prior_dist.sample())
         # self.enc_reg_cost = -tf.reduce_mean(self.posterior_prior_log_pdf)
-        self.cri_reg_cost = -tf.reduce_mean(self.transformed_posterior_log_pdf)+tf.reduce_mean(self.transformed_prior_log_pdf)
+        self.enc_reg_cost = (-tf.reduce_mean(self.transformed_posterior_log_pdf)+tf.reduce_mean(self.transformed_prior_log_pdf))**2
+        self.cri_reg_cost = (-tf.reduce_mean(self.transformed_posterior_log_pdf)+tf.reduce_mean(self.transformed_prior_log_pdf))**2
         
 
 
