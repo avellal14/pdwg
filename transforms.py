@@ -1025,34 +1025,34 @@ class RiemannianFlow():
     Raises:
       ValueError: 
     """
-    nonlinear_class = PiecewisePlanarScalingMap
+    NOM_class = PiecewisePlanarScalingMap
     
-    def __init__(self, input_dim, output_dim, n_input_CPO, n_output_CPO, parameters, name='riemannian_transform'):   
+    def __init__(self, input_dim, output_dim, n_input_NOM, n_output_NOM, parameters, name='riemannian_transform'):   
         self._parameter_scale = 1.
         self._parameters = self._parameter_scale*parameters
         self._input_dim = input_dim
         self._output_dim = output_dim
         self._additional_dim = self._output_dim-self._input_dim
-        self._n_input_CPO = n_input_CPO
-        self._n_output_CPO = n_output_CPO
+        self._n_input_NOM = n_input_NOM
+        self._n_output_NOM = n_output_NOM
 
         assert (self._output_dim > self._input_dim)
 
-        self._parameters.get_shape().assert_is_compatible_with([None, RiemannianFlow.required_num_parameters(self._input_dim, self._output_dim, self._n_input_CPO, self._n_output_CPO)])
+        self._parameters.get_shape().assert_is_compatible_with([None, RiemannianFlow.required_num_parameters(self._input_dim, self._output_dim, self._n_input_NOM, self._n_output_NOM)])
 
         param_index = 0
-        self._input_CPO_list = []
-        for i in range(self._n_input_CPO): 
-            curr_param, param_index = helper.slice_parameters(self._parameters, param_index, RiemannianFlow.nonlinear_class.required_num_parameters(self._input_dim))
-            self._input_CPO_list.append(RiemannianFlow.nonlinear_class(self._input_dim, curr_param))
+        self._input_NOM_list = []
+        for i in range(self._n_input_NOM): 
+            curr_param, param_index = helper.slice_parameters(self._parameters, param_index, RiemannianFlow.NOM_class.required_num_parameters(self._input_dim))
+            self._input_NOM_list.append(RiemannianFlow.NOM_class(self._input_dim, curr_param))
 
         proj_param, param_index = helper.slice_parameters(self._parameters, param_index, OthogonalProjectionMap.required_num_parameters(self._input_dim, self._additional_dim))
         self._proj_map = OthogonalProjectionMap(self._input_dim, self._additional_dim, proj_param)
 
-        self._additional_CPO_list = []
-        for i in range(self._n_output_CPO): 
-            curr_param, param_index = helper.slice_parameters(self._parameters, param_index, RiemannianFlow.nonlinear_class.required_num_parameters(self._additional_dim))
-            self._additional_CPO_list.append(RiemannianFlow.nonlinear_class(self._additional_dim, curr_param))
+        self._additional_NOM_list = []
+        for i in range(self._n_output_NOM): 
+            curr_param, param_index = helper.slice_parameters(self._parameters, param_index, RiemannianFlow.NOM_class.required_num_parameters(self._additional_dim))
+            self._additional_NOM_list.append(RiemannianFlow.NOM_class(self._additional_dim, curr_param))
 
     @property
     def input_dim(self):
@@ -1067,51 +1067,51 @@ class RiemannianFlow():
         return self._additional_dim
 
     @staticmethod
-    def required_num_parameters(input_dim, output_dim, n_input_CPO, n_output_CPO): 
+    def required_num_parameters(input_dim, output_dim, n_input_NOM, n_output_NOM): 
         assert (output_dim > input_dim)
-        assert (n_input_CPO >= 0 and n_output_CPO >= 0)
+        assert (n_input_NOM >= 0 and n_output_NOM >= 0)
 
         additional_dim = output_dim-input_dim
-        n_input_CPO_param = n_input_CPO*RiemannianFlow.nonlinear_class.required_num_parameters(input_dim)
+        n_input_NOM_param = n_input_NOM*RiemannianFlow.NOM_class.required_num_parameters(input_dim)
         n_proj_param = OthogonalProjectionMap.required_num_parameters(input_dim, additional_dim)
-        n_output_CPO_param = n_output_CPO*RiemannianFlow.nonlinear_class.required_num_parameters(additional_dim)
-        return n_input_CPO_param+n_proj_param+n_output_CPO_param
+        n_output_NOM_param = n_output_NOM*RiemannianFlow.NOM_class.required_num_parameters(additional_dim)
+        return n_input_NOM_param+n_proj_param+n_output_NOM_param
 
     def jacobian(self, z0, mode='full'):
         assert (mode == 'full' or mode == 'additional')
 
         curr_z = z0
-        input_CPO_Js = []
-        for i in range(len(self._input_CPO_list)): 
-            input_CPO_Js.append(self._input_CPO_list[i].jacobian(curr_z))
-            curr_z, _ = self._input_CPO_list[i].transform(curr_z)
+        input_NOM_Js = []
+        for i in range(len(self._input_NOM_list)): 
+            input_NOM_Js.append(self._input_NOM_list[i].jacobian(curr_z))
+            curr_z, _ = self._input_NOM_list[i].transform(curr_z)
 
-        input_CPO_z = curr_z
-        proj_input_CPO_z = self._proj_map.transform(input_CPO_z)
-        proj_map_J = self._proj_map.jacobian(input_CPO_z)
+        input_NOM_z = curr_z
+        proj_input_NOM_z = self._proj_map.transform(input_NOM_z)
+        proj_map_J = self._proj_map.jacobian(input_NOM_z)
 
-        curr_z = proj_input_CPO_z
-        additional_CPO_Js = []
-        for i in range(len(self._additional_CPO_list)): 
-            additional_CPO_Js.append(self._additional_CPO_list[i].jacobian(curr_z))
-            curr_z, _ = self._additional_CPO_list[i].transform(curr_z)
+        curr_z = proj_input_NOM_z
+        additional_NOM_Js = []
+        for i in range(len(self._additional_NOM_list)): 
+            additional_NOM_Js.append(self._additional_NOM_list[i].jacobian(curr_z))
+            curr_z, _ = self._additional_NOM_list[i].transform(curr_z)
 
-        overall_input_CPO_Js = None
-        for i in range(len(input_CPO_Js)):
-            if overall_input_CPO_Js is None: overall_input_CPO_Js = input_CPO_Js[i]
-            else: overall_input_CPO_Js = tf.matmul(input_CPO_Js[i], overall_input_CPO_Js, transpose_a=False, transpose_b=False)
+        overall_input_NOM_Js = None
+        for i in range(len(input_NOM_Js)):
+            if overall_input_NOM_Js is None: overall_input_NOM_Js = input_NOM_Js[i]
+            else: overall_input_NOM_Js = tf.matmul(input_NOM_Js[i], overall_input_NOM_Js, transpose_a=False, transpose_b=False)
 
-        overall_additional_CPO_Js = None
-        for i in range(len(additional_CPO_Js)):
-            if overall_additional_CPO_Js is None: overall_additional_CPO_Js = additional_CPO_Js[i]
-            else: overall_additional_CPO_Js = tf.matmul(additional_CPO_Js[i], overall_additional_CPO_Js, transpose_a=False, transpose_b=False)
+        overall_additional_NOM_Js = None
+        for i in range(len(additional_NOM_Js)):
+            if overall_additional_NOM_Js is None: overall_additional_NOM_Js = additional_NOM_Js[i]
+            else: overall_additional_NOM_Js = tf.matmul(additional_NOM_Js[i], overall_additional_NOM_Js, transpose_a=False, transpose_b=False)
 
-        if overall_input_CPO_Js is not None:
-            proj_map_J_overall_input_J = tf.matmul(proj_map_J, overall_input_CPO_Js, transpose_a=False, transpose_b=False)
+        if overall_input_NOM_Js is not None:
+            proj_map_J_overall_input_J = tf.matmul(proj_map_J, overall_input_NOM_Js, transpose_a=False, transpose_b=False)
         else: proj_map_J_overall_input_J = proj_map_J
 
-        if overall_additional_CPO_Js is not None:
-            overall_J = tf.matmul(overall_additional_CPO_Js, proj_map_J_overall_input_J, transpose_a=False, transpose_b=False)
+        if overall_additional_NOM_Js is not None:
+            overall_J = tf.matmul(overall_additional_NOM_Js, proj_map_J_overall_input_J, transpose_a=False, transpose_b=False)
         else: overall_J = proj_map_J_overall_input_J
 
         if mode == 'full':
@@ -1123,28 +1123,28 @@ class RiemannianFlow():
         verify_size(z0, log_pdf_z0)
 
         curr_z = z0
-        input_CPO_log_scales = []
-        for i in range(len(self._input_CPO_list)): 
-            curr_z, curr_log_scales = self._input_CPO_list[i].transform(curr_z)
-            input_CPO_log_scales.append(curr_log_scales)
-        input_CPO_z = curr_z
+        input_NOM_log_scales = []
+        for i in range(len(self._input_NOM_list)): 
+            curr_z, curr_log_scales = self._input_NOM_list[i].transform(curr_z)
+            input_NOM_log_scales.append(curr_log_scales)
+        input_NOM_z = curr_z
 
-        proj_input_CPO_z = self._proj_map.transform(input_CPO_z)
+        proj_input_NOM_z = self._proj_map.transform(input_NOM_z)
 
-        curr_z = proj_input_CPO_z
-        additional_CPO_log_scales = []
-        for i in range(len(self._additional_CPO_list)): 
-            curr_z, curr_log_scales = self._additional_CPO_list[i].transform(curr_z)
-            additional_CPO_log_scales.append(curr_log_scales)
-        additional_CPO_z = curr_z
+        curr_z = proj_input_NOM_z
+        additional_NOM_log_scales = []
+        for i in range(len(self._additional_NOM_list)): 
+            curr_z, curr_log_scales = self._additional_NOM_list[i].transform(curr_z)
+            additional_NOM_log_scales.append(curr_log_scales)
+        additional_NOM_z = curr_z
         
-        z = tf.concat([z0, additional_CPO_z], axis=1)
+        z = tf.concat([z0, additional_NOM_z], axis=1)
         
-        if len(input_CPO_log_scales) > 0: input_CPO_log_scales_sum = tf.add_n(input_CPO_log_scales)
-        else: input_CPO_log_scales_sum = tf.zeros((tf.shape(z0)[0], 1), tf.float32)
-        if len(additional_CPO_log_scales) > 0: additional_CPO_log_scales_sum = tf.add_n(additional_CPO_log_scales)
-        else: additional_CPO_log_scales_sum = tf.zeros((tf.shape(z0)[0], 1), tf.float32)
-        overall_scales = tf.exp(input_CPO_log_scales_sum+additional_CPO_log_scales_sum)
+        if len(input_NOM_log_scales) > 0: input_NOM_log_scales_sum = tf.add_n(input_NOM_log_scales)
+        else: input_NOM_log_scales_sum = tf.zeros((tf.shape(z0)[0], 1), tf.float32)
+        if len(additional_NOM_log_scales) > 0: additional_NOM_log_scales_sum = tf.add_n(additional_NOM_log_scales)
+        else: additional_NOM_log_scales_sum = tf.zeros((tf.shape(z0)[0], 1), tf.float32)
+        overall_scales = tf.exp(input_NOM_log_scales_sum+additional_NOM_log_scales_sum)
 
         delta_log_pdf_z = -tf.log(1+overall_scales**2)*(min(self._additional_dim, self._input_dim)/2)
         log_pdf_z = log_pdf_z0 + delta_log_pdf_z
@@ -1665,17 +1665,17 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 # batch_size = 12
 # n_latent = 4
 # n_out = 7
-# n_input_CPO, n_output_CPO = 3, 4
+# n_input_NOM, n_output_NOM = 3, 4
 # name = 'transform'
 # transform_to_check = RiemannianFlow
-# n_parameter = transform_to_check.required_num_parameters(n_latent, n_out, n_input_CPO, n_output_CPO)
+# n_parameter = transform_to_check.required_num_parameters(n_latent, n_out, n_input_NOM, n_output_NOM)
 
 # parameters = None
 # if n_parameter > 0: parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
 
 # z0 = tf.random_normal((batch_size, n_latent), 0, 1, dtype=tf.float32)
 # log_pdf_z0 = tf.zeros(shape=(batch_size, 1), dtype=tf.float32)
-# transform1 = transform_to_check(input_dim=n_latent, output_dim=n_out, n_input_CPO=n_input_CPO, n_output_CPO=n_output_CPO, parameters=parameters)
+# transform1 = transform_to_check(input_dim=n_latent, output_dim=n_out, n_input_NOM=n_input_NOM, n_output_NOM=n_output_NOM, parameters=parameters)
 # z, log_pdf_z, all_scales = transform1.transform(z0, log_pdf_z0, mode='scales')
 # additional_jacobian = transform1.jacobian(z0, mode='additional')
 # full_jacobian = transform1.jacobian(z0, mode='full')
@@ -1737,17 +1737,17 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 # batch_size = 50
 # n_latent = 2
 # n_out = 3
-# n_input_CPO, n_output_CPO = 4, 4
+# n_input_NOM, n_output_NOM = 4, 4
 # name = 'transform'
 # transform_to_check = RiemannianFlow
-# n_parameter = transform_to_check.required_num_parameters(n_latent, n_out, n_input_CPO, n_output_CPO)
+# n_parameter = transform_to_check.required_num_parameters(n_latent, n_out, n_input_NOM, n_output_NOM)
 
 # parameters = None
 # if n_parameter > 0: parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
 
 # z0 = tf.random_normal((batch_size, n_latent), 0, 1, dtype=tf.float32)
 # log_pdf_z0 = tf.zeros(shape=(batch_size, 1), dtype=tf.float32)
-# transform1 = transform_to_check(input_dim=n_latent, output_dim=n_out, n_input_CPO=n_input_CPO, n_output_CPO=n_output_CPO, parameters=parameters)
+# transform1 = transform_to_check(input_dim=n_latent, output_dim=n_out, n_input_NOM=n_input_NOM, n_output_NOM=n_output_NOM, parameters=parameters)
 # z, log_pdf_z = transform1.transform(z0, log_pdf_z0)
 
 # init = tf.initialize_all_variables()
