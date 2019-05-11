@@ -177,7 +177,7 @@ class Model():
         self.reconst_sample = self.reconst_dist.sample(b_mode=True)
 
         self.enc_reg_cost = -tf.reduce_mean(self.transformed_pre_posterior_latent_code)
-        self.cri_reg_cost = enc_reg_cost
+        self.cri_reg_cost = self.enc_reg_cost
 
         #############################################################################
         # REGULARIZER
