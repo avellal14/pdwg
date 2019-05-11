@@ -192,8 +192,8 @@ class Model():
         # self.enc_reg_cost = self.cri_reg_cost
         # self.cri_reg_cost = tf.nn.relu(tf.reduce_mean(self.transformed_prior_log_pdf)-tf.reduce_mean(self.transformed_posterior_log_pdf))
 
-        self.cri_reg_cost = -tf.reduce_mean(self.transformed_posterior_latent_code-self.posterior_latent_code_delta_log_pdf)
-        self.enc_reg_cost = self.cri_reg_cost
+        self.enc_reg_cost = -tf.reduce_mean(self.posterior_prior_log_pdf-self.posterior_latent_code_delta_log_pdf)
+        self.cri_reg_cost = -tf.reduce_mean(self.transformed_posterior_latent_code)
 
         #############################################################################
         # REGULARIZER
