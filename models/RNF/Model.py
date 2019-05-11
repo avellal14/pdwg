@@ -156,7 +156,6 @@ class Model():
         if self.config['encoder_mode'] == 'Gaussian' or self.config['encoder_mode'] == 'UnivApprox' or self.config['encoder_mode'] == 'UnivApproxNoSpatial' or self.config['encoder_mode'] == 'UnivApproxSine': 
             self.epsilon_param = self.EpsilonMap.forward((tf.zeros(shape=(self.batch_size_tf, 1)),))
             self.epsilon_dist = distributions.DiagonalGaussianDistribution(params = self.epsilon_param)        
-            # self.epsilon_dist = distributions.BernoulliDistribution(params = self.epsilon_param)        
             self.epsilon = self.epsilon_dist.sample()
     
         self.pre_posterior_latent_code_expanded, self.pre_posterior_latent_code_det_expanded = self.Encoder.forward(self.input_sample, noise=self.epsilon)
@@ -176,18 +175,6 @@ class Model():
         self.reconst_param = {'flat': None, 'image': tf.reshape(self.transformed_posterior_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
         self.reconst_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.reconst_param)
         self.reconst_sample = self.reconst_dist.sample(b_mode=True)
-        
-        # self.enc_reg_cost = -tf.reduce_mean(self.transformed_posterior_log_pdf)
-        # self.cri_reg_cost = -tf.reduce_mean(self.posterior_prior_log_pdf)
-        # self.gen_reg_cost = -tf.reduce_mean(self.prior_prior_latent_code)
-
-        # self.enc_reg_cost = helper.compute_MMD(self.posterior_latent_code, self.prior_dist.sample())
-        # self.enc_reg_cost = -tf.reduce_mean(self.posterior_prior_log_pdf)
-        # self.cri_reg_cost = -tf.reduce_mean(self.transformed_posterior_log_pdf)
-        # self.cri_reg_cost = (-tf.reduce_mean(self.transformed_posterior_log_pdf)+tf.reduce_mean(self.transformed_prior_log_pdf))**2
-        # self.cri_reg_cost = tf.constant([0],tf.float32)[0]
-        # self.enc_reg_cost = self.cri_reg_cost
-        # self.cri_reg_cost = tf.nn.relu(tf.reduce_mean(self.transformed_prior_log_pdf)-tf.reduce_mean(self.transformed_posterior_log_pdf))
 
         self.enc_reg_cost = -tf.reduce_mean(self.posterior_prior_log_pdf-self.posterior_latent_code_delta_log_pdf)
         self.cri_reg_cost = -tf.reduce_mean(self.transformed_posterior_latent_code)
