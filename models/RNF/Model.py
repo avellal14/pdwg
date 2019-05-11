@@ -178,7 +178,7 @@ class Model():
         self.interpolated_transformed_posterior_latent_code, _ = self.flow_object.transform(self.interpolated_pre_posterior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
         self.interpolated_obs = {'flat': None, 'image': tf.reshape(self.interpolated_transformed_posterior_latent_code, [-1, 10, *batch['observed']['properties']['image'][0]['size'][2:]])}
 
-        self.enc_reg_cost = -tf.reduce_mean(self.transformed_pre_posterior_latent_code)
+        self.enc_reg_cost = -tf.reduce_mean(self.transformed_pre_posterior_log_pdf)
         self.cri_reg_cost = self.enc_reg_cost
 
         #############################################################################
