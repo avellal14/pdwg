@@ -96,9 +96,13 @@ class Model():
         n_output = np.prod(batch['observed']['properties']['image'][0]['size'][2:])
 
         self.pre_flow_object = transforms.SerialFlow([\
-                                                  transforms.RealNVPFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[0]), 
+                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[0]), 
                                                   transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  transforms.RealNVPFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[1]), 
+                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[1]), 
+                                                  transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
+                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[2]), 
+                                                  transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
+                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[3]), 
                                                   ])
 
         self.flow_object = transforms.SerialFlow([\
