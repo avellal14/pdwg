@@ -99,10 +99,10 @@ class Model():
                                                   transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[0]), 
                                                   transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
                                                   transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[1]), 
-                                                  transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[2]), 
-                                                  transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[3]), 
+                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
+                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[2]), 
+                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
+                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[3]), 
                                                   ])
 
         self.flow_object = transforms.SerialFlow([\
