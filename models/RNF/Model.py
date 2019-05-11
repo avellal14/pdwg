@@ -52,24 +52,23 @@ class Model():
             for e in batch['observed']['properties']['image']: e['dist']='dirac'
 
         self.gen_input_sample = batch['observed']['data']
-        self.gen_input_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.gen_input_sample)
-
+        self.gen_input_dist = self.input_dist
+        
         try: self.n_time = batch['observed']['properties']['flat'][0]['size'][1]
         except: self.n_time = batch['observed']['properties']['image'][0]['size'][1]
         try: self.gen_batch_size_tf = tf.shape(self.input_sample['flat'])[0]
         except: self.gen_batch_size_tf = tf.shape(self.input_sample['image'])[0]
         
-        self.gen_prior_param = self.PriorMap.forward((tf.zeros(shape=(self.gen_batch_size_tf, 1)),))
-        self.gen_prior_dist = distributions.DiagonalGaussianDistribution(params = self.gen_prior_param)
-        self.gen_prior_latent_code = self.gen_prior_dist.sample()
+        self.gen_prior_param = self.prior_param
+        self.gen_prior_dist = self.prior_dist
+        self.gen_prior_latent_code = self.prior_latent_code
 
-        self.gen_pre_prior_latent_code, _ = self.pre_flow_object.inverse_transform(self.gen_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
-        self.gen_transformed_prior_latent_code, _ = self.flow_object.transform(self.gen_pre_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
-        
-        self.gen_obs_sample_param = {'flat': None, 'image': tf.reshape(self.gen_transformed_prior_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
-        self.gen_obs_sample_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.gen_obs_sample_param)
-        self.gen_obs_sample = self.gen_obs_sample_dist.sample(b_mode=True)
+        self.gen_pre_prior_latent_code = self.pre_prior_latent_code
+        self.gen_transformed_prior_latent_code = self.transformed_prior_latent_code 
 
+        self.gen_obs_sample_param = self.obs_sample_param
+        self.gen_obs_sample_dist = self.obs_sample_dist
+        self.gen_obs_sample = self.obs_sample
 
     def inference(self, batch, additional_inputs_tf):
         self.epoch = additional_inputs_tf[0]
