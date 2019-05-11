@@ -182,8 +182,11 @@ class Model():
         # self.interpolated_obs = {'flat': None, 'image': tf.reshape(self.interpolated_transformed_posterior_latent_code, [-1, 10, *batch['observed']['properties']['image'][0]['size'][2:]])}
         self.interpolated_obs = {'flat': None, 'image': tf.tile(self.input_sample['image'][:self.batch_size_tf//2, :, :, :, :], [1, 10, 1, 1, 1])}
 
-        self.enc_reg_cost = -tf.reduce_mean(self.transformed_pre_posterior_log_pdf)
-        self.cri_reg_cost = self.enc_reg_cost
+        # self.enc_reg_cost = -tf.reduce_mean(self.transformed_pre_posterior_log_pdf)
+        # self.cri_reg_cost = self.enc_reg_cost
+
+        self.enc_reg_cost = -tf.reduce_mean(self.pre_posterior_log_pdf)
+        self.cri_reg_cost = -tf.reduce_mean(self.transformed_pre_posterior_log_pdf)
 
         #############################################################################
         # REGULARIZER
