@@ -53,7 +53,7 @@ class Model():
 
         self.gen_input_sample = batch['observed']['data']
         self.gen_input_dist = self.input_dist
-        
+
         try: self.n_time = batch['observed']['properties']['flat'][0]['size'][1]
         except: self.n_time = batch['observed']['properties']['image'][0]['size'][1]
         try: self.gen_batch_size_tf = tf.shape(self.input_sample['flat'])[0]
@@ -176,10 +176,11 @@ class Model():
         self.reconst_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.reconst_param)
         self.reconst_sample = self.reconst_dist.sample(b_mode=True)
 
-        self.interpolated_posterior_latent_code = helper.interpolate_latent_codes(self.posterior_latent_code, size=self.batch_size_tf//2)
-        self.interpolated_pre_posterior_latent_code, _ = self.pre_flow_object.inverse_transform(tf.reshape(self.interpolated_posterior_latent_code, [-1, self.interpolated_posterior_latent_code.get_shape().as_list()[-1]]), tf.zeros(shape=(self.batch_size_tf, 1)))
-        self.interpolated_transformed_posterior_latent_code, _ = self.flow_object.transform(self.interpolated_pre_posterior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
-        self.interpolated_obs = {'flat': None, 'image': tf.reshape(self.interpolated_transformed_posterior_latent_code, [-1, 10, *batch['observed']['properties']['image'][0]['size'][2:]])}
+        # self.interpolated_posterior_latent_code = helper.interpolate_latent_codes(self.posterior_latent_code, size=self.batch_size_tf//2)
+        # self.interpolated_pre_posterior_latent_code, _ = self.pre_flow_object.inverse_transform(tf.reshape(self.interpolated_posterior_latent_code, [-1, self.interpolated_posterior_latent_code.get_shape().as_list()[-1]]), tf.zeros(shape=(self.batch_size_tf, 1)))
+        # self.interpolated_transformed_posterior_latent_code, _ = self.flow_object.transform(self.interpolated_pre_posterior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
+        # self.interpolated_obs = {'flat': None, 'image': tf.reshape(self.interpolated_transformed_posterior_latent_code, [-1, 10, *batch['observed']['properties']['image'][0]['size'][2:]])}
+        self.interpolated_obs = {'flat': None, 'image': tf.tile(tf.reshape(self.transformed_pre_posterior_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]]), [1, 10, 1])}
 
         self.enc_reg_cost = -tf.reduce_mean(self.transformed_pre_posterior_log_pdf)
         self.cri_reg_cost = self.enc_reg_cost
