@@ -63,7 +63,7 @@ class Model():
         self.gen_prior_dist = distributions.DiagonalGaussianDistribution(params = self.gen_prior_param)
         self.gen_prior_latent_code = self.gen_prior_dist.sample()
 
-        self.gen_pre_prior_latent_code, _ = self.pre_flow_object.transform(self.gen_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
+        self.gen_pre_prior_latent_code, _ = self.pre_flow_object.inverse_transform(self.gen_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
         self.gen_transformed_prior_latent_code, _ = self.flow_object.transform(self.gen_pre_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
         
         self.gen_obs_sample_param = {'flat': None, 'image': tf.reshape(self.gen_transformed_prior_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
@@ -113,7 +113,7 @@ class Model():
         self.prior_dist = distributions.DiagonalGaussianDistribution(params = self.prior_param)
         self.prior_latent_code = self.prior_dist.sample()        
  
-        self.pre_prior_latent_code, _ = self.pre_flow_object.transform(self.prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
+        self.pre_prior_latent_code, _ = self.pre_flow_object.inverse_transform(self.prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
         self.transformed_prior_latent_code, _ = self.flow_object.transform(self.pre_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
         
         self.obs_sample_param = {'flat': None, 'image': tf.reshape(self.transformed_prior_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
@@ -128,7 +128,7 @@ class Model():
             np.save(str(Path.home())+'/ExperimentalResults/FixedSamples/np_constant_prior_sample_'+str(self.prior_latent_code.get_shape().as_list()[-1])+'.npz', np_constant_prior_sample)    
         self.constant_prior_latent_code = tf.constant(np.asarray(np_constant_prior_sample), dtype=np.float32)
         
-        self.constant_pre_prior_latent_code, _ = self.pre_flow_object.transform(self.constant_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
+        self.constant_pre_prior_latent_code, _ = self.pre_flow_object.inverse_transform(self.constant_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
         self.constant_transformed_prior_latent_code, _ = self.flow_object.transform(self.constant_pre_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
 
         self.constant_obs_sample_param = {'flat': None, 'image': tf.reshape(self.constant_transformed_prior_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
@@ -143,7 +143,7 @@ class Model():
             np_constant_prior_grid_sample = np.concatenate((xv.flatten()[:, np.newaxis], yv.flatten()[:, np.newaxis][:]), axis=1)
             self.constant_grid_prior_latent_code = tf.constant(np.asarray(np_constant_prior_grid_sample), dtype=np.float32)
         
-            self.constant_grid_pre_prior_latent_code, _ = self.pre_flow_object.transform(self.constant_grid_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
+            self.constant_grid_pre_prior_latent_code, _ = self.pre_flow_object.inverse_transform(self.constant_grid_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
             self.constant_grid_transformed_prior_latent_code, _ = self.flow_object.transform(self.constant_grid_pre_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
 
             self.constant_grid_obs_sample_param = {'flat': None, 'image': tf.reshape(self.constant_grid_transformed_prior_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
@@ -162,11 +162,11 @@ class Model():
         self.pre_posterior_latent_code_expanded, self.pre_posterior_latent_code_det_expanded = self.Encoder.forward(self.input_sample, noise=self.epsilon)
         self.pre_posterior_latent_code = self.pre_posterior_latent_code_expanded[:,0,:]
 
-        self.posterior_latent_code, self.posterior_delta_log_pdf = self.pre_flow_object.inverse_transform(self.pre_posterior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
+        self.posterior_latent_code, self.posterior_delta_log_pdf = self.pre_flow_object.transform(self.pre_posterior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
         self.posterior_log_pdf = self.prior_dist.log_pdf(self.posterior_latent_code)
         self.pre_posterior_log_pdf = self.posterior_log_pdf-self.posterior_delta_log_pdf
         
-        # self.pre_posterior_latent_code, self.pre_posterior_log_pdf = self.pre_flow_object.transform(self.posterior_latent_code, self.posterior_log_pdf)
+        # self.pre_posterior_latent_code, self.pre_posterior_log_pdf = self.pre_flow_object.inverse_transform(self.posterior_latent_code, self.posterior_log_pdf)
         self.transformed_pre_posterior_latent_code, self.transformed_pre_posterior_log_pdf = self.flow_object.transform(self.pre_posterior_latent_code, self.pre_posterior_log_pdf)        
         
         self.reconst_param = {'flat': None, 'image': tf.reshape(self.transformed_pre_posterior_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
@@ -174,7 +174,7 @@ class Model():
         self.reconst_sample = self.reconst_dist.sample(b_mode=True)
 
         self.interpolated_posterior_latent_code = helper.interpolate_latent_codes(self.posterior_latent_code, size=self.batch_size_tf//2)
-        self.interpolated_pre_posterior_latent_code, _ = self.pre_flow_object.transform(tf.reshape(self.interpolated_posterior_latent_code, [-1, self.interpolated_posterior_latent_code.get_shape().as_list()[-1]]), tf.zeros(shape=(self.batch_size_tf, 1)))
+        self.interpolated_pre_posterior_latent_code, _ = self.pre_flow_object.inverse_transform(tf.reshape(self.interpolated_posterior_latent_code, [-1, self.interpolated_posterior_latent_code.get_shape().as_list()[-1]]), tf.zeros(shape=(self.batch_size_tf, 1)))
         self.interpolated_transformed_posterior_latent_code, _ = self.flow_object.transform(self.interpolated_pre_posterior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
         self.interpolated_obs = {'flat': None, 'image': tf.reshape(self.interpolated_transformed_posterior_latent_code, [-1, 10, *batch['observed']['properties']['image'][0]['size'][2:]])}
 
