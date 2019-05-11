@@ -135,6 +135,25 @@ class FlowMap():
 			self.constructed = True
 			return parameters_list
 
+class WolfMap():
+	def __init__(self, config, name = '/WolfMap'):
+		self.name = name
+		self.config = config
+		self.constructed = False
+
+	def forward(self, batch, name = ''):
+		with tf.variable_scope("WolfMap", reuse=self.constructed):
+			parameters_list = []
+			# flow_to_use = transforms.RealNVPFlow
+			flow_to_use = transforms.NonLinearIARFlow
+			parameters_list.append(1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
+			parameters_list.append(1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
+			parameters_list.append(1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
+
+			self.constructed = True
+			return parameters_list
+
+
 class FlowMap2():
 	def __init__(self, config, name = '/FlowMap'):
 		self.name = name

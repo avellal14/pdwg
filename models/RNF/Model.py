@@ -32,6 +32,7 @@ class Model():
         self.EpsilonMap = ModelMaps.PriorMapGaussian(self.config)    
         # self.EpsilonMap = ModelMaps.PriorMapBernoulli(self.config)    
         self.FlowMap = ModelMaps.FlowMap(self.config)
+        self.WolfMap = ModelMaps.WolfMap(self.config)
         # self.FlowMap = ModelMaps.FlowMap2(self.config)
         self.InfoMap = ModelMaps.InfoMapGaussian({**self.config, 'data_properties': batch['observed']['properties']})
         # self.InfoMap = ModelMaps.InfoMapBernoulli({**self.config, 'data_properties': batch['observed']['properties']})
@@ -93,24 +94,20 @@ class Model():
         #############################################################################
         # GENERATOR 
         self.flow_param_list = self.FlowMap.forward(batch)
+        self.wolf_param_list = self.WolfMap.forward(batch)
+
         n_output = np.prod(batch['observed']['properties']['image'][0]['size'][2:])
 
         self.pre_flow_object = transforms.SerialFlow([\
-                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[0]), 
+                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[0]), 
                                                   transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[1]), 
-                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[2]), 
-                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[3]), 
+                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[1]), 
                                                   ])
 
         self.flow_object = transforms.SerialFlow([\
-                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[4]), 
+                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[0]), 
                                                   transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[5]), 
-                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[6]), 
+                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[1]), 
                                                   transforms.RiemannianFlow(input_dim=self.config['n_latent'], output_dim=n_output, n_input_NOM=self.config['rnf_prop']['n_input_NOM'], n_output_NOM=self.config['rnf_prop']['n_output_NOM'], parameters=self.flow_param_list[-2]),
                                                   transforms.CompoundRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-1]),
                                                   ])
