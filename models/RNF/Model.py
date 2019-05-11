@@ -168,7 +168,7 @@ class Model():
         
         self.interpolated_posterior_latent_code = helper.interpolate_latent_codes(self.posterior_latent_code, size=self.batch_size_tf//2)
         self.interpolated_pre_posterior_latent_code, _ = self.pre_flow_object.transform(self.interpolated_posterior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
-        self.interpolated_transformed_posterior_latent_code, _ = self.flow_object.transform(self.interpolated_pre_posterior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
+        self.interpolated_transformed_posterior_latent_code, _ = self.flow_object.transform(tf.reshape(self.interpolated_pre_posterior_latent_code, [-1, self.interpolated_pre_posterior_latent_code.get_shape().as_list()[-1]]), tf.zeros(shape=(self.batch_size_tf, 1)))
         self.interpolated_obs = {'flat': None, 'image': tf.reshape(self.interpolated_transformed_posterior_latent_code, [-1, 10, *batch['observed']['properties']['image'][0]['size'][2:]])}
 
         self.transformed_pre_posterior_latent_code, self.transformed_pre_posterior_log_pdf = self.flow_object.transform(self.pre_posterior_latent_code, self.pre_posterior_log_pdf)        
