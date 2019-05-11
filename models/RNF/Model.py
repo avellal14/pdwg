@@ -162,13 +162,13 @@ class Model():
         self.pre_posterior_latent_code_expanded, self.pre_posterior_latent_code_det_expanded = self.Encoder.forward(self.input_sample, noise=self.epsilon)
         self.pre_posterior_latent_code = self.pre_posterior_latent_code_expanded[:,0,:]
 
-        self.posterior_latent_code, self.posterior_latent_code_delta_log_pdf = self.pre_flow_object.inverse_transform(self.pre_posterior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
+        self.posterior_latent_code, self.posterior_delta_log_pdf = self.pre_flow_object.inverse_transform(self.pre_posterior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
         self.posterior_log_pdf = self.prior_dist.log_pdf(self.posterior_latent_code)
-        self.pre_posterior_log_pdf = self.posterior_log_pdf-self.posterior_latent_code_delta_log_pdf
+        self.pre_posterior_log_pdf = self.posterior_log_pdf-self.posterior_delta_log_pdf
         
         self.interpolated_posterior_latent_code = helper.interpolate_latent_codes(self.posterior_latent_code, size=self.batch_size_tf//2)
-        self.interpolated_pre_posterior_latent_code, _ = self.pre_flow_object.transform(self.interpolated_posterior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
-        self.interpolated_transformed_posterior_latent_code, _ = self.flow_object.transform(tf.reshape(self.interpolated_pre_posterior_latent_code, [-1, self.interpolated_pre_posterior_latent_code.get_shape().as_list()[-1]]), tf.zeros(shape=(self.batch_size_tf, 1)))
+        self.interpolated_pre_posterior_latent_code, _ = self.pre_flow_object.transform(tf.reshape(self.interpolated_posterior_latent_code, [-1, self.interpolated_posterior_latent_code.get_shape().as_list()[-1]]), tf.zeros(shape=(self.batch_size_tf, 1)))
+        self.interpolated_transformed_posterior_latent_code, _ = self.flow_object.transform(self.interpolated_pre_posterior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
         self.interpolated_obs = {'flat': None, 'image': tf.reshape(self.interpolated_transformed_posterior_latent_code, [-1, 10, *batch['observed']['properties']['image'][0]['size'][2:]])}
 
         self.transformed_pre_posterior_latent_code, self.transformed_pre_posterior_log_pdf = self.flow_object.transform(self.pre_posterior_latent_code, self.pre_posterior_log_pdf)        
