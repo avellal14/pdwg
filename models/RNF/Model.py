@@ -138,20 +138,20 @@ class Model():
         self.constant_obs_sample_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.constant_obs_sample_param)
         self.constant_obs_sample = self.constant_obs_sample_dist.sample(b_mode=True)
       
-        if self.config['n_latent'] == 2: 
-            grid_scale = 3
-            x = np.linspace(-grid_scale, grid_scale, 20)
-            y = np.linspace(grid_scale, -grid_scale, 20)
-            xv, yv = np.meshgrid(x, y)
-            np_constant_prior_grid_sample = np.concatenate((xv.flatten()[:, np.newaxis], yv.flatten()[:, np.newaxis][:]), axis=1)
-            self.constant_grid_prior_latent_code = tf.constant(np.asarray(np_constant_prior_grid_sample), dtype=np.float32)
+        # if self.config['n_latent'] == 2: 
+        #     grid_scale = 3
+        #     x = np.linspace(-grid_scale, grid_scale, 20)
+        #     y = np.linspace(grid_scale, -grid_scale, 20)
+        #     xv, yv = np.meshgrid(x, y)
+        #     np_constant_prior_grid_sample = np.concatenate((xv.flatten()[:, np.newaxis], yv.flatten()[:, np.newaxis][:]), axis=1)
+        #     self.constant_grid_prior_latent_code = tf.constant(np.asarray(np_constant_prior_grid_sample), dtype=np.float32)
         
-            self.constant_grid_pre_prior_latent_code, _ = self.pre_flow_object.inverse_transform(self.constant_grid_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
-            self.constant_grid_transformed_prior_latent_code, _ = self.flow_object.transform(self.constant_grid_pre_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
+        #     self.constant_grid_pre_prior_latent_code, _ = self.pre_flow_object.inverse_transform(self.constant_grid_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
+        #     self.constant_grid_transformed_prior_latent_code, _ = self.flow_object.transform(self.constant_grid_pre_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
 
-            self.constant_grid_obs_sample_param = {'flat': None, 'image': tf.reshape(self.constant_grid_transformed_prior_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
-            self.constant_grid_obs_sample_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.constant_grid_obs_sample_param)
-            self.constant_grid_obs_sample = self.constant_grid_obs_sample_dist.sample(b_mode=True)
+        #     self.constant_grid_obs_sample_param = {'flat': None, 'image': tf.reshape(self.constant_grid_transformed_prior_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
+        #     self.constant_grid_obs_sample_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.constant_grid_obs_sample_param)
+        #     self.constant_grid_obs_sample = self.constant_grid_obs_sample_dist.sample(b_mode=True)
                           
         #############################################################################
         # ENCODER 
