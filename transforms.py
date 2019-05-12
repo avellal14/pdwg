@@ -1258,7 +1258,7 @@ class NonLinearIARFlow():
     Raises:
       ValueError: 
     """
-    layer_expansions = [2,]
+    layer_expansions = [5, 5]
 
     def __init__(self, input_dim, parameters, mode='BoundedScaleShift', name='nonlinearIAR_transform'):   #real
         self._parameter_scale = 1
@@ -1267,7 +1267,7 @@ class NonLinearIARFlow():
         self._nonlinearity = helper.LeakyReLU # tf.nn.tanh
         self._mode = mode
         self._max_bounded_scale = 10
-        self._min_bounded_scale = 0.1
+        self._min_bounded_scale = 1/self._max_bounded_scale
 
         assert (self._input_dim > 1)
 
@@ -1496,8 +1496,8 @@ class RealNVPFlow():
         if RealNVPFlow.same_dim is None: self._same_dim = int(float(self._input_dim)/2.)
         else: self._same_dim = RealNVPFlow.same_dim
         self._change_dim = self._input_dim - self._same_dim
-        self._max_bounded_scale = 5
-        self._min_bounded_scale = 0.05
+        self._max_bounded_scale = 10
+        self._min_bounded_scale = 1/self._max_bounded_scale
 
         assert (self._input_dim > 1)
         assert (self._input_dim % 2 == 0)
