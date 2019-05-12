@@ -1008,7 +1008,7 @@ class PiecewisePlanarScalingMap():
     """
     n_steps = 10
 
-    def __init__(self, input_dim, parameters, margin_mode='NoGradient', scale_mode='BoundedScale', name='piecewise_planar_scaling_transform'):   
+    def __init__(self, input_dim, parameters, margin_mode='NoGradient', scale_mode='Scale', name='piecewise_planar_scaling_transform'):   
         self._parameter_scale = 1.
         self._parameters = parameters
         self._parameters = self._parameter_scale*self._parameters
