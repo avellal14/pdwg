@@ -10,6 +10,7 @@ import numpy as np
 import math 
 from random import shuffle 
 import time
+import scipy
 from scipy import special
 
 class PlanarFlow():
