@@ -1482,7 +1482,7 @@ class RealNVPFlow():
     layer_expansions = [2,]
     same_dim = None
 
-    def __init__(self, input_dim, parameters, mode='ScaleShift', name='realNVP_transform'):   #real
+    def __init__(self, input_dim, parameters, mode='BoundedScaleShift', name='realNVP_transform'):   #real
         self._parameter_scale = 1
         self._parameters = self._parameter_scale*parameters
         self._input_dim = input_dim
