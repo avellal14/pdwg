@@ -438,6 +438,51 @@ class InverseOpenIntervalDimensionFlow():
         z0, log_pdf_z0 = self._inverse_flow_object.transform(z, log_pdf_z)
         return z0, log_pdf_z0
 
+class SpecificRotationFlow():
+    """
+    Specific Rotation Flow class. SO(n) fixed random rotation
+    Args:
+      parameters: parameters of transformation all appended.
+      input_dim : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+
+    def __init__(self, input_dim, parameters=None, name='specific_rotation_transform'):   
+        self._parameters = parameters
+        self._input_dim = input_dim
+        assert (self._parameters is None)
+        self._batched_rot_matrix = self.get_batched_rot_matrix() 
+
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim
+
+    @staticmethod
+    def required_num_parameters(input_dim): 
+        return 0
+
+    def get_batched_rot_matrix(self):
+        return tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32)[np.newaxis, :, :]
+
+    def transform(self, z0, log_pdf_z0):
+        verify_size(z0, log_pdf_z0)
+
+        z = tf.matmul(z0, self._batched_rot_matrix[0, :, :], transpose_a=False, transpose_b=True)
+        log_pdf_z = log_pdf_z0 
+        return z, log_pdf_z
+
+    def inverse_transform(self, z, log_pdf_z):
+        verify_size(z, log_pdf_z)
+        
+        z0 = tf.matmul(z, self._batched_rot_matrix[0, :, :], transpose_a=False, transpose_b=False)
+        log_pdf_z0 = log_pdf_z 
+        return z0, log_pdf_z0
+
 class HouseholdRotationFlow():
     """
     Householder Rotation Flow class. SO(n)
