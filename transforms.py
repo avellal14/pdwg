@@ -604,7 +604,7 @@ class CompoundHouseholdRotationFlow():
     Raises:
       ValueError: 
     """
-    max_steps = 20
+    max_steps = 100
 
     def __init__(self, input_dim, parameters, vector_mode_rate=1, name='compound_household_rotation_transform'):   
         self._parameter_scale = 1.
