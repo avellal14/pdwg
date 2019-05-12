@@ -187,7 +187,8 @@ class Model():
         self.interpolated_obs = {'flat': None, 'image': tf.tile(self.input_sample['image'][:self.batch_size_tf//2, :, :, :, :], [1, 10, 1, 1, 1])}
 
         self.enc_reg_cost = -tf.reduce_mean(self.transformed_pre_posterior_log_pdf)
-        self.cri_reg_cost = self.enc_reg_cost
+        # self.cri_reg_cost = self.enc_reg_cost
+        self.cri_reg_cost = -tf.reduce_mean(self.pre_posterior_log_pdf)
 
         #############################################################################
         # REGULARIZER
@@ -200,15 +201,14 @@ class Model():
         #############################################################################
         # OBJECTIVES
 
-
-        ### Encoder
         self.OT_primal = self.sample_distance_function(self.input_sample, self.reconst_sample)
         self.mean_OT_primal = tf.reduce_mean(self.OT_primal)
 
+        self.cri_cost = self.cri_reg_cost
+
         self.enc_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.enc_reg_cost
 
-        ### Generator
-        self.gen_cost = self.mean_OT_primal+self.config['cri_reg_strength']*self.cri_reg_cost
+        self.gen_cost = self.mean_OT_primal+self.config['cri_reg_strength']*self.enc_reg_cost
 
 
 

@@ -208,7 +208,7 @@ parser.add_argument('--restore_dir', type=str, default='/799f428b8f7e42459281ed5
 parser.add_argument('--restore', type=bool, default=False, help='Restore model.')
 parser.add_argument('--gpu', type=str, default='0', help='gpu to use.')
 parser.add_argument('--epochs', type=int, default=1000000000, help='Number of epochs to train.')
-parser.add_argument('--batch_size', type=int, default=100, help='Input batch size for training.')
+parser.add_argument('--batch_size', type=int, default=25, help='Input batch size for training.')
 parser.add_argument('--time_steps', type=int, default=1, help='Number of timesteps')
 parser.add_argument('--seed', type=int, default=1123124, help='random seed')
 
@@ -613,8 +613,8 @@ with tf.Graph().as_default():
         model.generative_model(batch_tf, additional_inputs_tf)
 
         div_vars = [v for v in tf.trainable_variables() if 'Diverger' in v.name or 'Decomposer' in v.name]
-        enc_vars = [v for v in tf.trainable_variables() if 'Encoder' in v.name or 'WolfMap' in v.name] 
-        cri_vars = [v for v in tf.trainable_variables() if 'Critic' in v.name or 'PriorTransform' in v.name or 'PriorExpandMap' in v.name or 'Separator' in v.name or 'PreEnc' in v.name or 'PostGen' in v.name or 'InfoMap' in v.name]
+        enc_vars = [v for v in tf.trainable_variables() if 'Encoder' in v.name] 
+        cri_vars = [v for v in tf.trainable_variables() if 'Critic' in v.name or 'WolfMap' in v.name or 'PriorTransform' in v.name or 'PriorExpandMap' in v.name or 'Separator' in v.name or 'PreEnc' in v.name or 'PostGen' in v.name or 'InfoMap' in v.name]
         gen_vars = [v for v in tf.trainable_variables() if 'Generator' in v.name or 'FlowMap' in v.name] 
 
         # Weight clipping
