@@ -208,7 +208,7 @@ class Model():
 
         self.enc_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.enc_reg_cost
 
-        self.gen_cost = self.mean_OT_primal+self.config['cri_reg_strength']*self.enc_reg_cost
+        self.gen_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.enc_reg_cost
 
 
 
