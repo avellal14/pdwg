@@ -922,7 +922,7 @@ class ConnectedPiecewiseOrthogonalMap():
 
         assert (self._margin_mode == 'NoGradient' or self._margin_mode == 'ST')
         assert (self._scale_mode == 'Scale' or self._scale_mode == 'BoundedScale')
-        assert (self._max_bounded_scale > 1 and self._min_bounded_scale > 0)
+        assert (self._max_bounded_scale > 1 and self._min_bounded_scale >= 0 and self._max_bounded_scale > self._min_bounded_scale)
 
         self._parameters.get_shape().assert_is_compatible_with([None, ConnectedPiecewiseOrthogonalMap.required_num_parameters(self._input_dim)])
         
@@ -1021,7 +1021,7 @@ class PiecewisePlanarScalingMap():
 
         assert (self._margin_mode == 'NoGradient' or self._margin_mode == 'ST')
         assert (self._scale_mode == 'Scale' or self._scale_mode == 'BoundedScale')
-        assert (self._max_bounded_scale > 1 and self._min_bounded_scale > 0)
+        assert (self._max_bounded_scale > 1 and self._min_bounded_scale >= 0 and self._max_bounded_scale > self._min_bounded_scale)
 
         self._parameters.get_shape().assert_is_compatible_with([None, PiecewisePlanarScalingMap.required_num_parameters(self._input_dim)])
         
@@ -1290,6 +1290,7 @@ class NonLinearIARFlow():
         self._min_bounded_scale = 1/self._max_bounded_scale
 
         assert (self._input_dim > 1)
+        assert (self._max_bounded_scale > 1 and self._min_bounded_scale >= 0 and self._max_bounded_scale > self._min_bounded_scale)
 
         self._parameters.get_shape().assert_is_compatible_with([None, NonLinearIARFlow.required_num_parameters(self._input_dim)])
 
@@ -1516,11 +1517,12 @@ class RealNVPFlow():
         if RealNVPFlow.same_dim is None: self._same_dim = int(float(self._input_dim)/2.)
         else: self._same_dim = RealNVPFlow.same_dim
         self._change_dim = self._input_dim - self._same_dim
-        self._max_bounded_scale = 10
+        self._max_bounded_scale = 5
         self._min_bounded_scale = 1/self._max_bounded_scale
 
         assert (self._input_dim > 1)
         assert (self._input_dim % 2 == 0)
+        assert (self._max_bounded_scale > 1 and self._min_bounded_scale >= 0 and self._max_bounded_scale > self._min_bounded_scale)
 
         self._parameters.get_shape().assert_is_compatible_with([None, RealNVPFlow.required_num_parameters(self._input_dim)])
 
