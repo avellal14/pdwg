@@ -940,7 +940,7 @@ class ConnectedPiecewiseOrthogonalMap():
         elif self._scale_mode == 'BoundedScale': 
             gap = (self._max_bounded_scale-self._min_bounded_scale)
             self._pos_scale = self._min_bounded_scale+tf.nn.sigmoid(self._pos_pre_scale+scipy.special.logit(1/gap))*gap
-            self._neg_scale = self._min_bounded_scale+tf.nn.sigmoid(self._pos_pre_scale+scipy.special.logit(1/gap))*gap
+            self._neg_scale = self._min_bounded_scale+tf.nn.sigmoid(self._neg_pre_scale+scipy.special.logit(1/gap))*gap
         self._hyper_bias = tf.nn.softplus(self._hyper_pre_bias)/np.log(1+np.exp(0))
         self._hyper_vec_dir = self._hyper_vec/helper.safe_tf_sqrt(tf.reduce_sum(self._hyper_vec**2, axis=1, keep_dims=True))
         self._pos_rotation_flow = ConnectedPiecewiseOrthogonalMap.rotation_flow_class(self._input_dim, self._pos_rotation_param) 
@@ -1008,7 +1008,7 @@ class PiecewisePlanarScalingMap():
     """
     n_steps = 10
 
-    def __init__(self, input_dim, parameters, margin_mode='NoGradient', scale_mode='Scale', name='piecewise_planar_scaling_transform'):   
+    def __init__(self, input_dim, parameters, margin_mode='NoGradient', scale_mode='BoundedScale', name='piecewise_planar_scaling_transform'):   
         self._parameter_scale = 1.
         self._parameters = parameters
         self._parameters = self._parameter_scale*self._parameters
@@ -1039,7 +1039,7 @@ class PiecewisePlanarScalingMap():
         elif self._scale_mode == 'BoundedScale': 
             gap = (self._max_bounded_scale-self._min_bounded_scale)
             self._pos_scale = self._min_bounded_scale+tf.nn.sigmoid(self._pos_pre_scale+scipy.special.logit(1/gap))*gap
-            self._neg_scale = self._min_bounded_scale+tf.nn.sigmoid(self._pos_pre_scale+scipy.special.logit(1/gap))*gap
+            self._neg_scale = self._min_bounded_scale+tf.nn.sigmoid(self._neg_pre_scale+scipy.special.logit(1/gap))*gap
         self._hyper_bias = tf.nn.softplus(self._hyper_pre_bias)/np.log(1+np.exp(0))
         self._hyper_vec_dir = self._hyper_vec/helper.safe_tf_sqrt(tf.reduce_sum(self._hyper_vec**2, axis=2, keep_dims=True))
 
