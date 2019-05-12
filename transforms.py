@@ -1038,7 +1038,6 @@ class PiecewisePlanarScalingMap():
             self._neg_scale = tf.nn.softplus(self._neg_pre_scale)/np.log(1+np.exp(0))
         elif self._scale_mode == 'BoundedScale': 
             gap = (self._max_bounded_scale-self._min_bounded_scale)
-            pdb.set_trace()
             self._pos_scale = self._min_bounded_scale+tf.nn.sigmoid(self._pos_pre_scale+scipy.special.logit(1/gap))*gap
             self._neg_scale = self._min_bounded_scale+tf.nn.sigmoid(self._neg_pre_scale+scipy.special.logit(1/gap))*gap
         self._hyper_bias = tf.nn.softplus(self._hyper_pre_bias)/np.log(1+np.exp(0))
