@@ -1267,7 +1267,7 @@ class NonLinearIARFlow():
         self._nonlinearity = helper.LeakyReLU # tf.nn.tanh
         self._mode = mode
         self._max_bounded_scale = 10
-        self._min_bounded_scale = 0.2
+        self._min_bounded_scale = 0.1
 
         assert (self._input_dim > 1)
 
@@ -1497,7 +1497,7 @@ class RealNVPFlow():
         else: self._same_dim = RealNVPFlow.same_dim
         self._change_dim = self._input_dim - self._same_dim
         self._max_bounded_scale = 10
-        self._min_bounded_scale = 0.2
+        self._min_bounded_scale = 0.1
 
         assert (self._input_dim > 1)
         assert (self._input_dim % 2 == 0)
