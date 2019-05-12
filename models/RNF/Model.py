@@ -96,25 +96,21 @@ class Model():
 
         self.pre_flow_object = transforms.SerialFlow([\
                                                   transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[0]), 
-                                                  transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
+                                                  transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
                                                   transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[1]), 
-                                                  # transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
-                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[2]), 
-                                                  # transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
-                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[3]), 
+                                                  transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
+                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[2]), 
+                                                  transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
+                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[3]), 
+                                                  transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
                                                   ])
 
         self.flow_object = transforms.SerialFlow([\
                                                   transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[0]), 
-                                                  transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
-                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[1]), 
-                                                  # transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
-                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[2]), 
-                                                  # transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
-                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[3]), 
                                                   transforms.RiemannianFlow(input_dim=self.config['n_latent'], output_dim=n_output, n_input_NOM=self.config['rnf_prop']['n_input_NOM'], n_output_NOM=self.config['rnf_prop']['n_output_NOM'], parameters=self.flow_param_list[-2]),
                                                   transforms.CompoundRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-1]),
                                                   ])
+        # SpecificRotationFlow, SpecificOrderDimensionFlow
 
         self.prior_param = self.PriorMap.forward((tf.zeros(shape=(self.batch_size_tf, 1)),))
         self.prior_dist = distributions.DiagonalGaussianDistribution(params = self.prior_param)
@@ -186,9 +182,8 @@ class Model():
         # self.interpolated_obs = {'flat': None, 'image': tf.reshape(self.interpolated_transformed_posterior_latent_code, [-1, 10, *batch['observed']['properties']['image'][0]['size'][2:]])}
         self.interpolated_obs = {'flat': None, 'image': tf.tile(self.input_sample['image'][:self.batch_size_tf//2, :, :, :, :], [1, 10, 1, 1, 1])}
 
-        self.enc_reg_cost = -tf.reduce_mean(self.transformed_pre_posterior_log_pdf)
-        # self.cri_reg_cost = self.enc_reg_cost
-        self.cri_reg_cost = -tf.reduce_mean(self.pre_posterior_log_pdf)
+        self.cri_reg_cost = -tf.reduce_mean(self.transformed_pre_posterior_log_pdf)
+        self.enc_reg_cost = -tf.reduce_mean(self.pre_posterior_log_pdf)
 
         #############################################################################
         # REGULARIZER
@@ -204,11 +199,9 @@ class Model():
         self.OT_primal = self.sample_distance_function(self.input_sample, self.reconst_sample)
         self.mean_OT_primal = tf.reduce_mean(self.OT_primal)
 
-        self.cri_cost = self.cri_reg_cost
-
         self.enc_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.enc_reg_cost
-
-        self.gen_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.enc_reg_cost
+        self.gen_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.cri_reg_cost
+        self.cri_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.cri_reg_cost
 
 
 
