@@ -1015,8 +1015,8 @@ class PiecewisePlanarScalingMap():
         self._input_dim = input_dim
         self._margin_mode = margin_mode
         self._scale_mode = scale_mode
-        self._max_bounded_scale = 1.
-        self._min_bounded_scale = 0 #1/self._max_bounded_scale
+        self._max_bounded_scale = 10.
+        self._min_bounded_scale = 0 
 
         assert (self._margin_mode == 'NoGradient' or self._margin_mode == 'ST')
         assert (self._scale_mode == 'Scale' or self._scale_mode == 'BoundedScale')
