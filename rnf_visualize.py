@@ -18,6 +18,7 @@ from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 from matplotlib import cm
 from sklearn.datasets import make_blobs, make_circles, make_moons
 from sklearn.preprocessing import StandardScaler
+from scipy.stats import multivariate_normal
 
 plt.style.use('seaborn-white')
 plt.rcParams['font.family'] = 'serif'
@@ -95,6 +96,23 @@ def animate(ax_list, n_turns = 1, skip_rate = 10, mode='elevazim', wait_time=0.0
                 plt.savefig(save_path+'_('+str(ax_list[0].elev)+','+str(ax_list[0].azim)+').png', bbox_inches='tight', format='png', dpi=int(quality*my_dpi), transparent=False)
                 print('(Elev, Azim): ', ax_list[0].elev, ax_list[0].azim)
 
+mix_1 = 0.01
+l1 = multivariate_normal(mean=[0,0], cov=[[2,0],[0,2]])
+mix_2_1 = 0.2
+mix_2_2 = 0.2
+mix_2_3 = 0.2
+mix_2_4 = 0.2
+mix_2_5 = 0.2
+l2_1 = multivariate_normal(mean=[0.5,0.5],  cov=[[0.1,0],[0,0.1]])
+l2_2 = multivariate_normal(mean=[0.5,-0.5], cov=[[0.1,0],[0,0.1]])
+l2_3 = multivariate_normal(mean=[-0.5,0.5], cov=[[0.1,0],[0,0.1]])
+l2_4 = multivariate_normal(mean=[-0.5,-0.5], cov=[[0.1,0],[0,0.1]])
+l2_4 = multivariate_normal(mean=[0,-0], cov=[[0.1,0],[0,0.1]])
+
+def density_fun(X):
+    density = mix_1*l1.pdf(X)+(1-mix_1)*(mix_2_1*l2_1.pdf(X)+mix_2_2*l2_2.pdf(X)+mix_2_3*l2_3.pdf(X)+mix_2_4*l2_4.pdf(X))
+    return density[:, np.newaxis]
+
 range_1_min = -1
 range_1_max = 1
 
@@ -103,6 +121,16 @@ data_manifold = np.load(exp_dir+'data_manifold.npy')
 grid_manifold = np.load(exp_dir+'grid_manifold.npy')
 rec_data_manifolds = np.load(exp_dir+'rec_data_manifolds.npy')
 rec_grid_manifolds = np.load(exp_dir+'rec_grid_manifolds.npy')
+
+densities = density_fun(data_manifold[:, :2])
+fig, ax = plt.subplots(figsize=(5, 5))
+plt.clf()
+ax1 = fig.add_subplot(1, 1, 1, projection='3d')
+ax1.scatter(data_manifold[:, 0], data_manifold[:, 1], data_manifold[:, 2], s=marker_size, lw = marker_line, edgecolors='k', facecolors=cm.get_cmap("coolwarm")(Normalize()(densities[:,0])))
+ax1.view_init(elev=90., azim=0.)
+plt.show()
+
+pdb.set_trace()
 
 ############################# TEST ##############################################
 

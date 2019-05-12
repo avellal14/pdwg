@@ -23,9 +23,7 @@ from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 from matplotlib import cm
 from sklearn.datasets import make_blobs, make_circles, make_moons
 from sklearn.preprocessing import StandardScaler
-
-
-pdb.set_trace()
+from scipy.stats import multivariate_normal
 
 # dim = 100
 # v = np.random.randn(dim,1)
@@ -57,13 +55,36 @@ def get_sparse_grid_samples(resolution=100, subsample_rate=10, range_min=-1, ran
     subsample_mask = ((index_grid_flat[:, 0]%subsample_rate == 0)+ (index_grid_flat[:, 1]%subsample_rate == 0))>0
     return full_grid_flat[subsample_mask,:]
 
+# def obj_fun(X):
+#     func_scale_1 = 0.8
+#     func_scale_2 = 0.2
+#     vals = np.zeros((X.shape[0],))
+#     for i in range(X.shape[0]):
+#         vals[i] = func_scale_1*(func_scale_2*X[i,0]**2-0.5*np.cos(2*np.pi*X[i,0])+X[i,1]**2-0.5*np.cos(2*np.pi*X[i,1]))
+#     return vals
+
 def obj_fun(X):
     func_scale_1 = 0.8
     func_scale_2 = 0.2
     vals = np.zeros((X.shape[0],))
     for i in range(X.shape[0]):
-        vals[i] = func_scale_1*(func_scale_2*X[i,0]**2-0.5*np.cos(2*np.pi*X[i,0])+X[i,1]**2-0.5*np.cos(2*np.pi*X[i,1]))
+        vals[i] = func_scale_1*(func_scale_2*(X[i,0]**2+X[i,1]**2)-0.5*(np.cos(2*np.pi*X[i,0])+np.cos(2*np.pi*X[i,1])))
     return vals
+
+mix_1 = 0.5
+l1 = multivariate_normal(mean=[0,0], cov=[[2,0],[0,2]])
+mix_2_1 = 0.25
+mix_2_2 = 0.25
+mix_2_3 = 0.25
+mix_2_4 = 0.25
+l2_1 = multivariate_normal(mean=[0.5,0.5],  cov=[[0.5,0],[0,0.5]])
+l2_2 = multivariate_normal(mean=[0.5,-0.5], cov=[[0.5,0],[0,0.5]])
+l2_3 = multivariate_normal(mean=[-0.5,0.5], cov=[[0.5,0],[0,0.5]])
+l2_4 = multivariate_normal(mean=[-0.5,-0.5], cov=[[0.5,0],[0,0.5]])
+
+def density_fun(X):
+    density = mix_1*l1.pdf(X)+(1-mix_1)*(mix_2_1*l2_1.pdf(X)+mix_2_2*l2_2.pdf(X)+mix_2_3*l2_3.pdf(X)+mix_2_4*l2_4.pdf(X))
+    return density[:, np.newaxis]
 
 use_gpu = False 
 if platform.dist()[0] == 'Ubuntu': 
@@ -92,6 +113,10 @@ n_input_CPO, n_output_CPO = 15, 15
 data_manifold_xy = np.random.uniform(0, 1, (n_samples, 2))*(range_1_max-range_1_min)+range_1_min
 data_manifold_z = obj_fun(data_manifold_xy)[:, np.newaxis]
 data_manifold = np.concatenate([data_manifold_xy, data_manifold_z], axis=1)
+
+densities = density_fun(data_manifold_xy)
+pdb.set_trace()
+
 
 full_grid_xy_samples, full_grid_xy, full_x0_range, full_x1_range = get_full_grid_samples(resolution=resolution, range_min=range_1_min, range_max=range_1_max)
 full_grid_z_samples = obj_fun(full_grid_xy_samples)[:, np.newaxis]
