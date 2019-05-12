@@ -1496,8 +1496,8 @@ class RealNVPFlow():
         if RealNVPFlow.same_dim is None: self._same_dim = int(float(self._input_dim)/2.)
         else: self._same_dim = RealNVPFlow.same_dim
         self._change_dim = self._input_dim - self._same_dim
-        self._max_bounded_scale = 10
-        self._min_bounded_scale = 0.1
+        self._max_bounded_scale = 5
+        self._min_bounded_scale = 0.05
 
         assert (self._input_dim > 1)
         assert (self._input_dim % 2 == 0)
