@@ -154,7 +154,6 @@ class WolfMap():
 			self.constructed = True
 			return parameters_list
 
-
 class FlowMap2():
 	def __init__(self, config, name = '/FlowMap'):
 		self.name = name

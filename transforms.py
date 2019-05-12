@@ -1266,7 +1266,9 @@ class NonLinearIARFlow():
         self._input_dim = input_dim
         self._nonlinearity = helper.LeakyReLU # tf.nn.tanh
         self._mode = mode
-        
+        self._max_bounded_scale = 2
+        self._min_bounded_scale = 0.01
+
         assert (self._input_dim > 1)
 
         self._parameters.get_shape().assert_is_compatible_with([None, NonLinearIARFlow.required_num_parameters(self._input_dim)])
@@ -1384,7 +1386,8 @@ class NonLinearIARFlow():
             log_abs_det_jacobian = tf.reduce_sum(pre_scale, axis=[1], keep_dims=True)
         elif self._mode == 'BoundedScaleShift':
             mu = pre_mu
-            scale = 0.1+tf.nn.sigmoid(pre_scale+scipy.special.logit(1/(5-0.1)))*(5-0.1)
+            gap = (self._max_bounded_scale-self._min_bounded_scale)
+            scale = self._min_bounded_scale+tf.nn.sigmoid(pre_scale+scipy.special.logit(1/gap))*gap
             z = mu+scale*z0
             log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
         elif self._mode == 'VolumePreserving':
@@ -1442,7 +1445,8 @@ class NonLinearIARFlow():
                 z0_i = (z[:, i, np.newaxis]-mu_i)/(1e-7+scale_i)
             elif self._mode == 'BoundedScaleShift':
                 mu_i = pre_mu_i
-                scale_i = 0.1+tf.nn.sigmoid(pre_scale_i+scipy.special.logit(1/(5-0.1)))*(5-0.1)
+                gap = (self._max_bounded_scale-self._min_bounded_scale)
+                scale_i = self._min_bounded_scale+tf.nn.sigmoid(pre_scale_i+scipy.special.logit(1/gap))*gap
                 z0_i = (z[:, i, np.newaxis]-mu_i)/(1e-7+scale_i)
             elif self._mode == 'VolumePreserving':
                 mu_i = pre_mu_i
@@ -1492,7 +1496,9 @@ class RealNVPFlow():
         if RealNVPFlow.same_dim is None: self._same_dim = int(float(self._input_dim)/2.)
         else: self._same_dim = RealNVPFlow.same_dim
         self._change_dim = self._input_dim - self._same_dim
-        
+        self._max_bounded_scale = 2
+        self._min_bounded_scale = 0.01
+
         assert (self._input_dim > 1)
         assert (self._input_dim % 2 == 0)
 
@@ -1575,7 +1581,8 @@ class RealNVPFlow():
             log_abs_det_jacobian = tf.reduce_sum(pre_scale, axis=[1], keep_dims=True)
         elif self._mode == 'BoundedScaleShift':
             mu = pre_mu
-            scale = 0.1+tf.nn.sigmoid(pre_scale+scipy.special.logit(1/(5-0.1)))*(5-0.1)
+            gap = (self._max_bounded_scale-self._min_bounded_scale)
+            scale = self._min_bounded_scale+tf.nn.sigmoid(pre_scale+scipy.special.logit(1/gap))*gap
             z_change = mu+scale*z0_change
             log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
         elif self._mode == 'VolumePreserving':
@@ -1618,7 +1625,8 @@ class RealNVPFlow():
             log_abs_det_jacobian = -tf.reduce_sum(pre_scale, axis=[1], keep_dims=True)
         elif self._mode == 'BoundedScaleShift':
             mu = pre_mu
-            scale = 0.1+tf.nn.sigmoid(pre_scale+scipy.special.logit(1/(5-0.1)))*(5-0.1)
+            gap = (self._max_bounded_scale-self._min_bounded_scale)
+            scale = self._min_bounded_scale+tf.nn.sigmoid(pre_scale+scipy.special.logit(1/gap))*gap
             z0_change = (z_change-mu)/(1e-7+scale)
             log_abs_det_jacobian = -tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
         elif self._mode == 'VolumePreserving':
