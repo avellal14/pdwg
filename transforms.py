@@ -604,7 +604,7 @@ class CompoundHouseholdRotationFlow():
     Raises:
       ValueError: 
     """
-    max_steps = 100
+    max_steps = 20
 
     def __init__(self, input_dim, parameters, vector_mode_rate=1, name='compound_household_rotation_transform'):   
         self._parameter_scale = 1.
@@ -910,7 +910,7 @@ class ConnectedPiecewiseOrthogonalMap():
     """
     rotation_flow_class = HouseholdRotationFlow # CompoundRotationFlow
 
-    def __init__(self, input_dim, parameters, margin_mode='NoGradient', scale_mode='BoundedScale', name='connected_piecewise_orthogonal_transform'):   
+    def __init__(self, input_dim, parameters, margin_mode='NoGradient', scale_mode='Scale', name='connected_piecewise_orthogonal_transform'):   
         self._parameter_scale = 1.
         self._parameters = parameters
         self._parameters = self._parameter_scale*self._parameters
@@ -922,6 +922,7 @@ class ConnectedPiecewiseOrthogonalMap():
 
         assert (self._margin_mode == 'NoGradient' or self._margin_mode == 'ST')
         assert (self._scale_mode == 'Scale' or self._scale_mode == 'BoundedScale')
+        assert (self._max_bounded_scale > 1 and self._min_bounded_scale > 0)
 
         self._parameters.get_shape().assert_is_compatible_with([None, ConnectedPiecewiseOrthogonalMap.required_num_parameters(self._input_dim)])
         
@@ -1008,18 +1009,19 @@ class PiecewisePlanarScalingMap():
     """
     n_steps = 10
 
-    def __init__(self, input_dim, parameters, margin_mode='NoGradient', scale_mode='BoundedScale', name='piecewise_planar_scaling_transform'):   
+    def __init__(self, input_dim, parameters, margin_mode='NoGradient', scale_mode='Scale', name='piecewise_planar_scaling_transform'):   
         self._parameter_scale = 1.
         self._parameters = parameters
         self._parameters = self._parameter_scale*self._parameters
         self._input_dim = input_dim
         self._margin_mode = margin_mode
         self._scale_mode = scale_mode
-        self._max_bounded_scale = 1.
+        self._max_bounded_scale = 5.
         self._min_bounded_scale = 0 
 
         assert (self._margin_mode == 'NoGradient' or self._margin_mode == 'ST')
         assert (self._scale_mode == 'Scale' or self._scale_mode == 'BoundedScale')
+        assert (self._max_bounded_scale > 1 and self._min_bounded_scale > 0)
 
         self._parameters.get_shape().assert_is_compatible_with([None, PiecewisePlanarScalingMap.required_num_parameters(self._input_dim)])
         
