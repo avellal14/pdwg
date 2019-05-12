@@ -910,14 +910,18 @@ class ConnectedPiecewiseOrthogonalMap():
     """
     rotation_flow_class = HouseholdRotationFlow # CompoundRotationFlow
 
-    def __init__(self, input_dim, parameters, margin_mode='NoGradient', name='connected_piecewise_orthogonal_transform'):   
+    def __init__(self, input_dim, parameters, margin_mode='NoGradient', scale_mode='BoundedScale', name='connected_piecewise_orthogonal_transform'):   
         self._parameter_scale = 1.
         self._parameters = parameters
         self._parameters = self._parameter_scale*self._parameters
         self._input_dim = input_dim
         self._margin_mode = margin_mode
+        self._scale_mode = scale_mode
+        self._max_bounded_scale = 5
+        self._min_bounded_scale = 1/self._max_bounded_scale
 
         assert (self._margin_mode == 'NoGradient' or self._margin_mode == 'ST')
+        assert (self._scale_mode == 'Scale' or self._scale_mode == 'BoundedScale')
 
         self._parameters.get_shape().assert_is_compatible_with([None, ConnectedPiecewiseOrthogonalMap.required_num_parameters(self._input_dim)])
         
@@ -930,8 +934,13 @@ class ConnectedPiecewiseOrthogonalMap():
         self._hyper_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim) 
         self._output_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim) 
 
-        self._pos_scale = tf.nn.softplus(self._pos_pre_scale)/np.log(1+np.exp(0))
-        self._neg_scale = tf.nn.softplus(self._neg_pre_scale)/np.log(1+np.exp(0))
+        if self._scale_mode == 'Scale':
+            self._pos_scale = tf.nn.softplus(self._pos_pre_scale)/np.log(1+np.exp(0))
+            self._neg_scale = tf.nn.softplus(self._neg_pre_scale)/np.log(1+np.exp(0))
+        elif self._scale_mode == 'BoundedScale': 
+            gap = (self._max_bounded_scale-self._min_bounded_scale)
+            self._pos_scale = self._min_bounded_scale+tf.nn.sigmoid(self._pos_pre_scale+scipy.special.logit(1/gap))*gap
+            self._neg_scale = self._min_bounded_scale+tf.nn.sigmoid(self._pos_pre_scale+scipy.special.logit(1/gap))*gap
         self._hyper_bias = tf.nn.softplus(self._hyper_pre_bias)/np.log(1+np.exp(0))
         self._hyper_vec_dir = self._hyper_vec/helper.safe_tf_sqrt(tf.reduce_sum(self._hyper_vec**2, axis=1, keep_dims=True))
         self._pos_rotation_flow = ConnectedPiecewiseOrthogonalMap.rotation_flow_class(self._input_dim, self._pos_rotation_param) 
