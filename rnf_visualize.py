@@ -96,10 +96,10 @@ def animate(ax_list, n_turns = 1, skip_rate = 10, mode='elevazim', wait_time=0.0
                 plt.savefig(save_path+'_('+str(ax_list[0].elev)+','+str(ax_list[0].azim)+').png', bbox_inches='tight', format='png', dpi=int(quality*my_dpi), transparent=False)
                 print('(Elev, Azim): ', ax_list[0].elev, ax_list[0].azim)
 
-mix_1 = 0.2
+mix_1 = 0.3
 l1 = multivariate_normal(mean=[0,0], cov=[[2,0],[0,2]])
 
-mix_2 = 0.4
+mix_2 = 0.3
 mix_2_1 = 0.2
 mix_2_2 = 0.2
 mix_2_3 = 0.2
@@ -112,25 +112,36 @@ l2_3 = multivariate_normal(mean=[-0.5,0.5], cov=[[cov_2,0],[0,cov_2]])
 l2_4 = multivariate_normal(mean=[-0.5,-0.5], cov=[[cov_2,0],[0,cov_2]])
 l2_5 = multivariate_normal(mean=[0,-0], cov=[[cov_2,0],[0,cov_2]])
 
-mix_3 = 0.4
-mix_3_1 = 0.2
-mix_3_2 = 0.2
-mix_3_3 = 0.2
-mix_3_4 = 0.2
-mix_3_5 = 0.2
-cov_3 = 0.05
-l3_1 = multivariate_normal(mean=[0.5,0.5],  cov=[[cov_3,0],[0,cov_3]])
-l3_2 = multivariate_normal(mean=[0.5,-0.5], cov=[[cov_3,0],[0,cov_3]])
-l3_3 = multivariate_normal(mean=[-0.5,0.5], cov=[[cov_3,0],[0,cov_3]])
-l3_4 = multivariate_normal(mean=[-0.5,-0.5], cov=[[cov_3,0],[0,cov_3]])
-l3_5 = multivariate_normal(mean=[0,-0], cov=[[cov_3,0],[0,cov_3]])
-
+mix_3 = 1-mix_1-mix_2
+mix_3_1 = 1/9
+mix_3_2 = 1/9
+mix_3_3 = 1/9
+mix_3_4 = 1/9
+mix_3_5 = 1/9
+mix_3_6 = 1/9
+mix_3_7 = 1/9
+mix_3_8 = 1/9
+mix_3_9 = 1/9
+cov_3 = 0.005
+l3_1 = multivariate_normal(mean=[0.5+0.15,0.5+0.15],  cov=[[cov_3,0.6*cov_3],[0.6*cov_3,cov_3]])
+l3_2 = multivariate_normal(mean=[0.5-0.15,0.5-0.15], cov=[[cov_3,-0.6*cov_3],[-0.6*cov_3,cov_3]])
+l3_3 = multivariate_normal(mean=[-0.5+0.15,-0.5+0.15], cov=[[cov_3,0],[0,cov_3]])
+l3_4 = multivariate_normal(mean=[-0.5+0.15,-0.5-0.15], cov=[[cov_3,0],[0,cov_3]])
+l3_5 = multivariate_normal(mean=[-0.5-0.15,-0.5+0.15], cov=[[cov_3,0],[0,cov_3]])
+l3_6 = multivariate_normal(mean=[-0.5-0.15,-0.5-0.15], cov=[[cov_3,0],[0,cov_3]])
+l3_7 = multivariate_normal(mean=[0,0],  cov=[[cov_3,0.6*cov_3],[0.6*cov_3,cov_3]])
+l3_8 = multivariate_normal(mean=[0.5,-0.5], cov=[[cov_3,-0.6*cov_3],[-0.6*cov_3,cov_3]])
+l3_9 = multivariate_normal(mean=[-0.5,0.5], cov=[[cov_3,-0.6*cov_3],[-0.6*cov_3,cov_3]])
 
 def density_fun(X):
     density = mix_1*l1.pdf(X)+ \
               mix_2*(mix_2_1*l2_1.pdf(X)+mix_2_2*l2_2.pdf(X)+mix_2_3*l2_3.pdf(X)+mix_2_4*l2_4.pdf(X)+mix_2_5*l2_5.pdf(X))+ \
-              mix_3*(mix_3_1*l3_1.pdf(X)+mix_3_2*l3_2.pdf(X)+mix_3_3*l3_3.pdf(X)+mix_3_4*l3_4.pdf(X)+mix_3_5*l3_5.pdf(X))
+              mix_3*(mix_3_1*l3_1.pdf(X)+mix_3_2*l3_2.pdf(X)+mix_3_3*l3_3.pdf(X)+mix_3_4*l3_4.pdf(X)+mix_3_5*l3_5.pdf(X)+mix_3_6*l3_6.pdf(X)+mix_3_7*l3_7.pdf(X)+mix_3_8*l3_8.pdf(X)+mix_3_9*l3_9.pdf(X))
     return density[:, np.newaxis]
+
+def sample_fun(n_samples):
+    pass
+
 
 range_1_min = -1
 range_1_max = 1
@@ -141,14 +152,25 @@ grid_manifold = np.load(exp_dir+'grid_manifold.npy')
 rec_data_manifolds = np.load(exp_dir+'rec_data_manifolds.npy')
 rec_grid_manifolds = np.load(exp_dir+'rec_grid_manifolds.npy')
 
-densities = density_fun(data_manifold[:, :2])
+densities = density_fun(grid_manifold[:, :2])
 fig, ax = plt.subplots(figsize=(7, 7))
 plt.clf()
 ax1 = fig.add_subplot(1, 1, 1, projection='3d')
-ax1.scatter(data_manifold[:, 0], data_manifold[:, 1], data_manifold[:, 2], s=marker_size, lw = marker_line, edgecolors='k', facecolors=cm.get_cmap("coolwarm")(Normalize()(densities[:,0])))
+# ax1.scatter(grid_manifold[:, 0], grid_manifold[:, 1], grid_manifold[:, 2], s=marker_size, lw = marker_line, edgecolors='k', facecolors=cm.get_cmap("coolwarm")(Normalize()(densities[:,0])))
+# ax1.scatter(grid_manifold[:, 0], grid_manifold[:, 1], grid_manifold[:, 2], s=marker_size, lw = marker_line, edgecolors='k', facecolors=cm.get_cmap("RdYlGn")(Normalize()(densities[:,0])))
+ax1.scatter(grid_manifold[:, 0], grid_manifold[:, 1], grid_manifold[:, 2], s=marker_size, lw = marker_line, edgecolors='k', facecolors=cm.get_cmap("PiYG")(Normalize()(densities[:,0])))
+# ax1.scatter(grid_manifold[:, 0], grid_manifold[:, 1], grid_manifold[:, 2], s=marker_size, lw = marker_line, edgecolors='k', facecolors=cm.get_cmap("Greens")(Normalize()(densities[:,0])))
+# ax1.view_init(elev=90., azim=0.)
+# plt.show(block=False)
+# pdb.set_trace()
+# ax1.view_init(elev=25, azim=20.)
 ax1.view_init(elev=90., azim=0.)
+ax1.set_xlim(range_1_min, range_1_max)
+ax1.set_ylim(range_1_min, range_1_max)
+ax1.set_zlim(range_1_min, range_1_max)
+set_axis_prop(ax1, grid_on, ticks_on, axis_on )
+plt.draw()
 plt.show()
-
 pdb.set_trace()
 
 ############################# TEST ##############################################

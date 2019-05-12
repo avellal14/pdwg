@@ -10,6 +10,7 @@ import numpy as np
 import math 
 from random import shuffle 
 import time
+from scipy import special
 
 class PlanarFlow():
     """
@@ -1382,7 +1383,7 @@ class NonLinearIARFlow():
             log_abs_det_jacobian = tf.reduce_sum(pre_scale, axis=[1], keep_dims=True)
         elif self._mode == 'BoundedScaleShift':
             mu = pre_mu
-            scale = 0.1+tf.nn.sigmoid(pre_scale)*5
+            scale = 0.1+tf.nn.sigmoid(pre_scale+scipy.special.logit(1/(10-0.1)))*(10-0.1)
             z = mu+scale*z0
             log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
         elif self._mode == 'VolumePreserving':
@@ -1391,7 +1392,7 @@ class NonLinearIARFlow():
             z = mu+z0
             log_abs_det_jacobian = 0
         elif self._mode == 'BoundedVolumePreserving':
-            mu = tf.nn.tanh(pre_mu)*5
+            mu = tf.nn.tanh(pre_mu)*10
             scale = tf.ones(shape=tf.shape(pre_scale))
             z = mu+z0
             log_abs_det_jacobian = 0
@@ -1440,14 +1441,14 @@ class NonLinearIARFlow():
                 z0_i = (z[:, i, np.newaxis]-mu_i)/(1e-7+scale_i)
             elif self._mode == 'BoundedScaleShift':
                 mu_i = pre_mu_i
-                scale_i = 0.1+tf.nn.sigmoid(pre_scale_i)*5
+                scale_i = 0.1+tf.nn.sigmoid(pre_scale_i+scipy.special.logit(1/(10-0.1)))*(10-0.1)
                 z0_i = (z[:, i, np.newaxis]-mu_i)/(1e-7+scale_i)
             elif self._mode == 'VolumePreserving':
                 mu_i = pre_mu_i
                 scale_i = tf.ones(shape=tf.shape(pre_scale_i))
                 z0_i = (z[:, i, np.newaxis]-mu_i)
             elif self._mode == 'BoundedVolumePreserving':
-                mu_i = tf.nn.tanh(pre_mu_i)*5
+                mu_i = tf.nn.tanh(pre_mu_i)*10
                 scale_i = tf.ones(shape=tf.shape(pre_scale_i))
                 z0_i = (z[:, i, np.newaxis]-mu_i)
             else: quit()
@@ -1573,7 +1574,7 @@ class RealNVPFlow():
             log_abs_det_jacobian = tf.reduce_sum(pre_scale, axis=[1], keep_dims=True)
         elif self._mode == 'BoundedScaleShift':
             mu = pre_mu
-            scale = 0.1+tf.nn.sigmoid(pre_scale)*2
+            scale = 0.1+tf.nn.sigmoid(pre_scale+scipy.special.logit(1/(10-0.1)))*(10-0.1)
             z_change = mu+scale*z0_change
             log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
         elif self._mode == 'VolumePreserving':
@@ -1582,7 +1583,7 @@ class RealNVPFlow():
             z_change = mu+z0_change
             log_abs_det_jacobian = 0
         elif self._mode == 'BoundedVolumePreserving':
-            mu = tf.nn.tanh(pre_mu)*5
+            mu = tf.nn.tanh(pre_mu)*10
             scale = tf.ones(shape=tf.shape(pre_scale))
             z_change = mu+z0_change
             log_abs_det_jacobian = 0
@@ -1616,7 +1617,7 @@ class RealNVPFlow():
             log_abs_det_jacobian = -tf.reduce_sum(pre_scale, axis=[1], keep_dims=True)
         elif self._mode == 'BoundedScaleShift':
             mu = pre_mu
-            scale =  0.1+tf.nn.sigmoid(pre_scale)*2
+            scale = 0.1+tf.nn.sigmoid(pre_scale+scipy.special.logit(1/(10-0.1)))*(10-0.1)
             z0_change = (z_change-mu)/(1e-7+scale)
             log_abs_det_jacobian = -tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
         elif self._mode == 'VolumePreserving':
@@ -1625,7 +1626,7 @@ class RealNVPFlow():
             z0_change = (z_change-mu)
             log_abs_det_jacobian = 0
         elif self._mode == 'BoundedVolumePreserving':
-            mu = tf.nn.tanh(pre_mu)*5
+            mu = tf.nn.tanh(pre_mu)*10
             scale = tf.ones(shape=tf.shape(pre_scale))
             z0_change = (z_change-mu)
             log_abs_det_jacobian = 0
