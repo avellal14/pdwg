@@ -1483,7 +1483,7 @@ class RealNVPFlow():
     Raises:
       ValueError: 
     """
-    layer_expansions = [2,2]
+    layer_expansions = [5, 5]
     same_dim = None
 
     def __init__(self, input_dim, parameters, mode='BoundedScaleShift', name='realNVP_transform'):   #real
