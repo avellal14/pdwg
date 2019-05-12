@@ -100,8 +100,6 @@ class Model():
                                                   transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[1]), 
                                                   transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
                                                   transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[2]), 
-                                                  # transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
-                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[3]), 
                                                   ])
 
         self.flow_object = transforms.SerialFlow([\
