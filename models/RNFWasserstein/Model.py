@@ -63,7 +63,7 @@ class Model():
         self.gen_prior_dist = self.prior_dist
         self.gen_prior_latent_code = self.prior_latent_code
 
-        self.gen_pre_prior_latent_code = self.pre_prior_latent_code
+        self.gen_prior_latent_code = self.prior_latent_code
         self.gen_transformed_prior_latent_code = self.transformed_prior_latent_code 
 
         self.gen_obs_sample_param = self.obs_sample_param
@@ -91,24 +91,12 @@ class Model():
         #############################################################################
         # GENERATOR 
         self.flow_param_list = self.FlowMap.forward(batch)
-        self.wolf_param_list = self.WolfMap.forward(batch)
         n_output = np.prod(batch['observed']['properties']['image'][0]['size'][2:])
-
-        self.pre_flow_object = transforms.SerialFlow([\
-                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[0]), 
-                                                  transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[1]), 
-                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[2]), 
-                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[3]), 
-                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  ])
 
         self.flow_object = transforms.SerialFlow([\
                                                   transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[0]), 
-                                                  # transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
-                                                  # transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[1]), 
+                                                  transforms.SpecificOrderDimensionFlow(input_dim=self.config['n_latent']), 
+                                                  transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[1]), 
                                                   transforms.RiemannianFlow(input_dim=self.config['n_latent'], output_dim=n_output, n_input_NOM=self.config['rnf_prop']['n_input_NOM'], n_output_NOM=self.config['rnf_prop']['n_output_NOM'], parameters=self.flow_param_list[-2]),
                                                   transforms.CompoundRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-1]),
                                                   ])
@@ -118,8 +106,7 @@ class Model():
         self.prior_dist = distributions.DiagonalGaussianDistribution(params = self.prior_param)
         self.prior_latent_code = self.prior_dist.sample()        
  
-        self.pre_prior_latent_code, _ = self.pre_flow_object.inverse_transform(self.prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
-        self.transformed_prior_latent_code, _ = self.flow_object.transform(self.pre_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
+        self.transformed_prior_latent_code, _ = self.flow_object.transform(self.prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
         
         self.obs_sample_param = {'flat': None, 'image': tf.reshape(self.transformed_prior_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
         self.obs_sample_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.obs_sample_param)
@@ -133,8 +120,7 @@ class Model():
             np.save(str(Path.home())+'/ExperimentalResults/FixedSamples/np_constant_prior_sample_'+str(self.prior_latent_code.get_shape().as_list()[-1])+'.npz', np_constant_prior_sample)    
         self.constant_prior_latent_code = tf.constant(np.asarray(np_constant_prior_sample), dtype=np.float32)
         
-        self.constant_pre_prior_latent_code, _ = self.pre_flow_object.inverse_transform(self.constant_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
-        self.constant_transformed_prior_latent_code, _ = self.flow_object.transform(self.constant_pre_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
+        self.constant_transformed_prior_latent_code, _ = self.flow_object.transform(self.constant_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
 
         self.constant_obs_sample_param = {'flat': None, 'image': tf.reshape(self.constant_transformed_prior_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
         self.constant_obs_sample_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.constant_obs_sample_param)
@@ -148,8 +134,7 @@ class Model():
         #     np_constant_prior_grid_sample = np.concatenate((xv.flatten()[:, np.newaxis], yv.flatten()[:, np.newaxis][:]), axis=1)
         #     self.constant_grid_prior_latent_code = tf.constant(np.asarray(np_constant_prior_grid_sample), dtype=np.float32)
         
-        #     self.constant_grid_pre_prior_latent_code, _ = self.pre_flow_object.inverse_transform(self.constant_grid_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
-        #     self.constant_grid_transformed_prior_latent_code, _ = self.flow_object.transform(self.constant_grid_pre_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
+        #     self.constant_grid_transformed_prior_latent_code, _ = self.flow_object.transform(self.constant_grid_prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
 
         #     self.constant_grid_obs_sample_param = {'flat': None, 'image': tf.reshape(self.constant_grid_transformed_prior_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
         #     self.constant_grid_obs_sample_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.constant_grid_obs_sample_param)
@@ -164,17 +149,13 @@ class Model():
             self.epsilon_dist = distributions.DiagonalGaussianDistribution(params = self.epsilon_param)        
             self.epsilon = self.epsilon_dist.sample()
     
-        self.pre_posterior_latent_code_expanded, self.pre_posterior_latent_code_det_expanded = self.Encoder.forward(self.input_sample, noise=self.epsilon)
-        self.pre_posterior_latent_code = self.pre_posterior_latent_code_expanded[:,0,:]
-
-        self.posterior_latent_code, self.posterior_delta_log_pdf = self.pre_flow_object.transform(self.pre_posterior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
+        self.posterior_latent_code_expanded, self.posterior_latent_code_det_expanded = self.Encoder.forward(self.input_sample, noise=self.epsilon)
+        self.posterior_latent_code = self.posterior_latent_code_expanded[:,0,:]
         self.posterior_log_pdf = self.prior_dist.log_pdf(self.posterior_latent_code)
-        self.pre_posterior_log_pdf = self.posterior_log_pdf-self.posterior_delta_log_pdf
         
-        # self.pre_posterior_latent_code, self.pre_posterior_log_pdf = self.pre_flow_object.inverse_transform(self.posterior_latent_code, self.posterior_log_pdf)
-        self.transformed_pre_posterior_latent_code, self.transformed_pre_posterior_log_pdf = self.flow_object.transform(self.pre_posterior_latent_code, self.pre_posterior_log_pdf)        
+        self.transformed_posterior_latent_code, self.transformed_posterior_log_pdf = self.flow_object.transform(self.posterior_latent_code, self.posterior_log_pdf)        
         
-        self.reconst_param = {'flat': None, 'image': tf.reshape(self.transformed_pre_posterior_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
+        self.reconst_param = {'flat': None, 'image': tf.reshape(self.transformed_posterior_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
         self.reconst_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.reconst_param)
         self.reconst_sample = self.reconst_dist.sample(b_mode=True)
 
@@ -184,9 +165,8 @@ class Model():
         # self.interpolated_obs = {'flat': None, 'image': tf.reshape(self.interpolated_transformed_posterior_latent_code, [-1, 10, *batch['observed']['properties']['image'][0]['size'][2:]])}
         self.interpolated_obs = {'flat': None, 'image': tf.tile(self.input_sample['image'][:self.batch_size_tf//2, :, :, :, :], [1, 10, 1, 1, 1])}
 
-        self.cri_reg_cost = -tf.reduce_mean(self.transformed_pre_posterior_log_pdf)
-        # self.enc_reg_cost = -tf.reduce_mean(self.pre_posterior_log_pdf)
-        self.enc_reg_cost = self.cri_reg_cost
+        self.enc_reg_cost = helper.compute_MMD(self.posterior_latent_code, self.prior_latent_code)
+        self.cri_reg_cost = -tf.reduce_mean(self.transformed_posterior_log_pdf)
 
         #############################################################################
         # REGULARIZER
@@ -202,10 +182,8 @@ class Model():
         self.OT_primal = self.sample_distance_function(self.input_sample, self.reconst_sample)
         self.mean_OT_primal = tf.reduce_mean(self.OT_primal)
 
-        # self.cri_cost = -tf.reduce_mean(self.pre_posterior_log_pdf)
-        self.cri_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.enc_reg_cost
         self.enc_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.enc_reg_cost
-        self.gen_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.enc_reg_cost
+        self.gen_cost = self.mean_OT_primal+self.config['cri_reg_strength']*self.cri_reg_cost
 
 
 
