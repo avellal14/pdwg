@@ -105,9 +105,10 @@ class Model():
         self.prior_param = self.PriorMap.forward((tf.zeros(shape=(self.batch_size_tf, 1)),))
         self.prior_dist = distributions.DiagonalGaussianDistribution(params = self.prior_param)
         self.prior_latent_code = self.prior_dist.sample()        
- 
-        self.transformed_prior_latent_code, _ = self.flow_object.transform(self.prior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
-        
+        self.prior_log_pdf = self.prior_dist.log_pdf(self.prior_latent_code)
+
+        self.transformed_prior_latent_code, self.transformed_prior_log_pdf = self.flow_object.transform(self.prior_latent_code, self.prior_log_pdf)
+
         self.obs_sample_param = {'flat': None, 'image': tf.reshape(self.transformed_prior_latent_code, [-1, 1, *batch['observed']['properties']['image'][0]['size'][2:]])}
         self.obs_sample_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.obs_sample_param)
         self.obs_sample = self.obs_sample_dist.sample(b_mode=True)
@@ -166,7 +167,7 @@ class Model():
         self.interpolated_obs = {'flat': None, 'image': tf.tile(self.input_sample['image'][:self.batch_size_tf//2, :, :, :, :], [1, 10, 1, 1, 1])}
 
         self.enc_reg_cost = helper.compute_MMD(self.posterior_latent_code, self.prior_latent_code)
-        self.cri_reg_cost = -tf.reduce_mean(self.transformed_posterior_log_pdf)
+        self.cri_reg_cost = tf.reduce_mean(self.transformed_prior_log_pdf)-tf.reduce_mean(self.transformed_posterior_log_pdf)
 
         #############################################################################
         # REGULARIZER
