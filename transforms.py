@@ -1469,7 +1469,7 @@ class NonLinearIARFlow():
             log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
         elif self._mode == 'ScaleShift':
             mu = pre_mu
-            scale = (10./6.)*tf.nn.softplus(pre_scale)
+            scale = tf.nn.softplus(pre_scale)/(np.log(1+np.exp(0)))
             z = mu+scale*z0
             log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
         elif self._mode == 'ExponentialScaleShift':
@@ -1530,7 +1530,7 @@ class NonLinearIARFlow():
                 z0_i = (z[:, i, np.newaxis]-(1-scale_i)*mu_i)/(1e-7+scale_i)
             elif self._mode == 'ScaleShift':
                 mu_i = pre_mu_i
-                scale_i = (10./6.)*tf.nn.softplus(pre_scale_i)
+                scale_i = tf.nn.softplus(pre_scale_i)/(np.log(1+np.exp(0)))
                 z0_i = (z[:, i, np.newaxis]-mu_i)/(1e-7+scale_i)
             elif self._mode == 'ExponentialScaleShift':
                 mu_i = pre_mu_i
@@ -1579,7 +1579,7 @@ class RealNVPFlow():
     layer_expansions = [5, 5]
     same_dim = None
 
-    def __init__(self, input_dim, parameters, mode='BoundedScaleShift', name='realNVP_transform'):   #real
+    def __init__(self, input_dim, parameters, mode='ScaleShift', name='realNVP_transform'):   #real
         self._parameter_scale = 1
         self._parameters = self._parameter_scale*parameters
         self._input_dim = input_dim
@@ -1665,8 +1665,8 @@ class RealNVPFlow():
             log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
         elif self._mode == 'ScaleShift':
             mu = pre_mu
-            scale = (10./6.)*tf.nn.softplus(pre_scale)
-            z_change = mu+scale*z0_change
+            scale = tf.nn.softplus(pre_scale)/(np.log(1+np.exp(0)))
+            z_change = mu+(1e-7+scale)*z0_change
             log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
         elif self._mode == 'ExponentialScaleShift':
             mu = pre_mu
@@ -1709,7 +1709,7 @@ class RealNVPFlow():
             log_abs_det_jacobian = -tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
         elif self._mode == 'ScaleShift':
             mu = pre_mu
-            scale = (10./6.)*tf.nn.softplus(pre_scale)
+            scale = tf.nn.softplus(pre_scale)/(np.log(1+np.exp(0)))
             z0_change = (z_change-mu)/(1e-7+scale)
             log_abs_det_jacobian = -tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
         elif self._mode == 'ExponentialScaleShift':
@@ -2607,7 +2607,7 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 #             shear_param = tf.slice(self._parameters, [0, 0], [-1, self._input_dim])
 #             basis_param = tf.slice(self._parameters, [0, self._input_dim], [-1, -1])
 
-#         shear_matrix = (10./6.)*tf.nn.softplus(shear_param)
+#         shear_matrix = tf.nn.softplus(shear_param)/(np.log(1+np.exp(0)))
 #         if self._input_dim>=self._additional_dim: 
 #             if self._additional_dim == 1: basis_tensor = (basis_param/tf.sqrt(tf.reduce_sum(basis_param**2, axis=[-1], keep_dims=True)))[:,np.newaxis,:]
 #             else: basis_tensor = helper.householder_rotations_tf(n=self.input_dim, batch=tf.shape(basis_param)[0], k_start=self._k_start, 

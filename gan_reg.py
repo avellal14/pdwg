@@ -41,7 +41,7 @@ dataset_to_use = 'MNIST'
 # dataset_to_use = 'TOY'
 # dataset_to_use = 'INTENSITY'
 
-Algorithm = 'RNFWasserstein'
+Algorithm = 'RNF'
 if Algorithm == 'AE':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 256, 'n_flat': 400, 
@@ -52,7 +52,7 @@ if Algorithm == 'AE':
 if Algorithm == 'RNF':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 128, 'n_flat': 400, 
-                             'encoder_mode': 'Deterministic', 'divergence_mode': 'None', 'dual_dist_mode': '',  'infomax_mode': 'None',
+                             'encoder_mode': 'UnivApproxNoSpatial_dense_comb', 'divergence_mode': 'None', 'dual_dist_mode': '',  'infomax_mode': 'None',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 0.001, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 0, 'enc_inv_MMD_n_trans': 0, 'enc_inv_MMD_strength': 0,
                              'critic_reg_mode': [], 'cri_reg_strength': 0.001, 'lambda_mix': 0, 'timers': {}, 'rnf_prop': {'n_input_NOM': 10, 'n_output_NOM': 10}}
@@ -622,8 +622,8 @@ with tf.Graph().as_default():
         model.generative_model(batch_tf, additional_inputs_tf)
 
         div_vars = [v for v in tf.trainable_variables() if 'Diverger' in v.name or 'Decomposer' in v.name]
-        enc_vars = [v for v in tf.trainable_variables() if 'Encoder' in v.name] 
-        cri_vars = [v for v in tf.trainable_variables() if 'Critic' in v.name or 'WolfMap' in v.name or 'PriorTransform' in v.name or 'PriorExpandMap' in v.name or 'Separator' in v.name or 'PreEnc' in v.name or 'PostGen' in v.name or 'InfoMap' in v.name]
+        enc_vars = [v for v in tf.trainable_variables() if 'Encoder' in v.name or 'WolfMap' in v.name] 
+        cri_vars = [v for v in tf.trainable_variables() if 'Critic' in v.name or 'PriorTransform' in v.name or 'PriorExpandMap' in v.name or 'Separator' in v.name or 'PreEnc' in v.name or 'PostGen' in v.name or 'InfoMap' in v.name]
         gen_vars = [v for v in tf.trainable_variables() if 'Generator' in v.name or 'FlowMap' in v.name] 
 
         # Weight clipping
