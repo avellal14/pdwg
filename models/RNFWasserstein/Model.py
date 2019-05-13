@@ -167,7 +167,7 @@ class Model():
         self.interpolated_obs = {'flat': None, 'image': tf.tile(self.input_sample['image'][:self.batch_size_tf//2, :, :, :, :], [1, 10, 1, 1, 1])}
 
         self.enc_reg_cost = helper.compute_MMD(self.posterior_latent_code, self.prior_latent_code)
-        self.cri_reg_cost = tf.reduce_mean(self.transformed_prior_log_pdf)-tf.reduce_mean(self.transformed_posterior_log_pdf)
+        self.cri_reg_cost = -tf.reduce_mean(self.transformed_posterior_log_pdf)
 
         #############################################################################
         # REGULARIZER
