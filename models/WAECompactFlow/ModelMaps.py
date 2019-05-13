@@ -405,9 +405,9 @@ class Encoder():
 					if self.config['encoder_mode'] == 'UnivApproxNoSpatial_dense_comb':
 						latent_flat_det = tf.layers.dense(inputs = latent_image_flat, units = self.config['n_latent'], use_bias = True, activation = None)
 						lay1_concat = tf.layers.dense(inputs = tf.concat([latent_flat_det, noise],axis=-1), units = 2*self.config['n_latent'], use_bias = True, activation = self.activation_function)
-						lay2_concat = tf.layers.dense(inputs = lay1_concat, units = 2*self.config['n_latent'], use_bias = True, activation = self.activation_function)
-						lay3_concat = tf.layers.dense(inputs = lay2_concat, units = 2*self.config['n_latent'], use_bias = True, activation = self.activation_function)
-						latent_flat_stoch = tf.layers.dense(inputs = lay3_concat, units = self.config['n_latent'], use_bias = False, activation = None)
+						# lay2_concat = tf.layers.dense(inputs = lay1_concat, units = 2*self.config['n_latent'], use_bias = True, activation = self.activation_function)
+						# lay3_concat = tf.layers.dense(inputs = lay2_concat, units = 2*self.config['n_latent'], use_bias = True, activation = self.activation_function)
+						latent_flat_stoch = tf.layers.dense(inputs = lay1_concat, units = self.config['n_latent'], use_bias = False, activation = None)
 						latent_flat = latent_flat_stoch
 
 					elif self.config['encoder_mode'] == 'UnivApproxNoSpatial_dense_additive':
