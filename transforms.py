@@ -666,8 +666,8 @@ class HouseholdRotationFlow():
         log_pdf_z0 = log_pdf_z 
         return z0, log_pdf_z0
 
-# CompoundHouseholdRotationFlow = ManyReflectionRotationFlow
-class CompoundHouseholdRotationFlow():
+CompoundHouseholdRotationFlow = ManyReflectionRotationFlow
+# class CompoundHouseholdRotationFlow():
     """
     Compound Householder Rotation Flow class. SO(n)
     Args:
