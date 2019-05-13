@@ -613,8 +613,8 @@ with tf.Graph().as_default():
         model.generative_model(batch_tf, additional_inputs_tf)
 
         div_vars = [v for v in tf.trainable_variables() if 'Diverger' in v.name or 'Decomposer' in v.name]
-        enc_vars = [v for v in tf.trainable_variables() if 'Encoder' in v.name or 'WolfMap' in v.name] 
-        cri_vars = [v for v in tf.trainable_variables() if 'Critic' in v.name or 'PriorTransform' in v.name or 'PriorExpandMap' in v.name or 'Separator' in v.name or 'PreEnc' in v.name or 'PostGen' in v.name or 'InfoMap' in v.name]
+        enc_vars = [v for v in tf.trainable_variables() if 'Encoder' in v.name] 
+        cri_vars = [v for v in tf.trainable_variables() if 'Critic' in v.name or 'WolfMap' in v.name or 'PriorTransform' in v.name or 'PriorExpandMap' in v.name or 'Separator' in v.name or 'PreEnc' in v.name or 'PostGen' in v.name or 'InfoMap' in v.name]
         gen_vars = [v for v in tf.trainable_variables() if 'Generator' in v.name or 'FlowMap' in v.name] 
 
         # Weight clipping
