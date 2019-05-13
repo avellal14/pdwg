@@ -494,7 +494,7 @@ class ManyReflectionRotationFlow():
     Raises:
       ValueError: 
     """
-    n_steps = 50
+    n_steps = 100
 
     def __init__(self, input_dim, parameters, name='many_reflection_rotation_transform'):   
         self._parameter_scale = 1.
