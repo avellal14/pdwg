@@ -166,7 +166,6 @@ class Model():
     
         self.pre_posterior_latent_code_expanded, self.pre_posterior_latent_code_det_expanded = self.Encoder.forward(self.input_sample, noise=self.epsilon)
         self.pre_posterior_latent_code = self.pre_posterior_latent_code_expanded[:,0,:]
-        # self.pre_posterior_latent_code = tf.nn.tanh(self.pre_posterior_latent_code_expanded[:,0,:])*1
 
         self.posterior_latent_code, self.posterior_delta_log_pdf = self.pre_flow_object.transform(self.pre_posterior_latent_code, tf.zeros(shape=(self.batch_size_tf, 1)))
         self.posterior_log_pdf = self.prior_dist.log_pdf(self.posterior_latent_code)
