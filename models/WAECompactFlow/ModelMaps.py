@@ -110,8 +110,8 @@ class FlowMap():
 	def forward(self, batch, name = ''):
 		with tf.variable_scope("FlowMap", reuse=self.constructed):
 			parameters_list = []
-			# flow_to_use = transforms.RealNVPFlow
-			flow_to_use = transforms.NonLinearIARFlow
+			flow_to_use = transforms.RealNVPFlow
+			# flow_to_use = transforms.NonLinearIARFlow
 			parameters_list.append(1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
 			parameters_list.append(1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
 			parameters_list.append(1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
@@ -144,8 +144,8 @@ class WolfMap():
 	def forward(self, batch, name = ''):
 		with tf.variable_scope("WolfMap", reuse=self.constructed):
 			parameters_list = []
-			# flow_to_use = transforms.RealNVPFlow
-			flow_to_use = transforms.NonLinearIARFlow
+			flow_to_use = transforms.RealNVPFlow
+			# flow_to_use = transforms.NonLinearIARFlow
 			parameters_list.append(1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
 			parameters_list.append(1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
 			parameters_list.append(1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
@@ -407,6 +407,12 @@ class Encoder():
 					latent_flat_det = tf.layers.dense(inputs = latent_image_flat, units = self.config['n_latent'], use_bias = True, activation = None)
 					latent_pre_scale = tf.layers.dense(inputs = latent_image_flat, units = self.config['n_latent'], use_bias = True, activation = None)
 					latent_flat = latent_flat_det+tf.nn.softplus(latent_pre_scale)*noise
+				if self.config['encoder_mode'] == 'GaussianLeastVariance':
+					# lay1_flat = tf.layers.dense(inputs = latent_image_flat, units = 2*self.config['n_latent'], use_bias = True, activation = self.activation_function)
+					latent_flat_det = tf.layers.dense(inputs = latent_image_flat, units = self.config['n_latent'], use_bias = True, activation = None)
+					latent_pre_scale = tf.layers.dense(inputs = latent_image_flat, units = self.config['n_latent'], use_bias = True, activation = None)
+					latent_variance = tf.nn.softplus(latent_pre_scale)+0.05
+					latent_flat = latent_flat_det+latent_variance*noise
 				if self.config['encoder_mode'] == 'UnivApprox' or 'UnivApproxNoSpatial' in self.config['encoder_mode']:
 					# worked for MNIST
 					if self.config['encoder_mode'] == 'UnivApproxNoSpatial_dense_comb':
