@@ -41,7 +41,7 @@ dataset_to_use = 'MNIST'
 # dataset_to_use = 'TOY'
 # dataset_to_use = 'INTENSITY'
 
-Algorithm = 'RNF'
+Algorithm = 'RNFWGANGP'
 if Algorithm == 'AE':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 256, 'n_flat': 400, 
@@ -63,6 +63,13 @@ if Algorithm == 'RNFWasserstein':
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 10, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 0, 'enc_inv_MMD_n_trans': 0, 'enc_inv_MMD_strength': 0,
                              'critic_reg_mode': [], 'cri_reg_strength': 0.001, 'lambda_mix': 0, 'timers': {}, 'rnf_prop': {'n_input_NOM': 10, 'n_output_NOM': 10}}
+if Algorithm == 'RNFWGANGP':
+    alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.5, 'beta2': 0.9,  
+                             'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 5, 'n_filter': 128, 'n_flat': 400, 
+                             'encoder_mode': 'Deterministic', 'divergence_mode': 'None', 'dual_dist_mode': 'Prior',  'infomax_mode': 'None',
+                             'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
+                             'enc_reg_strength': 10, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 0, 'enc_inv_MMD_n_trans': 0, 'enc_inv_MMD_strength': 0,
+                             'critic_reg_mode': ['Trivial Gradient Norm',], 'cri_reg_strength': 0.001, 'lambda_mix': 0.25, 'timers': {}, 'rnf_prop': {'n_input_NOM': 10, 'n_output_NOM': 10}}
 elif Algorithm == 'WAE':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.5, 'beta2': 0.9,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 128, 'n_flat': 400, 
@@ -549,6 +556,8 @@ elif Algorithm == 'RNF':
     from models.RNF.Model import Model
 elif Algorithm == 'RNFWasserstein': 
     from models.RNFWasserstein.Model import Model
+elif Algorithm == 'RNFWGANGP': 
+    from models.RNFWGANGP.Model import Model
 elif Algorithm == 'WAE' or Algorithm == 'WAEVanilla': 
     from models.WAE.Model import Model
 elif Algorithm == 'WAEInfo': 
