@@ -97,7 +97,7 @@ def animate(ax_list, n_turns = 1, skip_rate = 10, mode='elevazim', wait_time=0.0
                 print('(Elev, Azim): ', ax_list[0].elev, ax_list[0].azim)
 
 mix_1 = 0.3
-l1 = multivariate_normal(mean=[0,0], cov=[[2,0],[0,2]])
+l1 = multivariate_normal(mean=[0,0], cov=[[0.5,0],[0,0.5]])
 
 mix_2 = 0.3
 mix_2_1 = 0.2
@@ -133,6 +133,14 @@ l3_7 = multivariate_normal(mean=[0,0],  cov=[[cov_3,0.6*cov_3],[0.6*cov_3,cov_3]
 l3_8 = multivariate_normal(mean=[0.5,-0.5], cov=[[cov_3,-0.6*cov_3],[-0.6*cov_3,cov_3]])
 l3_9 = multivariate_normal(mean=[-0.5,0.5], cov=[[cov_3,-0.6*cov_3],[-0.6*cov_3,cov_3]])
 
+def z_fun(X):
+    func_scale_1 = 0.8
+    func_scale_2 = 0.2
+    vals = np.zeros((X.shape[0],))
+    for i in range(X.shape[0]):
+        vals[i] = func_scale_1*(func_scale_2*(X[i,0]**2+X[i,1]**2)-0.5*(np.cos(2*np.pi*X[i,0])+np.cos(2*np.pi*X[i,1])))
+    return vals
+
 def density_fun(X):
     density = mix_1*l1.pdf(X)+ \
               mix_2*(mix_2_1*l2_1.pdf(X)+mix_2_2*l2_2.pdf(X)+mix_2_3*l2_3.pdf(X)+mix_2_4*l2_4.pdf(X)+mix_2_5*l2_5.pdf(X))+ \
@@ -140,8 +148,52 @@ def density_fun(X):
     return density[:, np.newaxis]
 
 def sample_fun(n_samples):
-    pass
+    samples = np.zeros((n_samples, 2))
 
+    u_1 = np.random.uniform(0,1,n_samples)
+    mask_1 = u_1 < mix_1
+    mask_2 = (u_1 > mix_1) * (u_1 < (mix_1+mix_2))
+    mask_3 = u_1 > (mix_1+mix_2)
+    
+    if np.sum(mask_1)>0: 
+        samples[mask_1, :] = l1.rvs(np.sum(mask_1))
+    if np.sum(mask_2)>0: 
+        u_2 = np.random.uniform(0,1,np.sum(mask_2))
+        mask_2_1 = (u_2 < (mix_2_1))
+        mask_2_2 = (u_2 > (mix_2_1)) * (u_2 < (mix_2_1+mix_2_2))
+        mask_2_3 = (u_2 > (mix_2_1+mix_2_2)) * (u_2 < (mix_2_1+mix_2_2+mix_2_3))
+        mask_2_4 = (u_2 > (mix_2_1+mix_2_2+mix_2_3)) * (u_2 < (mix_2_1+mix_2_2+mix_2_3+mix_2_4))
+        mask_2_5 = (u_2 > (mix_2_1+mix_2_2+mix_2_3+mix_2_4))
+
+        if np.sum(mask_2_1)>0: samples[np.where(mask_2)[0][mask_2_1], :] = l2_1.rvs(np.sum(mask_2_1))
+        if np.sum(mask_2_2)>0: samples[np.where(mask_2)[0][mask_2_2], :] = l2_2.rvs(np.sum(mask_2_2))
+        if np.sum(mask_2_3)>0: samples[np.where(mask_2)[0][mask_2_3], :] = l2_3.rvs(np.sum(mask_2_3))
+        if np.sum(mask_2_4)>0: samples[np.where(mask_2)[0][mask_2_4], :] = l2_4.rvs(np.sum(mask_2_4))
+        if np.sum(mask_2_5)>0: samples[np.where(mask_2)[0][mask_2_5], :] = l2_5.rvs(np.sum(mask_2_5))
+
+    if np.sum(mask_3)>0:
+        u_3 = np.random.uniform(0,1,np.sum(mask_3))
+        mask_3_1 = (u_3 < (mix_3_1))
+        mask_3_2 = (u_3 > (mix_3_1)) * (u_3 < (mix_3_1+mix_3_2))
+        mask_3_3 = (u_3 > (mix_3_1+mix_3_2)) * (u_3 < (mix_3_1+mix_3_2+mix_3_3))
+        mask_3_4 = (u_3 > (mix_3_1+mix_3_2+mix_3_3)) * (u_3 < (mix_3_1+mix_3_2+mix_3_3+mix_3_4))
+        mask_3_5 = (u_3 > (mix_3_1+mix_3_2+mix_3_3+mix_3_4))* (u_3 < (mix_3_1+mix_3_2+mix_3_3+mix_3_4+mix_3_5))
+        mask_3_6 = (u_3 > (mix_3_1+mix_3_2+mix_3_3+mix_3_4+mix_3_5))* (u_3 < (mix_3_1+mix_3_2+mix_3_3+mix_3_4+mix_3_5+mix_3_6))
+        mask_3_7 = (u_3 > (mix_3_1+mix_3_2+mix_3_3+mix_3_4+mix_3_5+mix_3_6))* (u_3 < (mix_3_1+mix_3_2+mix_3_3+mix_3_4+mix_3_5+mix_3_6+mix_3_7))
+        mask_3_8 = (u_3 > (mix_3_1+mix_3_2+mix_3_3+mix_3_4+mix_3_5+mix_3_6+mix_3_7))* (u_3 < (mix_3_1+mix_3_2+mix_3_3+mix_3_4+mix_3_5+mix_3_6+mix_3_7+mix_3_8))
+        mask_3_9 = (u_3 > (mix_3_1+mix_3_2+mix_3_3+mix_3_4+mix_3_5+mix_3_6+mix_3_7+mix_3_8))
+    
+        if np.sum(mask_3_1)>0: samples[np.where(mask_3)[0][mask_3_1], :] = l3_1.rvs(np.sum(mask_3_1))
+        if np.sum(mask_3_2)>0: samples[np.where(mask_3)[0][mask_3_2], :] = l3_2.rvs(np.sum(mask_3_2))
+        if np.sum(mask_3_3)>0: samples[np.where(mask_3)[0][mask_3_3], :] = l3_3.rvs(np.sum(mask_3_3))
+        if np.sum(mask_3_4)>0: samples[np.where(mask_3)[0][mask_3_4], :] = l3_4.rvs(np.sum(mask_3_4))
+        if np.sum(mask_3_5)>0: samples[np.where(mask_3)[0][mask_3_5], :] = l3_5.rvs(np.sum(mask_3_5))
+        if np.sum(mask_3_6)>0: samples[np.where(mask_3)[0][mask_3_6], :] = l3_6.rvs(np.sum(mask_3_6))
+        if np.sum(mask_3_7)>0: samples[np.where(mask_3)[0][mask_3_7], :] = l3_7.rvs(np.sum(mask_3_7))
+        if np.sum(mask_3_8)>0: samples[np.where(mask_3)[0][mask_3_8], :] = l3_8.rvs(np.sum(mask_3_8))
+        if np.sum(mask_3_9)>0: samples[np.where(mask_3)[0][mask_3_9], :] = l3_9.rvs(np.sum(mask_3_9))
+    
+    return samples
 
 range_1_min = -1
 range_1_max = 1
@@ -153,13 +205,21 @@ rec_data_manifolds = np.load(exp_dir+'rec_data_manifolds.npy')
 rec_grid_manifolds = np.load(exp_dir+'rec_grid_manifolds.npy')
 
 densities = density_fun(grid_manifold[:, :2])
+rand_xy = sample_fun(10000)
+rand_z = z_fun(rand_xy)
+rand_samples = np.concatenate([rand_xy, rand_z[:, np.newaxis]], axis=1)
+rand_densities = density_fun(rand_xy)
+
 fig, ax = plt.subplots(figsize=(7, 7))
 plt.clf()
 ax1 = fig.add_subplot(1, 1, 1, projection='3d')
 # ax1.scatter(grid_manifold[:, 0], grid_manifold[:, 1], grid_manifold[:, 2], s=marker_size, lw = marker_line, edgecolors='k', facecolors=cm.get_cmap("coolwarm")(Normalize()(densities[:,0])))
 # ax1.scatter(grid_manifold[:, 0], grid_manifold[:, 1], grid_manifold[:, 2], s=marker_size, lw = marker_line, edgecolors='k', facecolors=cm.get_cmap("RdYlGn")(Normalize()(densities[:,0])))
-ax1.scatter(grid_manifold[:, 0], grid_manifold[:, 1], grid_manifold[:, 2], s=marker_size, lw = marker_line, edgecolors='k', facecolors=cm.get_cmap("PiYG")(Normalize()(densities[:,0])))
+# ax1.scatter(grid_manifold[:, 0], grid_manifold[:, 1], grid_manifold[:, 2], s=marker_size, lw = marker_line, edgecolors='k', facecolors=cm.get_cmap("PiYG")(Normalize()(densities[:,0])))
 # ax1.scatter(grid_manifold[:, 0], grid_manifold[:, 1], grid_manifold[:, 2], s=marker_size, lw = marker_line, edgecolors='k', facecolors=cm.get_cmap("Greens")(Normalize()(densities[:,0])))
+
+ax1.scatter(rand_samples[:, 0], rand_samples[:, 1], rand_samples[:, 2], s=marker_size, lw = marker_line, edgecolors='k', facecolors=cm.get_cmap("PiYG")(Normalize()(rand_densities[:,0])))
+
 # ax1.view_init(elev=90., azim=0.)
 # plt.show(block=False)
 # pdb.set_trace()
