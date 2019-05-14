@@ -1350,9 +1350,9 @@ class NonLinearIARFlow():
     Raises:
       ValueError: 
     """
-    layer_expansions = [2,]
+    layer_expansions = [1,]
 
-    def __init__(self, input_dim, parameters, mode='BoundedScaleShift', name='nonlinearIAR_transform'):   #real
+    def __init__(self, input_dim, parameters, mode='ScaleShift', name='nonlinearIAR_transform'):   #real
         self._parameter_scale = 1
         self._parameters = self._parameter_scale*parameters
         self._input_dim = input_dim
@@ -1470,7 +1470,7 @@ class NonLinearIARFlow():
         elif self._mode == 'ScaleShift':
             mu = pre_mu
             scale = tf.nn.softplus(pre_scale)/(np.log(1+np.exp(0)))
-            z = mu+scale*z0
+            z = mu+(1e-7+scale)*z0
             log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
         elif self._mode == 'ExponentialScaleShift':
             mu = pre_mu
