@@ -411,7 +411,7 @@ class Encoder():
 					# lay1_flat = tf.layers.dense(inputs = latent_image_flat, units = 2*self.config['n_latent'], use_bias = True, activation = self.activation_function)
 					latent_flat_det = tf.layers.dense(inputs = latent_image_flat, units = self.config['n_latent'], use_bias = True, activation = None)
 					latent_pre_scale = tf.layers.dense(inputs = latent_image_flat, units = self.config['n_latent'], use_bias = True, activation = None)
-					latent_variance = tf.nn.softplus(latent_pre_scale)+0.31
+					latent_variance = tf.nn.softplus(latent_pre_scale)+1
 					latent_flat = latent_flat_det+latent_variance*noise
 				if self.config['encoder_mode'] == 'UnivApprox' or 'UnivApproxNoSpatial' in self.config['encoder_mode']:
 					# worked for MNIST
