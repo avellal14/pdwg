@@ -1424,7 +1424,7 @@ class NonLinearIARFlow():
     Raises:
       ValueError: 
     """
-    layer_expansions = [1,]
+    layer_expansions = [5, 5]
 
     def __init__(self, input_dim, parameters, mode='ScaleShift', name='nonlinearIAR_transform'):   #real
         self._parameter_scale = 1
