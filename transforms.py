@@ -982,7 +982,7 @@ class ConnectedPiecewiseOrthogonalMap():
     """
     rotation_flow_class = HouseholdRotationFlow # CompoundRotationFlow
 
-    def __init__(self, input_dim, parameters, margin_mode='NoGradient', scale_mode='Scale', name='connected_piecewise_orthogonal_transform'):   
+    def __init__(self, input_dim, parameters, margin_mode='NoGradient', scale_mode='Scale', name='connected_piecewise_orthogonal_map'):   
         self._parameter_scale = 1.
         self._parameters = parameters
         self._parameters = self._parameter_scale*self._parameters
@@ -1081,7 +1081,7 @@ class PiecewisePlanarScalingMap():
     """
     n_steps = 10
 
-    def __init__(self, input_dim, parameters, margin_mode='NoGradient', scale_mode='Scale', name='piecewise_planar_scaling_transform'):   
+    def __init__(self, input_dim, parameters, margin_mode='NoGradient', scale_mode='Scale', name='piecewise_planar_scaling_map'):   
         self._parameter_scale = 1.
         self._parameters = parameters
         self._parameters = self._parameter_scale*self._parameters
@@ -1138,22 +1138,96 @@ class PiecewisePlanarScalingMap():
         curr_z = z0
         log_scales = 0
         for i in range(PiecewisePlanarScalingMap.n_steps):
-            curr_wb = self._hyper_vec_dir[:,i,:]*self._hyper_bias[:,i,np.newaxis]
+            curr_pos_scale = self._pos_scale[:,i,np.newaxis]
+            curr_neg_scale = self._neg_scale[:,i,np.newaxis]
+            curr_output_shift_vec = self._output_shift_vec[:,i,:]
+            curr_w = self._hyper_vec_dir[:,i,:]
+            curr_b = self._hyper_bias[:,i,np.newaxis]
+            curr_wb = curr_w*curr_b
             curr_z_centered = curr_z-curr_wb
 
-            curr_margin = tf.reduce_sum(self._hyper_vec_dir[:,i,:]*curr_z_centered, axis=1, keep_dims=True)
+            curr_margin = tf.reduce_sum(curr_w*curr_z_centered, axis=1, keep_dims=True)
             if self._margin_mode == 'NoGradient':
                 curr_pos_mask = tf.stop_gradient(tf.cast(curr_margin>=0, tf.float32)) # margin >= 0 return 1 else 0 
             elif self._margin_mode == 'ST':
                 curr_pos_mask = helper.binaryStochastic_ST(curr_margin) # margin >= ~9e-8 return 1 else 0
             curr_neg_mask = 1-curr_pos_mask
 
-            curr_scales = curr_pos_mask*self._pos_scale[:,i,np.newaxis]+curr_neg_mask*self._neg_scale[:,i,np.newaxis]
-            curr_z = curr_scales*curr_z_centered+curr_wb+self._output_shift_vec[:,i,:]
+            curr_scales = curr_pos_mask*curr_pos_scale+curr_neg_mask*curr_neg_scale
+            curr_z = curr_scales*curr_z_centered+curr_wb+curr_output_shift_vec
             log_scales = log_scales+tf.log(curr_scales)
         
         z = curr_z
         return z, log_scales
+
+    def inverse_transform(self, z):
+        curr_z = z
+        log_scales = 0
+        for i in range(PiecewisePlanarScalingMap.n_steps):
+            curr_pos_scale = self._pos_scale[:,PiecewisePlanarScalingMap.n_steps-1-i,np.newaxis]
+            curr_neg_scale = self._neg_scale[:,PiecewisePlanarScalingMap.n_steps-1-i,np.newaxis]
+            curr_output_shift_vec = self._output_shift_vec[:,PiecewisePlanarScalingMap.n_steps-1-i,:]
+            curr_w = self._hyper_vec_dir[:,PiecewisePlanarScalingMap.n_steps-1-i,:]
+            curr_b = self._hyper_bias[:,PiecewisePlanarScalingMap.n_steps-1-i,np.newaxis]
+            curr_wb = curr_w*curr_b
+            curr_z_centered = curr_z-curr_wb-curr_output_shift_vec
+
+            curr_margin = tf.reduce_sum(curr_w*curr_z_centered, axis=1, keep_dims=True)
+            if self._margin_mode == 'NoGradient':
+                curr_pos_mask = tf.stop_gradient(tf.cast(curr_margin>=0, tf.float32)) # margin >= 0 return 1 else 0 
+            elif self._margin_mode == 'ST':
+                curr_pos_mask = helper.binaryStochastic_ST(curr_margin) # margin >= ~9e-8 return 1 else 0
+            curr_neg_mask = 1-curr_pos_mask
+
+            curr_scales = curr_pos_mask*(1/curr_pos_scale)+curr_neg_mask*(1/curr_neg_scale)
+            curr_z = curr_scales*curr_z_centered+curr_wb
+            log_scales = log_scales+tf.log(curr_scales)
+        
+        z0 = curr_z
+        return z0, log_scales
+
+class PiecewisePlanarScalingFlow():
+    """
+    Connected Piecewise Scaling Flow class with Jacobians specified as scaled multiples of diagonal matrices.
+    Args:
+      parameters: parameters of transformation all appended.
+      input_dim : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+
+    def __init__(self, input_dim, parameters, name='piecewise_planar_scaling_transform'):   
+        self._parameter_scale = 1.
+        self._parameters = parameters
+        self._parameters = self._parameter_scale*self._parameters
+        self._input_dim = input_dim
+
+        self._parameters.get_shape().assert_is_compatible_with([None, PiecewisePlanarScalingFlow.required_num_parameters(self._input_dim)])
+        self._piecewise_planar_scaling_map = PiecewisePlanarScalingMap(self._input_dim, self._parameters)
+
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim
+
+    @staticmethod
+    def required_num_parameters(input_dim):
+        return PiecewisePlanarScalingMap.required_num_parameters(input_dim)
+
+    def transform(self, z0, log_pdf_z0):
+        verify_size(z0, log_pdf_z0)
+        z, log_scales = self._piecewise_planar_scaling_map.transform(z0)
+        log_pdf_z = log_pdf_z0-log_scales 
+        return z, log_pdf_z
+
+    def inverse_transform(self, z, log_pdf_z):
+        verify_size(z, log_pdf_z)
+        z0, log_scales = self._piecewise_planar_scaling_map.inverse_transform(z)
+        log_pdf_z0 = log_pdf_z-log_scales 
+        return z0, log_pdf_z0
 
 class RiemannianFlow():
     """
@@ -2068,8 +2142,9 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 #                            # InverseOpenIntervalDimensionFlow, \
 #                            # HouseholdRotationFlow, \
 #                            # CompoundRotationFlow, \
+#                            PiecewisePlanarScalingFlow,
 #                            # LinearIARFlow, \
-#                            NonLinearIARFlow, \
+#                            # NonLinearIARFlow, \
 #                            # RealNVPFlow, \
 #                            ]:
 #     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
@@ -2414,14 +2489,14 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 # batch_size = 3
 # n_latent = 20
 # name = 'transform'
-# transform_to_check = HouseholdRotationFlow
+# transform_to_check = PiecewisePlanarScalingFlow
 # n_parameter = transform_to_check.required_num_parameters(n_latent)
 
 # parameters = 10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
 # z0 = tf.random_normal((batch_size, n_latent), 0, 1, dtype=tf.float32)
 # log_pdf_z0 = tf.random_normal((batch_size, 1), 0, 1, dtype=tf.float32)
 
-# transform1 = transform_to_check(parameters, n_latent)
+# transform1 = transform_to_check(n_latent, parameters)
 # z, log_pdf_z = transform1.transform(z0, log_pdf_z0)
 # z0_inv, log_pdf_z0_inv = transform1.inverse_transform(z, log_pdf_z)
 
