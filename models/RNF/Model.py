@@ -94,38 +94,38 @@ class Model():
         self.wolf_param_list = self.WolfMap.forward(batch)
         n_output = np.prod(batch['observed']['properties']['image'][0]['size'][2:])
 
-        self.pre_flow_object = transforms.SerialFlow([\
-                                                  transforms.PiecewisePlanarScalingFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[0]), 
-                                                  transforms.PiecewisePlanarScalingFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[1]), 
-                                                  transforms.PiecewisePlanarScalingFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[2]), 
-                                                  transforms.PiecewisePlanarScalingFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[3]), 
-                                                  ])
-
-        self.flow_object = transforms.SerialFlow([\
-                                                  transforms.PiecewisePlanarScalingFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[0]), 
-                                                  transforms.PiecewisePlanarScalingFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[1]), 
-                                                  transforms.RiemannianFlow(input_dim=self.config['n_latent'], output_dim=n_output, n_input_NOM=self.config['rnf_prop']['n_input_NOM'], n_output_NOM=self.config['rnf_prop']['n_output_NOM'], parameters=self.flow_param_list[-2]),
-                                                  transforms.CompoundRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-1]),
-                                                  ])
-
         # self.pre_flow_object = transforms.SerialFlow([\
-        #                                           transforms.RealNVPFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[0]), 
-        #                                           transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
-        #                                           transforms.RealNVPFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[1]), 
-        #                                           transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
-        #                                           transforms.RealNVPFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[2]), 
-        #                                           transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
-        #                                           transforms.RealNVPFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[3]), 
-        #                                           transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
+        #                                           transforms.PiecewisePlanarScalingFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[0]), 
+        #                                           transforms.PiecewisePlanarScalingFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[1]), 
+        #                                           transforms.PiecewisePlanarScalingFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[2]), 
+        #                                           transforms.PiecewisePlanarScalingFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[3]), 
         #                                           ])
 
         # self.flow_object = transforms.SerialFlow([\
-        #                                           transforms.RealNVPFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[0]), 
-        #                                           transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
-        #                                           transforms.RealNVPFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[1]), 
+        #                                           transforms.PiecewisePlanarScalingFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[0]), 
+        #                                           transforms.PiecewisePlanarScalingFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[1]), 
         #                                           transforms.RiemannianFlow(input_dim=self.config['n_latent'], output_dim=n_output, n_input_NOM=self.config['rnf_prop']['n_input_NOM'], n_output_NOM=self.config['rnf_prop']['n_output_NOM'], parameters=self.flow_param_list[-2]),
         #                                           transforms.CompoundRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-1]),
         #                                           ])
+
+        self.pre_flow_object = transforms.SerialFlow([\
+                                                  transforms.RealNVPFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[0]), 
+                                                  transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
+                                                  transforms.RealNVPFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[1]), 
+                                                  transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
+                                                  transforms.RealNVPFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[2]), 
+                                                  transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
+                                                  transforms.RealNVPFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[3]), 
+                                                  transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
+                                                  ])
+
+        self.flow_object = transforms.SerialFlow([\
+                                                  transforms.RealNVPFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[0]), 
+                                                  transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
+                                                  transforms.RealNVPFlow(input_dim=self.config['n_latent'], parameters=self.flow_param_list[1]), 
+                                                  transforms.RiemannianFlow(input_dim=self.config['n_latent'], output_dim=n_output, n_input_NOM=self.config['rnf_prop']['n_input_NOM'], n_output_NOM=self.config['rnf_prop']['n_output_NOM'], parameters=self.flow_param_list[-2]),
+                                                  transforms.CompoundRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-1]),
+                                                  ])
 
         # self.pre_flow_object = transforms.SerialFlow([\
         #                                           transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[0]), 
@@ -235,8 +235,8 @@ class Model():
         self.OT_primal = self.sample_distance_function(self.input_sample, self.reconst_sample)
         self.mean_OT_primal = tf.reduce_mean(self.OT_primal)
 
-        # self.cri_cost = -tf.reduce_mean(self.pre_posterior_log_pdf)
-        self.cri_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.enc_reg_cost
+        self.cri_cost = self.cri_reg_cost
+        # self.cri_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.enc_reg_cost
         self.enc_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.enc_reg_cost
         self.gen_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.enc_reg_cost
 
