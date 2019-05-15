@@ -1062,14 +1062,16 @@ with tf.Graph().as_default():
         if global_args.reconstruction_score_epoch_rate[0]>0 and global_args.curr_epoch % global_args.reconstruction_score_epoch_rate[0] == global_args.reconstruction_score_epoch_rate[1]: 
             print('Computing reconstruction distance score.')
             start = time.time();
+            rec_score_max = np.max(all_np_reconst_distances)
+            rec_score_min = np.min(all_np_reconst_distances)
             rec_score_mean = np.mean(all_np_reconst_distances)
             rec_score_std = np.std(all_np_reconst_distances)
             end = time.time()
-            print('Reconstruction Stats -- Time: {:.3f} Score Mean: {:.6f} Score Std: {:.6f}'.format(\
-                (end - start), rec_score_mean, rec_score_std))
+            print('Reconstruction Stats -- Time: {:.3f} Score Mean: {:.6f} Score Std: {:.6f} Score Max: {:.6f} Score Min: {:.6f}'.format(\
+                (end - start), rec_score_mean, rec_score_std, rec_score_max, rec_score_min))
             with open(global_args.exp_dir+mode+"_reconstruction_stats.txt", "a") as text_file:
-                text_file.write('Epoch: {:d} Score Mean: {:.6f} Score Std: {:.6f}'.format(\
-                    global_args.curr_epoch, rec_score_mean, rec_score_std)+'\n')
+                text_file.write('Epoch: {:d} Score Mean: {:.6f} Score Std: {:.6f} Score Max: {:.6f} Score Min: {:.6f}'.format(\
+                    global_args.curr_epoch, rec_score_mean, rec_score_std, rec_score_max, rec_score_min)+'\n')
 
         if global_args.sharpness_score_epoch_rate[0]>0 and global_args.curr_epoch % global_args.sharpness_score_epoch_rate[0] == global_args.sharpness_score_epoch_rate[1]: 
             print('Computing sharpness score.')
