@@ -1543,7 +1543,7 @@ class NonLinearIARFlow():
             log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
         elif self._mode == 'ScaleShift':
             mu = pre_mu
-            scale = tf.nn.softplus(pre_scale)/(np.log(1+np.exp(0)))
+            scale = tf.nn.relu(tf.nn.softplus(pre_scale)/(np.log(1+np.exp(0))))
             z = mu+(1e-7+scale)*z0
             log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
         elif self._mode == 'ExponentialScaleShift':
@@ -1604,7 +1604,7 @@ class NonLinearIARFlow():
                 z0_i = (z[:, i, np.newaxis]-(1-scale_i)*mu_i)/(1e-7+scale_i)
             elif self._mode == 'ScaleShift':
                 mu_i = pre_mu_i
-                scale_i = tf.nn.softplus(pre_scale_i)/(np.log(1+np.exp(0)))
+                scale_i = tf.nn.relu(tf.nn.softplus(pre_scale_i)/(np.log(1+np.exp(0))))
                 z0_i = (z[:, i, np.newaxis]-mu_i)/(1e-7+scale_i)
             elif self._mode == 'ExponentialScaleShift':
                 mu_i = pre_mu_i
@@ -1739,7 +1739,7 @@ class RealNVPFlow():
             log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
         elif self._mode == 'ScaleShift':
             mu = pre_mu
-            scale = tf.nn.softplus(pre_scale)/(np.log(1+np.exp(0)))
+            scale = tf.nn.relu(tf.nn.softplus(pre_scale)/(np.log(1+np.exp(0))))
             z_change = mu+(1e-7+scale)*z0_change
             log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
         elif self._mode == 'ExponentialScaleShift':
@@ -1783,7 +1783,7 @@ class RealNVPFlow():
             log_abs_det_jacobian = -tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
         elif self._mode == 'ScaleShift':
             mu = pre_mu
-            scale = tf.nn.softplus(pre_scale)/(np.log(1+np.exp(0)))
+            scale = tf.nn.relu(tf.nn.softplus(pre_scale)/(np.log(1+np.exp(0))))
             z0_change = (z_change-mu)/(1e-7+scale)
             log_abs_det_jacobian = -tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
         elif self._mode == 'ExponentialScaleShift':
