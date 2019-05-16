@@ -121,6 +121,10 @@ class SpecificOrderDimensionFlow():
       ValueError: 
     """
     def __init__(self, input_dim, order=None, parameters=None, name='specific_order_dimension_transform'):   
+        print('Unusable in a safe fashion: This creates as random ordering which changes from random seed to random seed '+ 
+              'and is not saved in any checkpoint, since the order is not stored in a tf.Variable. Therefore, if the seed '+
+              'does not match or if there is a random call order change, then the loaded model from the checkpoint will be wrong.')
+        quit()
         self._input_dim = input_dim 
         if order is None: # a specific but random order
             # self._order = [*range(self._input_dim)]
@@ -188,6 +192,10 @@ class CustomSpecificOrderDimensionFlow():
       ValueError: 
     """
     def __init__(self, input_dim, order=None, parameters=None, name='custom_specific_order_dimension_transform'):   
+        print('Unusable in a safe fashion: This creates as random ordering which changes from random seed to random seed '+ 
+              'and is not saved in any checkpoint, since the order is not stored in a tf.Variable. Therefore, if the seed '+
+              'does not match or if there is a random call order change, then the loaded model from the checkpoint will be wrong.')
+        quit()
         self._input_dim = input_dim 
         self._sodf_1 = SpecificOrderDimensionFlow(input_dim=int(self._input_dim/2.))
         self._sodf_2 = SpecificOrderDimensionFlow(input_dim=int(self._input_dim/2.))
@@ -469,9 +477,8 @@ class SpecificRotationFlow():
         return 0
 
     def get_batched_rot_matrix(self):
-        # self.vv = helper.random_rot_mat(self._input_dim, mode='SO(n)')
-        self.vv = helper.random_rot_mat(self._input_dim, mode='SO(n)')
-        return tf.constant(self.vv, dtype=tf.float32)[np.newaxis, :, :]
+        return tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32)[np.newaxis, :, :]
+        # return tf.Variable(tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32), trainable=False)[np.newaxis, :, :]
 
     def transform(self, z0, log_pdf_z0):
         verify_size(z0, log_pdf_z0)
@@ -802,7 +809,7 @@ class CompoundRotationFlow():
         self._constant_rot_mats_list, self._householder_flows_list, self._specific_order_dimension_flows_list = [], [], []
         for i in range(len(CompoundRotationFlow.compound_structure)):
             if CompoundRotationFlow.compound_structure[i] == 'C':
-                self._constant_rot_mats_list.append(tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32))
+                self._constant_rot_mats_list.append(tf.Variable(tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32), trainable=False))
             elif CompoundRotationFlow.compound_structure[i] == 'H':
                 curr_householder_param, param_index = helper.slice_parameters(self._parameters, param_index, CompoundHouseholdRotationFlow.required_num_parameters(self._input_dim))
                 self._householder_flows_list.append(CompoundHouseholdRotationFlow(self._input_dim, curr_householder_param))

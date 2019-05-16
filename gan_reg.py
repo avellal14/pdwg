@@ -219,7 +219,7 @@ parser = argparse.ArgumentParser(description='Tensorflow Gan Models')
 parser.add_argument('--exp_dir_postfix', type=str, default='', help='Directory to put the experiment postfix.')
 parser.add_argument('--save_checkpoints_epoch_rate', type=list, default=[3,1], help='epoch rate for storing checkpoints')
 parser.add_argument('--restore_dir', type=str, default='/145afc422d7446689a0bebe75191dea2/', help='Directory of restore experiment.')
-parser.add_argument('--restore', type=bool, default=True, help='Restore model.')
+parser.add_argument('--restore', type=bool, default=False, help='Restore model.')
 parser.add_argument('--gpu', type=str, default='0', help='gpu to use.')
 parser.add_argument('--epochs', type=int, default=1000000000, help='Number of epochs to train.')
 parser.add_argument('--batch_size', type=int, default=100, help='Input batch size for training.')
@@ -956,14 +956,14 @@ with tf.Graph().as_default():
             for batch_idx, curr_batch_size, batch in data_loader: 
                 curr_feed_dict = input_dict_func(batch, hyper_param)    
 
-                if batch_idx == 1:
-                    if hasattr(model, 'particular_rotation_mat'):
-                        DEBUG_particular_rotation_mat = sess.run(model.particular_rotation_mat, feed_dict = curr_feed_dict)
+                # if batch_idx == 1:
+                #     if hasattr(model, 'particular_rotation_mat'):
+                #         DEBUG_particular_rotation_mat = sess.run(model.particular_rotation_mat, feed_dict = curr_feed_dict)
 
-                        print('DEBUG_particular_rotation_mat: ')
-                        print(DEBUG_particular_rotation_mat)
+                #         print('DEBUG_particular_rotation_mat: ')
+                #         print(DEBUG_particular_rotation_mat)
 
-                if mode=='test' and ((global_args.latent_vis_TSNE_epoch_rate[0]>0 and global_args.curr_epoch % global_args.latent_vis_TSNE_epoch_rate[0] == global_args.latent_vis_TSNE_epoch_rate[1]) or \
+                if mode == 'test' and ((global_args.latent_vis_TSNE_epoch_rate[0]>0 and global_args.curr_epoch % global_args.latent_vis_TSNE_epoch_rate[0] == global_args.latent_vis_TSNE_epoch_rate[1]) or \
                                      (global_args.latent_vis_UMAP_epoch_rate[0]>0 and global_args.curr_epoch % global_args.latent_vis_UMAP_epoch_rate[0] == global_args.latent_vis_UMAP_epoch_rate[1])): 
                     np_posterior_latent_code, np_prior_latent_code = sess.run([model.posterior_latent_code, model.prior_latent_code], feed_dict = curr_feed_dict)
                     if all_np_posterior_latent_code is None: all_np_posterior_latent_code = np_posterior_latent_code
@@ -1024,7 +1024,7 @@ with tf.Graph().as_default():
         end = time.time();
         print('Obtained visualization data: Time: {:.3f}'.format((end - start)))
 
-        if mode=='test' and ((global_args.pigeonhole_score_epoch_rate[0]>0 and global_args.curr_epoch % global_args.pigeonhole_score_epoch_rate[0] == global_args.pigeonhole_score_epoch_rate[1]) or \
+        if mode == 'test' and ((global_args.pigeonhole_score_epoch_rate[0]>0 and global_args.curr_epoch % global_args.pigeonhole_score_epoch_rate[0] == global_args.pigeonhole_score_epoch_rate[1]) or \
                              (global_args.fid_inception_score_epoch_rate[0]>0 and global_args.curr_epoch % global_args.fid_inception_score_epoch_rate[0] == global_args.fid_inception_score_epoch_rate[1])):
             n_random_samples = 50000
             print('Obtaining {:d} random samples.'.format(n_random_samples))
@@ -1039,7 +1039,7 @@ with tf.Graph().as_default():
             end = time.time()
             print('Obtained random samples: Time: {:.3f}'.format((end - start)))
             
-            if mode=='test' and global_args.pigeonhole_score_epoch_rate[0]>0 and global_args.curr_epoch % global_args.pigeonhole_score_epoch_rate[0] == global_args.pigeonhole_score_epoch_rate[1]: 
+            if mode == 'test' and global_args.pigeonhole_score_epoch_rate[0]>0 and global_args.curr_epoch % global_args.pigeonhole_score_epoch_rate[0] == global_args.pigeonhole_score_epoch_rate[1]: 
                 print('Computing pidgeon-hole score.')
                 start = time.time();
                 pigeonhole_mean, pigeonhole_std = helper.pigeonhole_score(random_samples_from_model, subset=500, neigh=0.05)
@@ -1048,7 +1048,7 @@ with tf.Graph().as_default():
                 with open(global_args.exp_dir+mode+"_pidgeonhole_score.txt", "a") as text_file:
                     text_file.write("Epoch: {:d} Mean: {:.3f} Std: {:.3f}\n".format(global_args.curr_epoch, pigeonhole_mean, pigeonhole_std)+'\n')
 
-            if mode=='test' and global_args.fid_inception_score_epoch_rate[0]>0 and global_args.curr_epoch % global_args.fid_inception_score_epoch_rate[0] == global_args.fid_inception_score_epoch_rate[1]:
+            if mode == 'test' and global_args.fid_inception_score_epoch_rate[0]>0 and global_args.curr_epoch % global_args.fid_inception_score_epoch_rate[0] == global_args.fid_inception_score_epoch_rate[1]:
                 print('Computing inception stats.')
                 start = time.time();
                 model_fid_value, model_inception_mean, model_inception_std, real_inception_mean, real_inception_std = \
@@ -1117,7 +1117,7 @@ with tf.Graph().as_default():
             end = time.time()
             print('Visualized interpolations: Time: {:.3f}'.format((end - start)))
 
-        if mode=='test' and global_args.fixed_samples_vis_epoch_rate[0]>0 and global_args.curr_epoch % global_args.fixed_samples_vis_epoch_rate[0] == global_args.fixed_samples_vis_epoch_rate[1]: 
+        if mode == 'test' and global_args.fixed_samples_vis_epoch_rate[0]>0 and global_args.curr_epoch % global_args.fixed_samples_vis_epoch_rate[0] == global_args.fixed_samples_vis_epoch_rate[1]: 
             print('Visualizing fixed samples')
             start = time.time();
             if b_zero_one_range: np.clip(all_np_fixed_sample, 0, 1, out=all_np_fixed_sample) 
@@ -1134,7 +1134,7 @@ with tf.Graph().as_default():
             end = time.time()
             print('Visualized fixed samples: Time: {:.3f}'.format((end - start)))
 
-        if mode=='test' and ((global_args.latent_vis_TSNE_epoch_rate[0]>0 and global_args.curr_epoch % global_args.latent_vis_TSNE_epoch_rate[0] == global_args.latent_vis_TSNE_epoch_rate[1]) or \
+        if mode == 'test' and ((global_args.latent_vis_TSNE_epoch_rate[0]>0 and global_args.curr_epoch % global_args.latent_vis_TSNE_epoch_rate[0] == global_args.latent_vis_TSNE_epoch_rate[1]) or \
                              (global_args.latent_vis_UMAP_epoch_rate[0]>0 and global_args.curr_epoch % global_args.latent_vis_UMAP_epoch_rate[0] == global_args.latent_vis_UMAP_epoch_rate[1])): 
             
             # n_vis_samples = int(all_np_prior_latent_code.shape[0]*0.4)

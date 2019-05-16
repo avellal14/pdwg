@@ -127,10 +127,6 @@ class Model():
         #                                           transforms.CompoundRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-1]),
         #                                           ])
 
-        particular = transforms.SpecificRotationFlow(input_dim=self.config['n_latent']) 
-        print('Initialization matrix')
-        print(particular.vv)
-
         self.pre_flow_object = transforms.SerialFlow([\
                                                   transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[0]), 
                                                   transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
@@ -139,7 +135,7 @@ class Model():
                                                   transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[2]), 
                                                   transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
                                                   transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[3]), 
-                                                  particular, 
+                                                  transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
                                                   ])
 
         self.flow_object = transforms.SerialFlow([\
@@ -244,8 +240,6 @@ class Model():
         self.enc_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.enc_reg_cost
         self.gen_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.enc_reg_cost
 
-
-        self.particular_rotation_mat = particular._batched_rot_matrix
 
 
 
