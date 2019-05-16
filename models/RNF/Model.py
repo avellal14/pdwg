@@ -128,7 +128,8 @@ class Model():
         #                                           ])
 
         particular = transforms.SpecificRotationFlow(input_dim=self.config['n_latent']) 
-
+        print('Initialization matrix')
+        print(particular.vv)
 
         self.pre_flow_object = transforms.SerialFlow([\
                                                   transforms.NonLinearIARFlow(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[0]), 
