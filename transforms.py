@@ -477,8 +477,6 @@ class SpecificRotationFlow():
         return 0
 
     def get_batched_rot_matrix(self):
-        # print('Please change me (transforms.py) back to avoid problems with checkpoints. Current setting is chosen based on computational speed. Constants embedded to the graph are faster')
-        # return tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32)[np.newaxis, :, :]
         return tf.Variable(tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32), trainable=False)[np.newaxis, :, :]
 
     def transform(self, z0, log_pdf_z0):
@@ -810,8 +808,6 @@ class CompoundRotationFlow():
         self._constant_rot_mats_list, self._householder_flows_list, self._specific_order_dimension_flows_list = [], [], []
         for i in range(len(CompoundRotationFlow.compound_structure)):
             if CompoundRotationFlow.compound_structure[i] == 'C':
-                # print('Please change me (transforms.py) back to avoid problems with checkpoints. Current setting is chosen based on computational speed. Constants embedded to the graph are faster')
-                # self._constant_rot_mats_list.append(tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32))
                 self._constant_rot_mats_list.append(tf.Variable(tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32), trainable=False))
             elif CompoundRotationFlow.compound_structure[i] == 'H':
                 curr_householder_param, param_index = helper.slice_parameters(self._parameters, param_index, CompoundHouseholdRotationFlow.required_num_parameters(self._input_dim))
@@ -1436,7 +1432,7 @@ class NonLinearIARFlow():
     Raises:
       ValueError: 
     """
-    layer_expansions = [10, 10]
+    layer_expansions = [5, 5]
 
     def __init__(self, input_dim, parameters, mode='ScaleShift', name='nonlinearIAR_transform'):   #real
         self._parameter_scale = 1
@@ -2729,4 +2725,10 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 #         log_abs_det_jacobian = 0
 #         log_pdf_z = log_pdf_z0 - log_abs_det_jacobian
 #         return z, log_pdf_z
+
+
+                # print('Please change me (transforms.py) back to avoid problems with checkpoints. Current setting is chosen based on computational speed. Constants embedded to the graph are faster')
+                # self._constant_rot_mats_list.append(tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32))
+                # print('Please change me (transforms.py) back to avoid problems with checkpoints. Current setting is chosen based on computational speed. Constants embedded to the graph are faster')
+                # return tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32)[np.newaxis, :, :]
 
