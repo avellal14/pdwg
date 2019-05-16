@@ -957,12 +957,12 @@ with tf.Graph().as_default():
             for batch_idx, curr_batch_size, batch in data_loader: 
                 curr_feed_dict = input_dict_func(batch, hyper_param)    
 
-                if batch_idx == 1:
-                    # if hasattr(model, 'particular_rotation_mat'):
-                    DEBUG_particular_rotation_mat = sess.run(model.pre_flow_object._transforms[-1]._batched_rot_matrix, feed_dict = curr_feed_dict)
+                # if batch_idx == 1:
+                #     # if hasattr(model, 'particular_rotation_mat'):
+                #     DEBUG_particular_rotation_mat = sess.run(model.pre_flow_object._transforms[-1]._batched_rot_matrix, feed_dict = curr_feed_dict)
 
-                    print('DEBUG_particular_rotation_mat: ')
-                    print(DEBUG_particular_rotation_mat)
+                #     print('DEBUG_particular_rotation_mat: ')
+                #     print(DEBUG_particular_rotation_mat)
 
                 if mode == 'test' and ((global_args.latent_vis_TSNE_epoch_rate[0]>0 and global_args.curr_epoch % global_args.latent_vis_TSNE_epoch_rate[0] == global_args.latent_vis_TSNE_epoch_rate[1]) or \
                                      (global_args.latent_vis_UMAP_epoch_rate[0]>0 and global_args.curr_epoch % global_args.latent_vis_UMAP_epoch_rate[0] == global_args.latent_vis_UMAP_epoch_rate[1])): 
