@@ -477,7 +477,6 @@ class SpecificRotationFlow():
         return 0
 
     def get_batched_rot_matrix(self):
-        # return tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32)[np.newaxis, :, :]
         return tf.Variable(tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32), trainable=False)[np.newaxis, :, :]
 
     def transform(self, z0, log_pdf_z0):
