@@ -224,7 +224,6 @@ parser.add_argument('--gpu', type=str, default='0', help='gpu to use.')
 parser.add_argument('--epochs', type=int, default=1000000000, help='Number of epochs to train.')
 parser.add_argument('--batch_size', type=int, default=100, help='Input batch size for training.')
 parser.add_argument('--time_steps', type=int, default=1, help='Number of timesteps')
-# parser.add_argument('--seed', type=int, default=1123124, help='random seed')
 parser.add_argument('--seed', type=int, default=234231, help='random seed')
 
 parser.add_argument('--gradient_clipping', type=float, default=0, help='Initial weight decay.')
