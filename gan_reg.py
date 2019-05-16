@@ -958,7 +958,7 @@ with tf.Graph().as_default():
 
                 if batch_idx == 1:
                     # if hasattr(model, 'particular_rotation_mat'):
-                    DEBUG_particular_rotation_mat = sess.run(model.pre_flow_object[-1]._batched_rot_matrix, feed_dict = curr_feed_dict)
+                    DEBUG_particular_rotation_mat = sess.run(model.pre_flow_object._transforms[-1]._batched_rot_matrix, feed_dict = curr_feed_dict)
 
                     print('DEBUG_particular_rotation_mat: ')
                     print(DEBUG_particular_rotation_mat)
