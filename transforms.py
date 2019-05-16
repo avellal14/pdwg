@@ -809,7 +809,7 @@ class CompoundRotationFlow():
         self._constant_rot_mats_list, self._householder_flows_list, self._specific_order_dimension_flows_list = [], [], []
         for i in range(len(CompoundRotationFlow.compound_structure)):
             if CompoundRotationFlow.compound_structure[i] == 'C':
-                self._constant_rot_mats_list.append(tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), trainable=False))
+                self._constant_rot_mats_list.append(tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32))
                 # self._constant_rot_mats_list.append(tf.Variable(tf.constant(helper.random_rot_mat(self._input_dim, mode='SO(n)'), dtype=tf.float32), trainable=False))
             elif CompoundRotationFlow.compound_structure[i] == 'H':
                 curr_householder_param, param_index = helper.slice_parameters(self._parameters, param_index, CompoundHouseholdRotationFlow.required_num_parameters(self._input_dim))
