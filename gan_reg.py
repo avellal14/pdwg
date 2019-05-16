@@ -217,7 +217,7 @@ global_experiment_name = str(Path.home())+'/ExperimentalResults/EEEexperimentsSt
 
 parser = argparse.ArgumentParser(description='Tensorflow Gan Models')
 parser.add_argument('--exp_dir_postfix', type=str, default='', help='Directory to put the experiment postfix.')
-parser.add_argument('--save_checkpoints_epoch_rate', type=list, default=[25,10], help='epoch rate for storing checkpoints')
+parser.add_argument('--save_checkpoints_epoch_rate', type=list, default=[3,1], help='epoch rate for storing checkpoints')
 parser.add_argument('--restore_dir', type=str, default='/5bf52452b585400d9ec4bee6aa585872/', help='Directory of restore experiment.')
 parser.add_argument('--restore', type=bool, default=False, help='Restore model.')
 parser.add_argument('--gpu', type=str, default='0', help='gpu to use.')
@@ -956,9 +956,12 @@ with tf.Graph().as_default():
             for batch_idx, curr_batch_size, batch in data_loader: 
                 curr_feed_dict = input_dict_func(batch, hyper_param)    
 
-                # if batch_idx == 1:
-                #     if hasattr(model, 'posterior_prior_log_pdf'):
-                #         DEBUG_posterior_prior_log_pdf, DEBUG_posterior_latent_code = sess.run([model.posterior_prior_log_pdf, model.posterior_latent_code], feed_dict = curr_feed_dict)
+                if batch_idx == 1:
+                    if hasattr(model, 'particular_rotation_mat'):
+                        DEBUG_particular_rotation_mat = sess.run(model.particular_rotation_mat, feed_dict = curr_feed_dict)
+
+                        print('DEBUG_particular_rotation_mat: ')
+                        print(DEBUG_particular_rotation_mat)
 
                 if mode=='test' and ((global_args.latent_vis_TSNE_epoch_rate[0]>0 and global_args.curr_epoch % global_args.latent_vis_TSNE_epoch_rate[0] == global_args.latent_vis_TSNE_epoch_rate[1]) or \
                                      (global_args.latent_vis_UMAP_epoch_rate[0]>0 and global_args.curr_epoch % global_args.latent_vis_UMAP_epoch_rate[0] == global_args.latent_vis_UMAP_epoch_rate[1])): 
