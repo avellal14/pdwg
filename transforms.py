@@ -1008,12 +1008,12 @@ class ConnectedPiecewiseOrthogonalMap():
         self._output_shift_vec, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim) 
 
         if self._scale_mode == 'Scale':
-            self._pos_scale = tf.nn.softplus(self._pos_pre_scale)/np.log(1+np.exp(0))
-            self._neg_scale = tf.nn.softplus(self._neg_pre_scale)/np.log(1+np.exp(0))
+            self._pos_scale = tf.clip_by_value(tf.nn.softplus(self._pos_pre_scale)/np.log(1+np.exp(0)), 1e-10, np.inf)  
+            self._neg_scale = tf.clip_by_value(tf.nn.softplus(self._neg_pre_scale)/np.log(1+np.exp(0)), 1e-10, np.inf)  
         elif self._scale_mode == 'BoundedScale': 
             gap = (self._max_bounded_scale-self._min_bounded_scale)
-            self._pos_scale = self._min_bounded_scale+tf.nn.sigmoid(self._pos_pre_scale+scipy.special.logit(1/gap))*gap
-            self._neg_scale = self._min_bounded_scale+tf.nn.sigmoid(self._neg_pre_scale+scipy.special.logit(1/gap))*gap
+            self._pos_scale = tf.clip_by_value(self._min_bounded_scale+tf.nn.sigmoid(self._pos_pre_scale+scipy.special.logit(1/gap))*gap, 1e-10, np.inf)  
+            self._neg_scale = tf.clip_by_value(self._min_bounded_scale+tf.nn.sigmoid(self._neg_pre_scale+scipy.special.logit(1/gap))*gap, 1e-10, np.inf)  
         self._hyper_bias = tf.nn.softplus(self._hyper_pre_bias)/np.log(1+np.exp(0))
         self._hyper_vec_dir = self._hyper_vec/helper.safe_tf_sqrt(tf.reduce_sum(self._hyper_vec**2, axis=1, keep_dims=True))
         self._pos_rotation_flow = ConnectedPiecewiseOrthogonalMap.rotation_flow_class(self._input_dim, self._pos_rotation_param) 
@@ -1108,12 +1108,12 @@ class PiecewisePlanarScalingMap():
         self._output_shift_vec = tf.reshape(self._output_shift_vec, [-1, PiecewisePlanarScalingMap.n_steps, self._input_dim])
 
         if self._scale_mode == 'Scale':
-            self._pos_scale = tf.nn.softplus(self._pos_pre_scale)/np.log(1+np.exp(0))
-            self._neg_scale = tf.nn.softplus(self._neg_pre_scale)/np.log(1+np.exp(0))
+            self._pos_scale = tf.clip_by_value(tf.nn.softplus(self._pos_pre_scale)/np.log(1+np.exp(0)), 1e-10, np.inf)  
+            self._neg_scale = tf.clip_by_value(tf.nn.softplus(self._neg_pre_scale)/np.log(1+np.exp(0)), 1e-10, np.inf)  
         elif self._scale_mode == 'BoundedScale': 
             gap = (self._max_bounded_scale-self._min_bounded_scale)
-            self._pos_scale = self._min_bounded_scale+tf.nn.sigmoid(self._pos_pre_scale+scipy.special.logit(1/gap))*gap
-            self._neg_scale = self._min_bounded_scale+tf.nn.sigmoid(self._neg_pre_scale+scipy.special.logit(1/gap))*gap
+            self._pos_scale = tf.clip_by_value(self._min_bounded_scale+tf.nn.sigmoid(self._pos_pre_scale+scipy.special.logit(1/gap))*gap, 1e-10, np.inf)  
+            self._neg_scale = tf.clip_by_value(self._min_bounded_scale+tf.nn.sigmoid(self._neg_pre_scale+scipy.special.logit(1/gap))*gap, 1e-10, np.inf)  
         self._hyper_bias = tf.nn.softplus(self._hyper_pre_bias)/np.log(1+np.exp(0))
         self._hyper_vec_dir = self._hyper_vec/helper.safe_tf_sqrt(tf.reduce_sum(self._hyper_vec**2, axis=2, keep_dims=True))
 
