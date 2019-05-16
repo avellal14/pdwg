@@ -222,7 +222,7 @@ parser.add_argument('--restore_dir', type=str, default='/ca6044407e5d4cf186a4b42
 parser.add_argument('--restore', type=bool, default=False, help='Restore model.')
 parser.add_argument('--gpu', type=str, default='0', help='gpu to use.')
 parser.add_argument('--epochs', type=int, default=1000000000, help='Number of epochs to train.')
-parser.add_argument('--batch_size', type=int, default=50, help='Input batch size for training.')
+parser.add_argument('--batch_size', type=int, default=100, help='Input batch size for training.')
 parser.add_argument('--time_steps', type=int, default=1, help='Number of timesteps')
 parser.add_argument('--seed', type=int, default=234231, help='random seed')
 
@@ -478,7 +478,7 @@ elif dataset_to_use == 'MNIST':
 
     parser.add_argument('--n_context', type=int, default=1, help='n_context.')
     parser.add_argument('--n_state', type=int, default=1, help='n_state.')
-    parser.add_argument('--n_latent', type=int, default=128, help='n_latent.')
+    parser.add_argument('--n_latent', type=int, default=512, help='n_latent.')
     parser.add_argument('--n_filter', type=int, default=alg_specific_settings['n_filter'], help='n_filter.')
     parser.add_argument('--n_flat', type=int, default=alg_specific_settings['n_flat'], help='n_flat.')
 
