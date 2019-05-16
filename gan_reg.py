@@ -225,7 +225,7 @@ parser.add_argument('--epochs', type=int, default=1000000000, help='Number of ep
 parser.add_argument('--batch_size', type=int, default=100, help='Input batch size for training.')
 parser.add_argument('--time_steps', type=int, default=1, help='Number of timesteps')
 # parser.add_argument('--seed', type=int, default=1123124, help='random seed')
-parser.add_argument('--seed', type=int, default=234, help='random seed')
+parser.add_argument('--seed', type=int, default=234231, help='random seed')
 
 parser.add_argument('--gradient_clipping', type=float, default=0, help='Initial weight decay.')
 parser.add_argument('--optimizer_class', type=str, default=alg_specific_settings['optimizer_class'], help='Optimizer type.')
