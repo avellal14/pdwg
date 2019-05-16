@@ -1538,25 +1538,25 @@ class NonLinearIARFlow():
 
         if self._mode == 'RNN':
             mu = pre_mu
-            scale = tf.nn.sigmoid(pre_scale)
+            scale = tf.clip_by_value(tf.nn.sigmoid(pre_scale), 1e-10, np.inf)  
             z = scale*z0+(1-scale)*mu
-            log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
+            log_abs_det_jacobian = tf.reduce_sum(tf.log(scale), axis=[1], keep_dims=True)
         elif self._mode == 'ScaleShift':
             mu = pre_mu
-            scale = tf.nn.relu(tf.nn.softplus(pre_scale)/(np.log(1+np.exp(0))))
-            z = mu+(1e-7+scale)*z0
-            log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
+            scale = tf.clip_by_value(tf.nn.softplus(pre_scale)/(np.log(1+np.exp(0))), 1e-10, np.inf)  
+            z = mu+scale*z0
+            log_abs_det_jacobian = tf.reduce_sum(tf.log(scale), axis=[1], keep_dims=True)
         elif self._mode == 'ExponentialScaleShift':
             mu = pre_mu
-            scale = tf.exp(pre_scale)
+            scale = tf.clip_by_value(tf.exp(pre_scale), 1e-10, np.inf)  
             z = mu+scale*z0
             log_abs_det_jacobian = tf.reduce_sum(pre_scale, axis=[1], keep_dims=True)
         elif self._mode == 'BoundedScaleShift':
             mu = pre_mu
             gap = (self._max_bounded_scale-self._min_bounded_scale)
-            scale = self._min_bounded_scale+tf.nn.sigmoid(pre_scale+scipy.special.logit(1/gap))*gap
+            scale = tf.clip_by_value(self._min_bounded_scale+tf.nn.sigmoid(pre_scale+scipy.special.logit(1/gap))*gap, 1e-10, np.inf)  
             z = mu+scale*z0
-            log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
+            log_abs_det_jacobian = tf.reduce_sum(tf.log(scale), axis=[1], keep_dims=True)
         elif self._mode == 'VolumePreserving':
             mu = pre_mu
             scale = tf.ones(shape=tf.shape(pre_scale))
@@ -1600,21 +1600,21 @@ class NonLinearIARFlow():
 
             if self._mode == 'RNN':
                 mu_i = pre_mu_i
-                scale_i = tf.nn.sigmoid(pre_scale_i)
-                z0_i = (z[:, i, np.newaxis]-(1-scale_i)*mu_i)/(1e-7+scale_i)
+                scale_i = tf.clip_by_value(tf.nn.sigmoid(pre_scale_i), 1e-10, np.inf)  
+                z0_i = (z[:, i, np.newaxis]-(1-scale_i)*mu_i)/scale_i
             elif self._mode == 'ScaleShift':
                 mu_i = pre_mu_i
-                scale_i = tf.nn.relu(tf.nn.softplus(pre_scale_i)/(np.log(1+np.exp(0))))
-                z0_i = (z[:, i, np.newaxis]-mu_i)/(1e-7+scale_i)
+                scale_i = tf.clip_by_value(tf.nn.softplus(pre_scale_i)/(np.log(1+np.exp(0))), 1e-10, np.inf)  
+                z0_i = (z[:, i, np.newaxis]-mu_i)/scale_i
             elif self._mode == 'ExponentialScaleShift':
                 mu_i = pre_mu_i
-                scale_i = tf.exp(pre_scale_i)
-                z0_i = (z[:, i, np.newaxis]-mu_i)/(1e-7+scale_i)
+                scale_i = tf.clip_by_value(tf.exp(pre_scale_i), 1e-10, np.inf)  
+                z0_i = (z[:, i, np.newaxis]-mu_i)/scale_i
             elif self._mode == 'BoundedScaleShift':
                 mu_i = pre_mu_i
                 gap = (self._max_bounded_scale-self._min_bounded_scale)
-                scale_i = self._min_bounded_scale+tf.nn.sigmoid(pre_scale_i+scipy.special.logit(1/gap))*gap
-                z0_i = (z[:, i, np.newaxis]-mu_i)/(1e-7+scale_i)
+                scale_i = tf.clip_by_value(self._min_bounded_scale+tf.nn.sigmoid(pre_scale_i+scipy.special.logit(1/gap))*gap, 1e-10, np.inf)  
+                z0_i = (z[:, i, np.newaxis]-mu_i)/scale_i
             elif self._mode == 'VolumePreserving':
                 mu_i = pre_mu_i
                 scale_i = tf.ones(shape=tf.shape(pre_scale_i))
@@ -1734,25 +1734,25 @@ class RealNVPFlow():
 
         if self._mode == 'RNN':
             mu = pre_mu
-            scale = tf.nn.sigmoid(pre_scale)
+            scale = tf.clip_by_value(tf.nn.sigmoid(pre_scale), 1e-10, np.inf)  
             z_change = scale*z0_change+(1-scale)*mu
-            log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
+            log_abs_det_jacobian = tf.reduce_sum(tf.log(scale), axis=[1], keep_dims=True)
         elif self._mode == 'ScaleShift':
             mu = pre_mu
-            scale = tf.nn.relu(tf.nn.softplus(pre_scale)/(np.log(1+np.exp(0))))
-            z_change = mu+(1e-7+scale)*z0_change
-            log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
+            scale = tf.clip_by_value(tf.nn.softplus(pre_scale)/(np.log(1+np.exp(0))), 1e-10, np.inf)
+            z_change = mu+scale*z0_change
+            log_abs_det_jacobian = tf.reduce_sum(tf.log(scale), axis=[1], keep_dims=True)
         elif self._mode == 'ExponentialScaleShift':
             mu = pre_mu
-            scale = tf.exp(pre_scale)
+            scale = tf.clip_by_value(tf.exp(pre_scale), 1e-10, np.inf)
             z_change = mu+scale*z0_change
             log_abs_det_jacobian = tf.reduce_sum(pre_scale, axis=[1], keep_dims=True)
         elif self._mode == 'BoundedScaleShift':
             mu = pre_mu
             gap = (self._max_bounded_scale-self._min_bounded_scale)
-            scale = self._min_bounded_scale+tf.nn.sigmoid(pre_scale+scipy.special.logit(1/gap))*gap
+            scale = tf.clip_by_value(self._min_bounded_scale+tf.nn.sigmoid(pre_scale+scipy.special.logit(1/gap))*gap, 1e-10, np.inf)
             z_change = mu+scale*z0_change
-            log_abs_det_jacobian = tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
+            log_abs_det_jacobian = tf.reduce_sum(tf.log(scale), axis=[1], keep_dims=True)
         elif self._mode == 'VolumePreserving':
             mu = pre_mu
             scale = tf.ones(shape=tf.shape(pre_scale))
@@ -1778,25 +1778,25 @@ class RealNVPFlow():
 
         if self._mode == 'RNN':
             mu = pre_mu
-            scale = tf.nn.sigmoid(pre_scale)
-            z0_change = (z_change-(1-scale)*mu)/(1e-7+scale)
-            log_abs_det_jacobian = -tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
+            scale = tf.clip_by_value(tf.nn.sigmoid(pre_scale), 1e-10, np.inf)  
+            z0_change = (z_change-(1-scale)*mu)/scale
+            log_abs_det_jacobian = -tf.reduce_sum(tf.log(scale), axis=[1], keep_dims=True)
         elif self._mode == 'ScaleShift':
             mu = pre_mu
-            scale = tf.nn.relu(tf.nn.softplus(pre_scale)/(np.log(1+np.exp(0))))
-            z0_change = (z_change-mu)/(1e-7+scale)
-            log_abs_det_jacobian = -tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
+            scale = tf.clip_by_value(tf.nn.softplus(pre_scale)/(np.log(1+np.exp(0))), 1e-10, np.inf)  
+            z0_change = (z_change-mu)/scale
+            log_abs_det_jacobian = -tf.reduce_sum(tf.log(scale), axis=[1], keep_dims=True)
         elif self._mode == 'ExponentialScaleShift':
             mu = pre_mu
-            scale = tf.exp(pre_scale)
-            z0_change = (z_change-mu)/(1e-7+scale)
+            scale = tf.clip_by_value(tf.exp(pre_scale), 1e-10, np.inf)  
+            z0_change = (z_change-mu)/scale
             log_abs_det_jacobian = -tf.reduce_sum(pre_scale, axis=[1], keep_dims=True)
         elif self._mode == 'BoundedScaleShift':
             mu = pre_mu
             gap = (self._max_bounded_scale-self._min_bounded_scale)
-            scale = self._min_bounded_scale+tf.nn.sigmoid(pre_scale+scipy.special.logit(1/gap))*gap
-            z0_change = (z_change-mu)/(1e-7+scale)
-            log_abs_det_jacobian = -tf.reduce_sum(tf.log(1e-7+scale), axis=[1], keep_dims=True)
+            scale = tf.clip_by_value(self._min_bounded_scale+tf.nn.sigmoid(pre_scale+scipy.special.logit(1/gap))*gap, 1e-10, np.inf)  
+            z0_change = (z_change-mu)/scale
+            log_abs_det_jacobian = -tf.reduce_sum(tf.log(scale), axis=[1], keep_dims=True)
         elif self._mode == 'VolumePreserving':
             mu = pre_mu
             scale = tf.ones(shape=tf.shape(pre_scale))
