@@ -127,7 +127,7 @@ class Model():
         #                                           transforms.CompoundRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-1]),
         #                                           ])
 
-        particular = transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
+        particular = transforms.SpecificRotationFlow(input_dim=self.config['n_latent']) 
 
 
         self.pre_flow_object = transforms.SerialFlow([\
