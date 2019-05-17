@@ -823,7 +823,7 @@ class PiecewisePlanarScalingMap():
     Raises:
       ValueError: 
     """
-    n_steps = 20
+    n_steps = 40
 
     def __init__(self, input_dim, parameters, margin_mode='NoGradient', scale_mode='Scale', name='piecewise_planar_scaling_map'):   
         self._parameter_scale = 1.
