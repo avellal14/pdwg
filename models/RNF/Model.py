@@ -94,7 +94,9 @@ class Model():
         self.wolf_param_list = self.WolfMap.forward(batch)
         n_output = np.prod(batch['observed']['properties']['image'][0]['size'][2:])
         
-        Euclidean_flow_class = transforms.PiecewisePlanarScalingFlow
+        # Euclidean_flow_class = transforms.PiecewisePlanarScalingFlow
+        # Euclidean_flow_class = transforms.RealNVPFlow
+        Euclidean_flow_class = transforms.NonLinearIARFlow
         self.pre_flow_object = transforms.SerialFlow([\
                                                         Euclidean_flow_class(input_dim=self.config['n_latent'], parameters=self.wolf_param_list[0]), 
                                                         transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
