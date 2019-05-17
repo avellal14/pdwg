@@ -110,28 +110,16 @@ class FlowMap():
 	def forward(self, batch, name = ''):
 		with tf.variable_scope("FlowMap", reuse=self.constructed):
 			parameters_list = []
-			# flow_to_use = transforms.PiecewisePlanarScalingFlow
+			flow_to_use = transforms.PiecewisePlanarScalingFlow
 			# flow_to_use = transforms.RealNVPFlow
-			flow_to_use = transforms.NonLinearIARFlow
+			# flow_to_use = transforms.NonLinearIARFlow
 			parameters_list.append(10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
 			parameters_list.append(10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
 			parameters_list.append(10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
-			parameters_list.append(10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
-			parameters_list.append(10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
-			parameters_list.append(10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
-			parameters_list.append(10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
-
-			# flow_to_use = transforms.HouseholdRotationFlow
-			# parameters_list.append(1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
-			# parameters_list.append(1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
-			# parameters_list.append(1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
-			# parameters_list.append(1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
-			# parameters_list.append(1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
-			# parameters_list.append(1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
 
 			n_output = np.prod(batch['observed']['properties']['image'][0]['size'][2:])
-			parameters_list.append(1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = transforms.RiemannianFlow.required_num_parameters(self.config['n_latent'], n_output, n_input_NOM=self.config['rnf_prop']['n_input_NOM'], n_output_NOM=self.config['rnf_prop']['n_output_NOM']), use_bias = False, activation = None))
-			parameters_list.append(1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = transforms.CompoundRotationFlow.required_num_parameters(n_output), use_bias = False, activation = None))
+			parameters_list.append(10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = transforms.RiemannianFlow.required_num_parameters(self.config['n_latent'], n_output, n_input_NOM=self.config['rnf_prop']['n_input_NOM'], n_output_NOM=self.config['rnf_prop']['n_output_NOM']), use_bias = False, activation = None))
+			parameters_list.append(10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = transforms.CompoundRotationFlow.required_num_parameters(n_output), use_bias = False, activation = None))
 
 			self.constructed = True
 			return parameters_list
@@ -145,18 +133,13 @@ class WolfMap():
 	def forward(self, batch, name = ''):
 		with tf.variable_scope("WolfMap", reuse=self.constructed):
 			parameters_list = []
-			# flow_to_use = transforms.PiecewisePlanarScalingFlow
+			flow_to_use = transforms.PiecewisePlanarScalingFlow
 			# flow_to_use = transforms.RealNVPFlow
-			flow_to_use = transforms.NonLinearIARFlow
+			# flow_to_use = transforms.NonLinearIARFlow
 			parameters_list.append(10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
 			parameters_list.append(10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
 			parameters_list.append(10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
-			parameters_list.append(10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
-			parameters_list.append(10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
-			parameters_list.append(10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
-			parameters_list.append(10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
-			parameters_list.append(10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_to_use.required_num_parameters(self.config['n_latent']), use_bias = False, activation = None))
-
+			
 			self.constructed = True
 			return parameters_list
 
