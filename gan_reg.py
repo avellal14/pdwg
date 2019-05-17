@@ -55,7 +55,7 @@ if Algorithm == 'RNF':
                              'encoder_mode': 'Deterministic', 'divergence_mode': 'None', 'dual_dist_mode': '',  'infomax_mode': 'None', 'sample_distance_mode': 'Euclidean',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 0.0005, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 0, 'enc_inv_MMD_n_trans': 0, 'enc_inv_MMD_strength': 0,
-                             'critic_reg_mode': [], 'cri_reg_strength': 0.0005, 'lambda_mix': 0, 'timers': {}, 'rnf_prop': {'n_input_NOM': 3, 'n_output_NOM': 3}}
+                             'critic_reg_mode': [], 'cri_reg_strength': 0.0005, 'lambda_mix': 0, 'timers': {}, 'rnf_prop': {'n_input_NOM': 2, 'n_output_NOM': 2}}
 if Algorithm == 'RNFWasserstein':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 128, 'n_flat': 400, 
@@ -226,7 +226,7 @@ parser.add_argument('--batch_size', type=int, default=100, help='Input batch siz
 parser.add_argument('--time_steps', type=int, default=1, help='Number of timesteps')
 parser.add_argument('--seed', type=int, default=234231, help='random seed')
 
-parser.add_argument('--gradient_clipping', type=float, default=0, help='Initial weight decay.')
+parser.add_argument('--gradient_clipping', type=float, default=5, help='Initial weight decay.')
 parser.add_argument('--optimizer_class', type=str, default=alg_specific_settings['optimizer_class'], help='Optimizer type.')
 parser.add_argument('--learning_rate', type=float, default=alg_specific_settings['learning_rate'], help='Initial learning rate.')
 parser.add_argument('--beta1', type=float, default=alg_specific_settings['beta1'], help='Momentum Beta 1.')

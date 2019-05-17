@@ -510,7 +510,7 @@ class ManyReflectionsRotationFlow():
     Raises:
       ValueError: 
     """
-    n_steps = 100
+    n_steps = 200
 
     def __init__(self, input_dim, parameters, name='many_reflections_rotation_transform'):   
         self._parameter_scale = 1.
@@ -823,7 +823,7 @@ class PiecewisePlanarScalingMap():
     Raises:
       ValueError: 
     """
-    n_steps = 40
+    n_steps = 50
 
     def __init__(self, input_dim, parameters, margin_mode='NoGradient', scale_mode='Scale', name='piecewise_planar_scaling_map'):   
         self._parameter_scale = 1.
@@ -1446,7 +1446,7 @@ class NonLinearIARFlow():
     Raises:
       ValueError: 
     """
-    layer_expansions = [3, 3]
+    layer_expansions = [5, 5]
 
     def __init__(self, input_dim, parameters, mode='ScaleShift', name='nonlinearIAR_transform'):   #real
         self._parameter_scale = 1
