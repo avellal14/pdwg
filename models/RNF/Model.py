@@ -200,7 +200,13 @@ class Model():
         self.OT_primal = self.sample_distance_function(self.input_sample, self.reconst_sample)
         self.mean_OT_primal = tf.reduce_mean(self.OT_primal)
 
-        overall_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.enc_reg_cost
+        if '0' in self.config['timers']: 
+            lambda_t = helper.hardstep((self.epoch-float(self.config['timers']['0']['start']))/float(self.config['timers']['0']['timescale'])+1e-5)
+            overall_cost = self.mean_OT_primal+lambda_t*self.config['enc_reg_strength']*self.enc_reg_cost
+        else:
+            overall_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.enc_reg_cost
+
+
         self.cri_cost = self.cri_reg_cost
         self.enc_cost = overall_cost
         self.gen_cost = overall_cost
