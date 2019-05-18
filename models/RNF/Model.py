@@ -106,15 +106,10 @@ class Model():
                                                         transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
                                                      ])
 
-        Euclidean_flow_class = transforms.RealNVPFlow
         self.flow_object = transforms.SerialFlow([\
                                                     Euclidean_flow_class(input_dim=self.config['n_latent'], parameters=self.flow_param_list[0]), 
-                                                    transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
-                                                    Euclidean_flow_class(input_dim=self.config['n_latent'], parameters=self.flow_param_list[1]), 
-                                                    transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
-                                                    Euclidean_flow_class(input_dim=self.config['n_latent'], parameters=self.flow_param_list[2]), 
-                                                    transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
-                                                    Euclidean_flow_class(input_dim=self.config['n_latent'], parameters=self.flow_param_list[3]), 
+                                                    # transforms.SpecificRotationFlow(input_dim=self.config['n_latent']), 
+                                                    # Euclidean_flow_class(input_dim=self.config['n_latent'], parameters=self.flow_param_list[1]), 
                                                     transforms.RiemannianFlow(input_dim=self.config['n_latent'], output_dim=n_output, n_input_NOM=self.config['rnf_prop']['n_input_NOM'], n_output_NOM=self.config['rnf_prop']['n_output_NOM'], parameters=self.flow_param_list[-2]),
                                                     transforms.CompoundRotationFlow(input_dim=n_output, parameters=self.flow_param_list[-1]),
                                                  ])
