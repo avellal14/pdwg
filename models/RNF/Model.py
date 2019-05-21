@@ -207,11 +207,16 @@ class Model():
             overall_cost = self.mean_OT_primal+self.config['enc_reg_strength']*self.enc_reg_cost
 
 
-        # self.cri_cost = self.cri_reg_cost
-        self.cri_cost = self.config['enc_reg_strength']*self.enc_reg_cost
+        self.cri_cost = self.cri_reg_cost
+        # self.cri_cost = self.config['enc_reg_strength']*self.enc_reg_cost
         self.enc_cost = overall_cost
         self.gen_cost = overall_cost
 
+        # # MNIST
+        # # self.cri_cost = self.cri_reg_cost 
+        # self.cri_cost = overall_cost
+        # self.enc_cost = overall_cost
+        # self.gen_cost = overall_cost
 
 
 
