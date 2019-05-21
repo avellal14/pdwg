@@ -5,8 +5,7 @@ import math
 import scipy
 import scipy.misc
 import matplotlib
-# from imageio import imwrite
-# try: from scipy.misc import imsave
+from scipy.misc import imsave
 
 import tensorflow as tf
 from tensorflow.python.framework import ops
