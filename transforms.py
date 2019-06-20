@@ -122,7 +122,7 @@ class RadialFlow():
         return z, log_pdf_z
     
     def inverse_transform(self, z, log_pdf_z):
-        print('No analytical inverse for planar flows.')
+        print('No analytical inverse for radial flows.')
         quit()
 
 #####################################################################################

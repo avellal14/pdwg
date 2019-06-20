@@ -392,6 +392,39 @@ class DiagonalBetaDistribution():
 		log_prob = unnormalized_log_prob+log_partition
 		return log_prob
 
+####  MIXTURE DISTRIBUTION
+
+class MixtureDistribution():
+	def __init__(self, dists, weights, name = 'MixtureDistribution'):
+		if np.sum(weights) != 1 or len(dists) != len(weights): print('Invalid Option. MixtureDistribution.'); quit()
+		self.dists = dists
+		self.weights = weights
+		self.name = name
+		
+	def sample(self, b_mode=False):
+		cdf = np.cumsum(self.weights)
+		uniform_sample = tf.random_uniform((tf.shape(self.dists[0].mean)[0], 1), 0, 1, dtype=tf.float32)
+		mixture_indeces = len(self.weights)-tf.reduce_sum(tf.cast(uniform_sample <= cdf[np.newaxis, :], tf.float32), axis=1, keep_dims=True)
+
+		sample = None
+		for i in range(len(self.weights)):
+			mix_mask = tf.cast((mixture_indeces-i) <= 0, tf.float32) * tf.cast((mixture_indeces-i) >= 0, tf.float32)
+			mix_samples = self.dists[i].sample(b_mode=b_mode)
+			if sample is None: sample = mix_mask*mix_samples
+			else: sample = sample + mix_mask*mix_samples
+		return sample
+		
+	def log_pdf(self, sample):
+		assert (len(sample.get_shape())==2)
+		log_weighted_log_probs = []
+		for i in range(len(self.weights)):
+			mix_log_prob = self.dists[i].log_pdf(sample)
+			log_weighted_log_probs.append(np.log(self.weights[i])+mix_log_prob)
+		log_weighted_log_probs_tf = tf.concat(log_weighted_log_probs, axis=1)
+		maxes = tf.reduce_max(log_weighted_log_probs_tf, axis=1, keep_dims=True)
+		log_prob = maxes+tf.log(tf.reduce_sum(tf.exp(log_weighted_log_probs_tf-maxes), axis=1, keep_dims=True))
+		return log_prob
+
 
 ####  BERNOULLI DISTRIBUTION
 
