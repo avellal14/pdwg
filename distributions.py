@@ -396,7 +396,7 @@ class DiagonalBetaDistribution():
 
 class MixtureDistribution():
 	def __init__(self, dists, weights, name = 'MixtureDistribution'):
-		if np.sum(weights) != 1 or len(dists) != len(weights): print('Invalid Option. MixtureDistribution.'); quit()
+		if np.abs(np.sum(weights)-1) > 1e-7 or len(dists) != len(weights): print('Invalid Option. MixtureDistribution.'); quit()
 		self.dists = dists
 		self.weights = weights
 		self.name = name

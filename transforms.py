@@ -1446,13 +1446,15 @@ class NonLinearIARFlow():
     Raises:
       ValueError: 
     """
-    layer_expansions = [5,5,5] ## dont make it wider, make it deeper [2,2,2] instead of [5,5] for speed
+    # layer_expansions = [5,5,5] ## dont make it wider, make it deeper [2,2,2] instead of [5,5] for speed
+    layer_expansions = [50,50,50] ## dont make it wider, make it deeper [2,2,2] instead of [5,5] for speed
 
     def __init__(self, input_dim, parameters, mode='ScaleShift', name='nonlinearIAR_transform'):   #real
         self._parameter_scale = 1
         self._parameters = self._parameter_scale*parameters
         self._input_dim = input_dim
         self._nonlinearity = helper.LeakyReLU # tf.nn.tanh
+        # self._nonlinearity = tf.nn.tanh # tf.nn.tanh
         self._mode = mode
         self._max_bounded_scale = 10
         self._min_bounded_scale = 1/self._max_bounded_scale
