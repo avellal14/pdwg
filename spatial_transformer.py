@@ -16,25 +16,10 @@ import tensorflow as tf
 # import components
 import pdb
 import numpy as np
+import distributions
 
-# def transformer(input_im, theta, out_size, name='SpatialTransformer', **kwargs):
-def transformer(input_im, pixel_transformation_clousure, out_size, name='SpatialTransformer', **kwargs):
+def transformer(input_im, pixel_transformation_clousure, out_size, n_location_samples=None, out_comparison_im=None, name='SpatialTransformerSampled', **kwargs):
     """Spatial Transformer Layer
-
-    Implements a spatial transformer layer as described in [1]_.
-    Based on [2]_ and edited by David Dao for Tensorflow.
-
-    Parameters
-    ----------
-    input_im : float
-        The output of a convolutional net should have the
-        shape [num_batch, height, width, num_channels].
-    theta: float
-        The output of the
-        localisation network should be [num_batch, 6].
-    out_size: tuple of two ints
-        The size of the output of the network (height, width)
-
     References
     ----------
     .. [1]  Spatial Transformer Networks
@@ -42,270 +27,313 @@ def transformer(input_im, pixel_transformation_clousure, out_size, name='Spatial
             Submitted on 5 Jun 2015
     .. [2]  https://github.com/skaae/transformer_network/blob/master/transformerlayer.py
 
-    Notes
-    -----
-    To initialize the network to the identity transform init
-    ``theta`` to :
-        identity = np.array([[1., 0., 0.],
-                             [0., 1., 0.]])
-        identity = identity.flatten()
-        theta = tf.Variable(initial_value=identity)
-
     """
 
-    def _repeat(x, n_repeats):
-        rep = tf.transpose(tf.expand_dims(tf.ones(shape=[n_repeats, ]), 1), [1, 0])
-        rep = tf.cast(rep, 'int32')
-        x = tf.matmul(tf.reshape(x, (-1, 1)), rep)
-        return tf.reshape(x, [-1])
+    def _gather_from_ims(im, yx_list, n_location_samples):
+        im_flat = tf.reshape(im, [-1, tf.shape(im)[3]])
+        base = tf.reshape(tf.tile((tf.range(tf.shape(im)[0])*(tf.shape(im)[2]*tf.shape(im)[1]))[:,np.newaxis], [1, n_location_samples]), [-1])
+        Ilist = []
+        for i in range(len(yx_list)):
+            y, x = yx_list[i]
+            flat_ind = base+y*tf.shape(im)[2]+x
+            Ilist.append(tf.gather(im_flat, flat_ind))
+        return Ilist
 
-    def _interpolate(im, x, y, out_size, value=0.5):
-        num_batch = tf.shape(im)[0]
-        height = tf.shape(im)[1]
-        width = tf.shape(im)[2]
-        channels = tf.shape(im)[3]
-
-        x = tf.cast(x, 'float32')
-        y = tf.cast(y, 'float32')
-        height_f = tf.cast(height, 'float32')
-        width_f = tf.cast(width, 'float32')
-        out_height = out_size[0]
-        out_width = out_size[1]
-        zero = tf.zeros([], dtype='int32')
-        max_y = tf.cast(tf.shape(im)[1] - 1, 'int32')
-        max_x = tf.cast(tf.shape(im)[2] - 1, 'int32')
-
-        # scale indices from [-1, 1] to [0, width/height]
-        x = (x + 1.0)*(width_f) / 2.0
-        y = (y + 1.0)*(height_f) / 2.0
+    def _interpolate(im, y, x, n_location_samples):
 
         # do sampling
-        x0 = tf.cast(tf.floor(x), 'int32')
-        x1 = x0 + 1
         y0 = tf.cast(tf.floor(y), 'int32')
         y1 = y0 + 1
+        x0 = tf.cast(tf.floor(x), 'int32')
+        x1 = x0 + 1
 
-        x0 = tf.clip_by_value(x0, zero, max_x)
-        x1 = tf.clip_by_value(x1, zero, max_x)
-        y0 = tf.clip_by_value(y0, zero, max_y)
-        y1 = tf.clip_by_value(y1, zero, max_y)
-        dim2 = width
-        dim1 = width*height
-        base = _repeat(tf.range(num_batch)*dim1, out_height*out_width)
-        base_y0 = base + y0*dim2
-        base_y1 = base + y1*dim2
-        idx_a = base_y0 + x0
-        idx_b = base_y1 + x0
-        idx_c = base_y0 + x1
-        idx_d = base_y1 + x1
+        y0 = tf.clip_by_value(y0, tf.zeros([], dtype='int32'), tf.shape(im)[1]-1)
+        y1 = tf.clip_by_value(y1, tf.zeros([], dtype='int32'), tf.shape(im)[1]-1)
+        x0 = tf.clip_by_value(x0, tf.zeros([], dtype='int32'), tf.shape(im)[2]-1)
+        x1 = tf.clip_by_value(x1, tf.zeros([], dtype='int32'), tf.shape(im)[2]-1)
 
-        # use indices to lookup pixels in the flat image and restore
-        # channels dim
-        im_flat = tf.reshape(im, [-1, channels])
-        im_flat = tf.cast(im_flat, 'float32')
-        Ia = tf.gather(im_flat, idx_a)
-        Ib = tf.gather(im_flat, idx_b)
-        Ic = tf.gather(im_flat, idx_c)
-        Id = tf.gather(im_flat, idx_d)
+        Ia, Ib, Ic, Id = _gather_from_ims(im, [(y0, x0), (y1, x0), (y0, x1), (y1, x1)], n_location_samples)
 
         # and finally calculate interpolated values
-        x0_f = tf.cast(x0, 'float32')
-        x1_f = tf.cast(x1, 'float32')
         y0_f = tf.cast(y0, 'float32')
         y1_f = tf.cast(y1, 'float32')
-        wa = tf.expand_dims(((x1_f-x) * (y1_f-y)), 1)
-        wb = tf.expand_dims(((x1_f-x) * (y-y0_f)), 1)
-        wc = tf.expand_dims(((x-x0_f) * (y1_f-y)), 1)
-        wd = tf.expand_dims(((x-x0_f) * (y-y0_f)), 1)
+        x0_f = tf.cast(x0, 'float32')
+        x1_f = tf.cast(x1, 'float32')
+        
+        wd = ((x-x0_f)*(y-y0_f))[:, np.newaxis]
+        wc = ((x-x0_f)*(y1_f-y))[:, np.newaxis]
+        wb = ((x1_f-x)*(y-y0_f))[:, np.newaxis]
+        wa = ((x1_f-x)*(y1_f-y))[:, np.newaxis]
 
-        output = tf.add_n([(wa*Ia), (wb*Ib), (wc*Ic), (wd*Id)])
+        output = (wa*Ia)+(wb*Ib)+(wc*Ic)+(wd*Id)
         return output
 
     def _meshgrid(height, width):
-        # This should be equivalent to:
-        #  x_t, y_t = np.meshgrid(np.linspace(-1, 1, width),
-        #                         np.linspace(-1, 1, height))
-        #  ones = np.ones(np.prod(x_t.shape))
-        #  grid = np.vstack([x_t.flatten(), y_t.flatten(), ones])
-
-        x_t = tf.matmul(tf.ones(shape=[height, 1]), tf.transpose(tf.expand_dims(tf.linspace(-1.0, 1.0, width), 1), [1, 0]))
-        y_t = tf.matmul(tf.expand_dims(tf.linspace(-1.0, 1.0, height), 1), tf.ones(shape=[1, width]))
-
-        x_t_flat = tf.reshape(x_t, (1, -1))
-        y_t_flat = tf.reshape(y_t, (1, -1))
-
-        grid = tf.transpose(tf.concat([x_t_flat, y_t_flat], axis=0), perm=[1, 0])
+        y_t = tf.tile(tf.linspace(-1.0, 1.0, height)[:, np.newaxis], [1, width])
+        x_t = tf.tile(tf.linspace(-1.0, 1.0, width)[np.newaxis, :], [height, 1])
+        grid = tf.concat([tf.reshape(y_t, [-1])[:, np.newaxis], tf.reshape(x_t, [-1])[:, np.newaxis]], axis=1)
         return grid
 
-    num_batch = tf.shape(input_im)[0]
-    height = tf.shape(input_im)[1]
-    width = tf.shape(input_im)[2]
-    num_channels = tf.shape(input_im)[3]
-
-    # grid of (x_t, y_t, 1), eq (1) in ref [1]
-    height_f = tf.cast(height, 'float32')
-    width_f = tf.cast(width, 'float32')
-    out_height = out_size[0]
-    out_width = out_size[1]
-
-    grid = _meshgrid(out_height, out_width)
-    T_g = pixel_transformation_clousure(grid)
-    # grid_tiled = tf.tile(grid[np.newaxis,:,:], [num_batch, 1, 1])
-    # grid_tiled_augmented = tf.concat([grid_tiled, tf.ones((num_batch, 1, tf.shape(grid)[1]))], axis=1)
-    # T_g = tf.matmul(tf.cast(tf.reshape(theta, (-1, 2, 3)), 'float32'), grid_tiled_augmented)
-
-    x_s = T_g[:, 0, np.newaxis, :]
-    y_s = T_g[:, 1, np.newaxis, :]
-
-    x_s_flat = tf.reshape(x_s, [-1])
-    y_s_flat = tf.reshape(y_s, [-1])
-
-    input_transformed = _interpolate(input_im, x_s_flat, y_s_flat, out_size)
-
-    # output = tf.reshape(input_transformed, tf.stack([num_batch, out_height, out_width, num_channels]))
-    output = tf.reshape(input_transformed, [num_batch, out_height, out_width, num_channels])
-
-    return output
-
-
-
-def transformer_sampled(input_im, pixel_transformation_clousure, out_size, name='SpatialTransformer', **kwargs):
-    def _repeat(x, n_repeats):
-        rep = tf.transpose(tf.expand_dims(tf.ones(shape=[n_repeats, ]), 1), [1, 0])
-        rep = tf.cast(rep, 'int32')
-        x = tf.matmul(tf.reshape(x, (-1, 1)), rep)
-        return tf.reshape(x, [-1])
-
-    def _interpolate(im, x, y, out_size, value=0.5):
-        num_batch = tf.shape(im)[0]
-        height = tf.shape(im)[1]
-        width = tf.shape(im)[2]
-        channels = tf.shape(im)[3]
-
-        x = tf.cast(x, 'float32')
-        y = tf.cast(y, 'float32')
-        height_f = tf.cast(height, 'float32')
-        width_f = tf.cast(width, 'float32')
-        out_height = out_size[0]
-        out_width = out_size[1]
-        zero = tf.zeros([], dtype='int32')
-        max_y = tf.cast(tf.shape(im)[1] - 1, 'int32')
-        max_x = tf.cast(tf.shape(im)[2] - 1, 'int32')
-
-        # scale indices from [-1, 1] to [0, width/height]
-        x = (x + 1.0)*(width_f) / 2.0
-        y = (y + 1.0)*(height_f) / 2.0
-
-        # do sampling
-        x0 = tf.cast(tf.floor(x), 'int32')
-        x1 = x0 + 1
-        y0 = tf.cast(tf.floor(y), 'int32')
-        y1 = y0 + 1
-
-        x0 = tf.clip_by_value(x0, zero, max_x)
-        x1 = tf.clip_by_value(x1, zero, max_x)
-        y0 = tf.clip_by_value(y0, zero, max_y)
-        y1 = tf.clip_by_value(y1, zero, max_y)
-        dim2 = width
-        dim1 = width*height
-        base = _repeat(tf.range(num_batch)*dim1, out_height*out_width)
-        base_y0 = base + y0*dim2
-        base_y1 = base + y1*dim2
-        idx_a = base_y0 + x0
-        idx_b = base_y1 + x0
-        idx_c = base_y0 + x1
-        idx_d = base_y1 + x1
-
-        # use indices to lookup pixels in the flat image and restore
-        # channels dim
-        im_flat = tf.reshape(im, [-1, channels])
-        im_flat = tf.cast(im_flat, 'float32')
-        Ia = tf.gather(im_flat, idx_a)
-        Ib = tf.gather(im_flat, idx_b)
-        Ic = tf.gather(im_flat, idx_c)
-        Id = tf.gather(im_flat, idx_d)
-
-        # and finally calculate interpolated values
-        x0_f = tf.cast(x0, 'float32')
-        x1_f = tf.cast(x1, 'float32')
-        y0_f = tf.cast(y0, 'float32')
-        y1_f = tf.cast(y1, 'float32')
-        wa = tf.expand_dims(((x1_f-x) * (y1_f-y)), 1)
-        wb = tf.expand_dims(((x1_f-x) * (y-y0_f)), 1)
-        wc = tf.expand_dims(((x-x0_f) * (y1_f-y)), 1)
-        wd = tf.expand_dims(((x-x0_f) * (y-y0_f)), 1)
-
-        output = tf.add_n([(wa*Ia), (wb*Ib), (wc*Ic), (wd*Id)])
-        return output
-
-    def _meshgrid(height, width):
-        # This should be equivalent to:
-        #  x_t, y_t = np.meshgrid(np.linspace(-1, 1, width),
-        #                         np.linspace(-1, 1, height))
-        #  ones = np.ones(np.prod(x_t.shape))
-        #  grid = np.vstack([x_t.flatten(), y_t.flatten(), ones])
-
-        x_t = tf.matmul(tf.ones(shape=[height, 1]), tf.transpose(tf.expand_dims(tf.linspace(-1.0, 1.0, width), 1), [1, 0]))
-        y_t = tf.matmul(tf.expand_dims(tf.linspace(-1.0, 1.0, height), 1), tf.ones(shape=[1, width]))
-
-        x_t_flat = tf.reshape(x_t, (1, -1))
-        y_t_flat = tf.reshape(y_t, (1, -1))
-
-        grid = tf.transpose(tf.concat([x_t_flat, y_t_flat], axis=0), perm=[1, 0])
-        return grid
-
-    num_batch = tf.shape(input_im)[0]
-    height = tf.shape(input_im)[1]
-    width = tf.shape(input_im)[2]
-    num_channels = tf.shape(input_im)[3]
-
-    # grid of (x_t, y_t, 1), eq (1) in ref [1]
-    height_f = tf.cast(height, 'float32')
-    width_f = tf.cast(width, 'float32')
-    out_height = out_size[0]
-    out_width = out_size[1]
-
-    grid = _meshgrid(out_height, out_width)
-    T_g = pixel_transformation_clousure(grid)
-    # grid_tiled = tf.tile(grid[np.newaxis,:,:], [num_batch, 1, 1])
-    # grid_tiled_augmented = tf.concat([grid_tiled, tf.ones((num_batch, 1, tf.shape(grid)[1]))], axis=1)
-    # T_g = tf.matmul(tf.cast(tf.reshape(theta, (-1, 2, 3)), 'float32'), grid_tiled_augmented)
-
-    x_s = T_g[:, 0, np.newaxis, :]
-    y_s = T_g[:, 1, np.newaxis, :]
-
-    x_s_flat = tf.reshape(x_s, [-1])
-    y_s_flat = tf.reshape(y_s, [-1])
+    # FULL OUTPUT GRID
+    if n_location_samples is None:
+        out_yx_unit = _meshgrid(out_size[0], out_size[1]) # [out_size[0]*out_size[1], 2]
+        out_y_unit = out_yx_unit[:, 0, np.newaxis]
+        out_x_unit = out_yx_unit[:, 1, np.newaxis]
+        out_y = ((out_y_unit+1.)/2.)*(tf.cast(out_size[0], 'float32')-1.) 
+        out_x = ((out_x_unit+1.)/2.)*(tf.cast(out_size[1], 'float32')-1.) 
     
-    pdb.set_trace()
+    # SAMPLED OUTPUT GRID
+    else:
+        out_dist_y = distributions.UniformDiscreteDistribution(interval=[n_location_samples, 0, tf.cast(out_size[0], 'float32')-1.])
+        out_dist_x = distributions.UniformDiscreteDistribution(interval=[n_location_samples, 0, tf.cast(out_size[1], 'float32')-1.])
+        out_y = out_dist_y.sample()
+        out_x = out_dist_x.sample()
+        out_y_unit = (out_y/(tf.cast(out_size[0], 'float32')-1.))*2.-1.
+        out_x_unit = (out_x/(tf.cast(out_size[1], 'float32')-1.))*2.-1.
+        out_yx_unit = tf.concat([out_y_unit, out_x_unit], axis=1) #[n_location_samples, 2]
 
-    input_transformed = _interpolate(input_im, x_s_flat, y_s_flat, out_size)
+    expanded_input_yx_unit = pixel_transformation_clousure(out_yx_unit) #[input_im.shape[0], n_location_samples, 2]
 
-    # output = tf.reshape(input_transformed, tf.stack([num_batch, out_height, out_width, num_channels]))
-    output = tf.reshape(input_transformed, [num_batch, out_height, out_width, num_channels])
+    expanded_input_y_unit = expanded_input_yx_unit[:, 0, :]
+    expanded_input_x_unit = expanded_input_yx_unit[:, 1, :]
 
-    return output_sampled, location_mask
+    expanded_input_y_sample = (expanded_input_y_unit+1.)*(tf.cast(tf.shape(input_im)[1], 'float32')-1.)/2.
+    expanded_input_x_sample = (expanded_input_x_unit+1.)*(tf.cast(tf.shape(input_im)[2], 'float32')-1.)/2.
+
+    expanded_input_y_sample_flat = tf.reshape(expanded_input_y_sample, [-1])
+    expanded_input_x_sample_flat = tf.reshape(expanded_input_x_sample, [-1])
+
+    out_comparison_im_gathered = None
+
+    # FULL OUTPUT GRID
+    if n_location_samples is None: 
+        input_transformed_flat = _interpolate(input_im, expanded_input_y_sample_flat, expanded_input_x_sample_flat, out_size[0]*out_size[1])
+        output = tf.reshape(input_transformed_flat, [tf.shape(input_im)[0], out_size[0], out_size[1], tf.shape(input_im)[3]])
+        if out_comparison_im is not None:
+            expanded_out_y_flat_int =  tf.cast(tf.floor(tf.reshape(tf.tile(out_y[np.newaxis,:,0], [tf.shape(out_comparison_im)[0], 1]), [-1])), 'int32')
+            expanded_out_x_flat_int =  tf.cast(tf.floor(tf.reshape(tf.tile(out_x[np.newaxis,:,0], [tf.shape(out_comparison_im)[0], 1]), [-1])), 'int32')
+            out_comparison_im_gathered_flat = _gather_from_ims(out_comparison_im, [(expanded_out_y_flat_int, expanded_out_x_flat_int)], out_size[0]*out_size[1])[0] 
+            out_comparison_im_gathered = tf.reshape(out_comparison_im_gathered_flat, [tf.shape(out_comparison_im)[0], out_size[0], out_size[1], 3])
+        return output, out_comparison_im_gathered
+
+    # SAMPLED OUTPUT GRID
+    else:
+        input_transformed_flat_sampled = _interpolate(input_im, expanded_input_y_sample_flat, expanded_input_x_sample_flat, n_location_samples)
+        output = tf.reshape(input_transformed_flat_sampled, [tf.shape(input_im)[0], -1, 3])
+        if out_comparison_im is not None:
+            expanded_out_y_flat_int =  tf.cast(tf.floor(tf.reshape(tf.tile(out_y[np.newaxis,:,0], [tf.shape(out_comparison_im)[0], 1]), [-1])), 'int32')
+            expanded_out_x_flat_int =  tf.cast(tf.floor(tf.reshape(tf.tile(out_x[np.newaxis,:,0], [tf.shape(out_comparison_im)[0], 1]), [-1])), 'int32')
+            out_comparison_im_gathered_flat = _gather_from_ims(out_comparison_im, [(expanded_out_y_flat_int, expanded_out_x_flat_int)], n_location_samples)[0] 
+            out_comparison_im_gathered = tf.reshape(out_comparison_im_gathered_flat, [tf.shape(out_comparison_im)[0], -1, 3])
+
+        return output, out_comparison_im_gathered
 
 
-def batch_transformer(U, thetas, out_size, name='BatchSpatialTransformer'):
-    """Batch Spatial Transformer Layer
 
-    Parameters
-    ----------
+        
 
-    U : float
-        tensor of inputs [num_batch,height,width,num_channels]
-    thetas : float
-        a set of transformations for each input [num_batch,num_transforms,6]
-    out_size : int
-        the size of the output [out_height,out_width]
 
-    Returns: float
-        Tensor of size [num_batch*num_transforms,out_height,out_width,num_channels]
-    """
-    with tf.variable_scope(name):
-        num_batch, num_transforms = map(int, thetas.get_shape().as_list()[:2])
-        indices = [[i]*num_transforms for i in xrange(num_batch)]
-        input_repeated = tf.gather(U, tf.reshape(indices, [-1]))
-        return transformer(input_repeated, thetas, out_size)# Copyright 2016 The TensorFlow Authors. All Rights Reserved.
+
+
+
+
+
+
+
+
+
+
+
+
+
+        # out_yx_int = tf.cast(tf.concat([out_y, out_x], axis=1), 'int32')
+        # location_mask = tf.cast(tf.scatter_nd(out_yx_int, tf.ones((n_location_samples,), tf.float32), out_size), 'bool')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# def transformer_sampled(input_im, pixel_transformation_clousure, out_size, n_location_samples, name='SpatialTransformerSampled', **kwargs):
+    
+#     def _gather_from_ims(im, yx_list, n_location_samples):
+#         im_flat = tf.reshape(im, [-1, tf.shape(im)[3]])
+#         base = tf.reshape(tf.tile((tf.range(tf.shape(im)[0])*(tf.shape(im)[2]*tf.shape(im)[1]))[:,np.newaxis], [1, n_location_samples]), [-1])
+#         Ilist = []
+#         for i in range(len(yx_list)):
+#             y, x = yx_list[i]
+#             flat_ind = base+y*tf.shape(im)[2]+x
+#             Ilist.append(tf.gather(im_flat, flat_ind))
+#         return Ilist
+
+#     def _interpolate(im, y, x, n_location_samples):
+
+#         # do sampling
+#         y0 = tf.cast(tf.floor(y), 'int32')
+#         y1 = y0 + 1
+#         x0 = tf.cast(tf.floor(x), 'int32')
+#         x1 = x0 + 1
+
+#         y0 = tf.clip_by_value(y0, tf.zeros([], dtype='int32'), tf.shape(im)[1]-1)
+#         y1 = tf.clip_by_value(y1, tf.zeros([], dtype='int32'), tf.shape(im)[1]-1)
+#         x0 = tf.clip_by_value(x0, tf.zeros([], dtype='int32'), tf.shape(im)[2]-1)
+#         x1 = tf.clip_by_value(x1, tf.zeros([], dtype='int32'), tf.shape(im)[2]-1)
+
+#         Ia, Ib, Ic, Id = _gather_from_ims(im, [(y0, x0), (y1, x0), (y0, x1), (y1, x1)], n_location_samples)
+
+#         # and finally calculate interpolated values
+#         y0_f = tf.cast(y0, 'float32')
+#         y1_f = tf.cast(y1, 'float32')
+#         x0_f = tf.cast(x0, 'float32')
+#         x1_f = tf.cast(x1, 'float32')
+        
+#         wa = ((x1_f-x)*(y1_f-y))[:, np.newaxis]
+#         wb = ((x1_f-x)*(y-y0_f))[:, np.newaxis]
+#         wc = ((x-x0_f)*(y1_f-y))[:, np.newaxis]
+#         wd = ((x-x0_f)*(y-y0_f))[:, np.newaxis]
+
+#         output = (wa*Ia)+(wb*Ib)+(wc*Ic)+(wd*Id)
+#         return output
+
+#     dist_y = distributions.UniformDiscreteDistribution(interval=[n_location_samples, 0, tf.cast(out_size[0], 'float32')-1.])
+#     dist_x = distributions.UniformDiscreteDistribution(interval=[n_location_samples, 0, tf.cast(out_size[1], 'float32')-1.])
+#     y_sample = dist_y.sample()
+#     x_sample = dist_x.sample()
+#     y_sample_unit = (y_sample/(tf.cast(out_size[0], 'float32')-1.))*2.-1.
+#     x_sample_unit = (x_sample/(tf.cast(out_size[1], 'float32')-1.))*2.-1.
+
+#     yx_sample = tf.concat([y_sample, x_sample], axis=1)
+#     yx_sample_int = tf.cast(yx_sample, 'int32')
+#     yx_sample_unit = tf.concat([y_sample_unit, x_sample_unit], axis=1)
+#     transformed_expanded_yx_sample_unit = pixel_transformation_clousure(yx_sample_unit)
+   
+#     transformed_expanded_y_sample_unit = transformed_expanded_yx_sample_unit[:, 0, :]
+#     transformed_expanded_x_sample_unit = transformed_expanded_yx_sample_unit[:, 1, :]
+    
+#     transformed_expanded_y_sample = (transformed_expanded_y_sample_unit+1.)*(tf.cast(tf.shape(input_im)[1], 'float32')-1.)/2.
+#     transformed_expanded_x_sample = (transformed_expanded_x_sample_unit+1.)*(tf.cast(tf.shape(input_im)[2], 'float32')-1.)/2.
+
+#     transformed_expanded_y_sample_flat = tf.reshape(transformed_expanded_y_sample, [-1])
+#     transformed_expanded_x_sample_flat = tf.reshape(transformed_expanded_x_sample, [-1])
+
+#     input_transformed_sampled = _interpolate(input_im, transformed_expanded_y_sample_flat, transformed_expanded_x_sample_flat, n_location_samples)
+#     input_transformed_sampled_reshaped = tf.reshape(input_transformed_sampled, [tf.shape(input_im)[0], -1, 3])
+
+#     location_mask = tf.cast(tf.scatter_nd(yx_sample_int, tf.ones((n_location_samples,), tf.float32), out_size), 'bool')
+
+#     return input_transformed_sampled_reshaped, location_mask, yx_sample_int
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# def batch_transformer(U, thetas, out_size, name='BatchSpatialTransformer'):
+#     """Batch Spatial Transformer Layer
+
+#     Parameters
+#     ----------
+
+#     U : float
+#         tensor of inputs [num_batch,height,width,num_channels]
+#     thetas : float
+#         a set of transformations for each input [num_batch,num_transforms,6]
+#     out_size : int
+#         the size of the output [out_height,out_width]
+
+#     Returns: float
+#         Tensor of size [num_batch*num_transforms,out_height,out_width,num_channels]
+#     """
+#     with tf.variable_scope(name):
+#         num_batch, num_transforms = map(int, thetas.get_shape().as_list()[:2])
+#         indices = [[i]*num_transforms for i in xrange(num_batch)]
+#         input_repeated = tf.gather(U, tf.reshape(indices, [-1]))
+#         return transformer(input_repeated, thetas, out_size)# Copyright 2016 The TensorFlow Authors. All Rights Reserved.
+
+
+
+
+
+
+
+
+        # base = tf.reshape(tf.tile((tf.range(tf.shape(im)[0])*(tf.shape(im)[2]*tf.shape(im)[1]))[:,np.newaxis], [1, n_location_samples]), [-1])
+        # base_y0 = base + y0*tf.shape(im)[2]
+        # base_y1 = base + y1*tf.shape(im)[2]
+
+        # # use indices to lookup pixels in the flat image and restore
+        # # channels dim
+        # Ia = tf.gather(im_flat, base_y0 + x0)
+        # Ib = tf.gather(im_flat, base_y1 + x0)
+        # Ic = tf.gather(im_flat, base_y0 + x1)
+        # Id = tf.gather(im_flat, base_y1 + x1)
+
+
+
+
+
+
+
+
 

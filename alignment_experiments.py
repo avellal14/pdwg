@@ -93,8 +93,8 @@ def get_sparse_grid_samples(resolution=100, subsample_rate=10, range_min=-1, ran
 # plt.imshow(unwarped_np)
 # plt.show()
 
-unwarped_path = '/Users/mevlana.gemici/unwarped.png'
-warped_path = '/Users/mevlana.gemici/warped.png'
+unwarped_path = '/Users/mevlana.gemici/unwarped_small.png'
+warped_path = '/Users/mevlana.gemici/warped_small.png'
 unwarped_np = plt.imread(unwarped_path)[:,:,:3]
 warped_np = plt.imread(warped_path)[:,:,:3]
 assert (warped_np.shape == unwarped_np.shape)
@@ -122,15 +122,18 @@ if use_gpu:
 exp_dir = str(Path.home())+'/ExperimentalResults/Align_EXP/'
 if not os.path.exists(exp_dir): os.makedirs(exp_dir)
 
-n_epochs = 10
-n_updates_per_epoch = 3
+n_epochs = 1000
+n_updates_per_epoch = 1000
 vis_epoch_rate = 1
-n_location_samples = 100
+n_location_samples = 400
 
 beta1=0.99
 beta2=0.999
 init_learning_rate = 0.00025
 min_learning_rate = 0.00025
+
+# im_input_np = np.tile(warped_np[np.newaxis, 150:250, 150:250:, :], [1, 1, 1, 1])
+# im_target_np = np.tile(unwarped_np[np.newaxis, 150:250, 150:250, :], [1, 1, 1, 1])
 
 im_input_np = np.tile(warped_np[np.newaxis, :, :, :], [1, 1, 1, 1])
 im_target_np = np.tile(unwarped_np[np.newaxis, :, :, :], [1, 1, 1, 1])
@@ -139,56 +142,70 @@ im_input = tf.placeholder(tf.float32, [None, None, None, 3])
 im_target = tf.placeholder(tf.float32, [None, None, None, 3])
 batch_size_tf = tf.shape(im_input)[0]
 
+################################################################################################################################################################
+
 def linear_pixel_transformation_clousure(input_pixels): 
     # input = [tf.shape(input_pixels)[0] (corresponding the individual pixels in a grid of output image), 2]
     # output = [batch_size_tf, 2, tf.shape(input_pixels)[0]]
     # affine_matrix = [batch_size_tf, 2, 3] allows different transformations for each image in the batch
 
     zoom = 1.0
-    angle = 90
-    z_cos = tf.zeros((batch_size_tf, 1), tf.float32)+np.cos(angle*np.pi/180)
-    z_sin = helper.safe_tf_sqrt(1-z_cos**2)
-    dummy_zero = tf.zeros([batch_size_tf, 1], tf.float32)
-    affine_matrix = tf.concat([(1/zoom)*z_cos, -(1/zoom)*z_sin, dummy_zero, (1/zoom)*z_sin, (1/zoom)*z_cos, dummy_zero], axis=1)
-    affine_matrix = tf.cast(tf.reshape(affine_matrix, (-1, 2, 3)), 'float32')
+    angle = 10 
+
+    # NOTE: Since the transformation is transforming the coordinates of output grid --> input grid, input grid --> output grid is the inverse
+    # of this transformation. Therefore, in order to increase the scale of the input image and zoom, we must scale with 1/zoom and in order to rotate the 
+    # input image by 10 degrees counterclockwise, we must rotate the output grid by -10 degrees counterclockwise. 
+
+    z_sin = tf.zeros((batch_size_tf, 1), tf.float32)+np.sin(-angle*np.pi/180)
+    z_cos = tf.zeros((batch_size_tf, 1), tf.float32)+np.cos(-angle*np.pi/180)
+    dummy_zero = tf.zeros([batch_size_tf, 1], tf.float32) # translation can replace it
+    affine_matrix = tf.concat([tf.concat([(1/zoom)*z_cos[:,:,np.newaxis], -(1/zoom)*z_sin[:,:,np.newaxis], dummy_zero[:,:,np.newaxis]], axis=2), 
+                               tf.concat([(1/zoom)*z_sin[:,:,np.newaxis], (1/zoom)*z_cos[:,:,np.newaxis], dummy_zero[:,:,np.newaxis]], axis=2)], axis=1)
 
     input_pixels_aug = tf.concat([input_pixels, tf.ones([tf.shape(input_pixels)[0], 1])], axis=1)
     input_pixels_tiled_transposed = tf.transpose(tf.tile(input_pixels_aug[np.newaxis,:,:], [batch_size_tf, 1, 1]), perm=[0, 2, 1])
     output_pixels = tf.matmul(affine_matrix, input_pixels_tiled_transposed)
     return output_pixels
 
+################################################################################################################################################################
+
+n_dim = 2
+n_flows = 10
+normalizing_flow_list = []
+flow_class_1 = transforms.NonLinearIARFlow 
+# flow_class_2 = transforms.NonLinearIARFlow
+flow_class_2 = transforms.NotManyReflectionsRotationFlow
+for i in range(n_flows):
+    flow_class_1_parameters = None
+    if flow_class_1.required_num_parameters(n_dim) > 0: flow_class_1_parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_class_1.required_num_parameters(n_dim), use_bias = False, activation = None)
+    normalizing_flow_list.append(flow_class_1(input_dim=n_dim, parameters=flow_class_1_parameters))
+
+    flow_class_2_parameters = None
+    if flow_class_2.required_num_parameters(n_dim) > 0: flow_class_2_parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_class_2.required_num_parameters(n_dim), use_bias = False, activation = None)
+    normalizing_flow_list.append(flow_class_2(input_dim=n_dim, parameters=flow_class_2_parameters))
+serial_flow = transforms.SerialFlow(normalizing_flow_list)
+
 def nonlinear_pixel_transformation_clousure(input_pixels):
     # input = [tf.shape(input_pixels)[0] (corresponding the individual pixels in a grid of output image), 2]
     # output = [batch_size_tf, 2, tf.shape(input_pixels)[0]]
     # serial_flow does not allow different transformations for each image in the batch
-
-    n_dim = 2
-    n_flows = 5
-    normalizing_flow_list = []
-    flow_class_1 = transforms.NonLinearIARFlow 
-    flow_class_2 = transforms.NotManyReflectionsRotationFlow
-
-    for i in range(n_flows):
-        flow_class_1_parameters = None
-        if flow_class_1.required_num_parameters(n_dim) > 0: flow_class_1_parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_class_1.required_num_parameters(n_dim), use_bias = False, activation = None)
-        normalizing_flow_list.append(flow_class_1(input_dim=n_dim, parameters=flow_class_1_parameters))
-
-        flow_class_2_parameters = None
-        if flow_class_2.required_num_parameters(n_dim) > 0: flow_class_2_parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_class_2.required_num_parameters(n_dim), use_bias = False, activation = None)
-        normalizing_flow_list.append(flow_class_2(input_dim=n_dim, parameters=flow_class_2_parameters))
-    serial_flow = transforms.SerialFlow(normalizing_flow_list)
+    # See the note in linear_pixel_transformation_clousure for understanding the transformation.
 
     output_pixels_const, _ = serial_flow.transform(input_pixels, None)
     output_pixels = tf.transpose(tf.tile(output_pixels_const[np.newaxis, :, :], [batch_size_tf, 1, 1]), [0, 2, 1])
     return output_pixels
 
-# im_transformed = spatial_transformer.transformer(im_input, linear_pixel_transformation_clousure, [tf.shape(im_input)[1], tf.shape(im_input)[2]])
-# im_transformed = spatial_transformer.transformer(im_input, nonlinear_pixel_transformation_clousure, [tf.shape(im_input)[1], tf.shape(im_input)[2]])
-# cost = tf.reduce_mean((im_target[0,:,:,:]-im_transformed[0,:,:,:])**2)
+################################################################################################################################################################
 
-im_transformed_sampled, location_mask = spatial_transformer.transformer_sampled(im_input, nonlinear_pixel_transformation_clousure, [tf.shape(im_input)[1], tf.shape(im_input)[2]], n_location_samples)
-im_im_target_sampled = (im_target, location_mask)
-pdb.set_trace()
+im_transformed, im_target_gathered = spatial_transformer.transformer(input_im=im_input, pixel_transformation_clousure=nonlinear_pixel_transformation_clousure, 
+                                                                     out_size=[tf.shape(im_input)[1], tf.shape(im_input)[2]], 
+                                                                     n_location_samples=None, out_comparison_im=im_target)
+
+im_transformed_sampled, im_target_gathered_sampled = spatial_transformer.transformer(input_im=im_input, pixel_transformation_clousure=nonlinear_pixel_transformation_clousure, 
+                                                                     out_size=[tf.shape(im_input)[1], tf.shape(im_input)[2]], 
+                                                                     n_location_samples=n_location_samples, out_comparison_im=im_target)
+
+cost = tf.reduce_mean((im_transformed_sampled-im_target_gathered_sampled)**2)
 
 optimizer = tf.train.AdamOptimizer(learning_rate=init_learning_rate, beta1=beta1, beta2=beta2, epsilon=1e-08)
 opt_step = optimizer.minimize(cost)
@@ -204,19 +221,17 @@ start = time.time();
 for epoch in range(1, n_epochs+1): 
     learning_rate = init_learning_rate
     print('Current learning rate: ', learning_rate)
-
-    for i in range(1, n_updates_per_epoch+1):
-        fd = {im_input: im_input_np, im_target: im_target_np}
-        _, cost_np = sess.run([opt_step, cost], feed_dict=fd)
-        print('Epoch: '+str(epoch)+' Update: '+str(i)+ ' Cost: '+str(cost_np))
-
-    if epoch == n_epochs or epoch % vis_epoch_rate == 0: 
+    if epoch == 1 or epoch == n_epochs or epoch % vis_epoch_rate == 0: 
         print('Eval and Visualize: Epoch, Time: {:d} {:.3f}'.format(epoch, time.time()-start))
-    
         fd = {im_input: im_input_np, im_target: im_target_np}
         im_transformed_np = sess.run(im_transformed, feed_dict=fd)
         plt.imsave(exp_dir+'im_transformed_np_'+str(epoch)+'.png', im_transformed_np[0, :, :, :])
 
+    for i in range(1, n_updates_per_epoch+1):
+        fd = {im_input: im_input_np, im_target: im_target_np}
+        _, cost_np = sess.run([opt_step, cost], feed_dict=fd)
+    
+    print('Epoch: '+str(epoch)+' Update: '+str(i)+ ' Cost: '+str(cost_np))
 
 
 
@@ -224,6 +239,27 @@ for epoch in range(1, n_epochs+1):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+# init = tf.initialize_all_variables()
+# sess = tf.InteractiveSession()  
+# sess.run(init)
+
+# fd = {im_input: im_input_np, im_target: im_target_np}
+# print( sess.run(diff_mat, feed_dict=fd))
+# # im_transformed_np, im_target_gathered_np, out_yx_int_np = sess.run([im_transformed, im_target_gathered, out_yx_int], feed_dict=fd)
+# # for i in range(out_yx_int_np.shape[0]): 
+# #     print(np.abs(im_target_np[:, out_yx_int_np[i][0], out_yx_int_np[i][1], :] - im_target_gathered_np[:,i,:]).max())
+# pdb.set_trace()
 
 
 

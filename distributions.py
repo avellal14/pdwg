@@ -140,6 +140,37 @@ class KLDivDiagGaussianVsNormal():
 
 ####  UNIFORM DISTRIBUTION
 
+class UniformDiscreteDistribution():
+	def __init__(self, params=None, interval=[1, 0, 9], shape=None, name='UniformDiscreteDistribution'):
+		if params is not None: 
+			assert (len(params.get_shape().as_list()) == 2) 
+			self.list_values = params
+		else:
+			self.list_values = interval
+		self.name = name
+		 # list_values = np.linspace(1,10,10).astype(int)
+
+	def num_params(num_dim):
+		return 0
+
+	def get_interpretable_params(self):
+		return self.list_values
+
+	def sample(self, b_mode=False):
+		if isinstance(self.list_values, (list,)):
+			float_sample = (tf.random_uniform((self.list_values[0], 1), 0, 1, dtype=tf.float32)*((self.list_values[2]+1)-self.list_values[1])+self.list_values[1])
+			int_sample = tf.cast(tf.cast(tf.floor(float_sample), 'int32'), 'float32')
+			sample = tf.stop_gradient(int_sample)
+		else:
+			if b_mode: sample = (self.low+self.high)/2.
+			else: sample = tf.random_uniform(tf.shape(self.low), 0, 1, dtype=tf.float32)*(self.high-self.low)+self.low
+		return sample
+
+	def log_pdf(self, sample):
+		assert (len(sample.get_shape())==2)
+		log_volume = tf.reduce_sum(tf.log(self.high-self.low), axis=1, keep_dims=True)
+		return 0-log_volume
+
 class UniformDistribution():
 	def __init__(self, params=None, shape=None, name='UniformDistribution'):
 		if len(params.get_shape().as_list()) == 2: 
@@ -744,6 +775,14 @@ def visualizeProductDistribution4(sess, model, input_dict, batch, real_dist, tra
 
 
 
+# # dist_er = UniformDiscreteDistribution(params=None, interval=[4, 1, 10])
+# dist_er = UniformDiscreteDistribution(params=None, interval=[tf.shape(tf.ones((4, 2), tf.float32))[0], 0, 9])
+# sample = dist_er.sample()
+# init = tf.initialize_all_variables()
+# sess = tf.InteractiveSession()  
+# sess.run(init)
+# sess.run(sample)
+# pdb.set_trace()
 
 
 
