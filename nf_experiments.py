@@ -232,14 +232,16 @@ for epoch in range(1, n_epochs+1):
             if all_x_transformed_log_pdf_np is None: all_x_transformed_log_pdf_np = x_transformed_log_pdf_np
             else: all_x_transformed_log_pdf_np = np.concatenate([all_x_transformed_log_pdf_np, x_transformed_log_pdf_np], axis=0)
 
-        all_transformed_grid_samples_np = None
+        # all_transformed_grid_samples_np = None
+        all_transformed_grid_samples_np = np.zeros(grid_samples.shape)
         for i in range(math.ceil(grid_samples.shape[0]/float(batch_size))):
             curr_batch_np = grid_samples[i*batch_size:min((i+1)*batch_size, grid_samples.shape[0]), :]
             fd = {x_input_tf: curr_batch_np, learning_rate_tf:learning_rate}
             x_transformed_np = sess.run(x_transformed, feed_dict=fd)
+            all_transformed_grid_samples_np[i*loc_batch_size:min((i+1)*loc_batch_size, grid_samples.shape[0]), :] = x_transformed_np
 
-            if all_transformed_grid_samples_np is None: all_transformed_grid_samples_np = x_transformed_np
-            else: all_transformed_grid_samples_np = np.concatenate([all_transformed_grid_samples_np, x_transformed_np], axis=0)
+            # if all_transformed_grid_samples_np is None: all_transformed_grid_samples_np = x_transformed_np
+            # else: all_transformed_grid_samples_np = np.concatenate([all_transformed_grid_samples_np, x_transformed_np], axis=0)
 
         fig, ax = plt.subplots(figsize=(7*3, 7*2))
         plt.clf()

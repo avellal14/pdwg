@@ -27,8 +27,8 @@ from sklearn.datasets import make_blobs, make_circles, make_moons
 from sklearn.preprocessing import StandardScaler
 from scipy.stats import multivariate_normal
 import spatial_transformer
+from skimage.transform import rescale, resize, downscale_local_mean
 
- 
 plt.style.use('seaborn-white')
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['font.serif'] = 'Times New Roman'
@@ -47,7 +47,7 @@ quality = 0.2
 marker_size = 10/3
 marker_line = 0.3/10
 
-scale_xx = 3
+scale_xx = 1
 range_1_min = -scale_xx
 range_1_max = scale_xx
 
@@ -76,39 +76,16 @@ def get_sparse_grid_samples(resolution=100, subsample_rate=10, range_min=-1, ran
     return full_grid_flat[subsample_mask,:]
 
 
-# unwarped_max = -1000
-# warped_max = -1000
-# for i in range(location_np.shape[0]):
-#     for j in range(location_np.shape[1]):
-        
-#         index_loc = -1 + unwarped_withlocation_np[i,j,3:5].astype(int)
-#         curr_max = (np.abs(unwarped_withlocation_np[i,j,:3]-unwarped_np[index_loc[0], index_loc[1],:]).max())
-#         if curr_max > unwarped_max: unwarped_max = curr_max
-        
-#         index_loc = -1 + warped_withlocation_np[i,j,3:5].astype(int)
-#         curr_max = (np.abs(warped_withlocation_np[i,j,:3]-warped_np[index_loc[0], index_loc[1],:]).max())
-#         if curr_max > warped_max: warped_max = curr_max
-# print(unwarped_max, warped_max)
-
-# plt.imshow(unwarped_np)
-# plt.show()
-
 unwarped_path = '/Users/mevlana.gemici/unwarped_small.png'
 warped_path = '/Users/mevlana.gemici/warped_small.png'
 unwarped_np = plt.imread(unwarped_path)[:,:,:3]
 warped_np = plt.imread(warped_path)[:,:,:3]
 assert (warped_np.shape == unwarped_np.shape)
 
-# x_range = np.linspace(0, unwarped_np.shape[1]-1, unwarped_np.shape[1])
-# y_range = np.linspace(0, unwarped_np.shape[0]-1, unwarped_np.shape[0])
-# xv, yv = np.meshgrid(x_range, y_range)
-# location_np = np.concatenate([yv[:, :, np.newaxis], xv[:, :, np.newaxis]], axis=2)+1
-# unwarped_withlocation_np = np.concatenate([unwarped_np, location_np], axis=2)
-# warped_withlocation_np = np.concatenate([warped_np, location_np], axis=2)
-
-# unwarped_withlocation_flat_np = unwarped_withlocation_np.reshape(-1, unwarped_withlocation_np.shape[2])
-# warped_withlocation_flat_np = warped_withlocation_np.reshape(-1, warped_withlocation_np.shape[2])
-
+resolution = 1000
+loc_batch_size = 100
+loc_vis_epoch_rate = 5
+grid_samples = get_sparse_grid_samples(resolution=resolution, subsample_rate=10, range_min=10*range_1_min, range_max=10*range_1_max)
 
 use_gpu = False 
 if platform.dist()[0] == 'Ubuntu': 
@@ -121,6 +98,9 @@ if use_gpu:
 
 exp_dir = str(Path.home())+'/ExperimentalResults/Align_EXP/'
 if not os.path.exists(exp_dir): os.makedirs(exp_dir)
+if not os.path.exists(exp_dir+'all/'): os.makedirs(exp_di+'all/')
+if not os.path.exists(exp_dir+'im/'): os.makedirs(exp_dir+'im/')
+if not os.path.exists(exp_dir+'gt/'): os.makedirs(exp_dir+'gt/')
 
 n_epochs = 1000
 n_updates_per_epoch = 1000
@@ -131,6 +111,7 @@ beta1=0.99
 beta2=0.999
 init_learning_rate = 0.00025
 min_learning_rate = 0.00025
+ignore_background_cost = False
 
 # im_input_np = np.tile(warped_np[np.newaxis, 150:250, 150:250:, :], [1, 1, 1, 1])
 # im_target_np = np.tile(unwarped_np[np.newaxis, 150:250, 150:250, :], [1, 1, 1, 1])
@@ -140,8 +121,8 @@ im_target_np = np.tile(unwarped_np[np.newaxis, :, :, :], [1, 1, 1, 1])
 
 im_input = tf.placeholder(tf.float32, [None, None, None, 3])
 im_target = tf.placeholder(tf.float32, [None, None, None, 3])
+location_input_tf = tf.placeholder(tf.float32, [None, 2])
 batch_size_tf = tf.shape(im_input)[0]
-
 ################################################################################################################################################################
 
 def linear_pixel_transformation_clousure(input_pixels): 
@@ -172,9 +153,10 @@ def linear_pixel_transformation_clousure(input_pixels):
 n_dim = 2
 n_flows = 10
 normalizing_flow_list = []
-flow_class_1 = transforms.NonLinearIARFlow 
-# flow_class_2 = transforms.NonLinearIARFlow
-flow_class_2 = transforms.NotManyReflectionsRotationFlow
+# flow_class_1 = transforms.NonLinearIARFlow 
+flow_class_1 = transforms.NotManyReflectionsRotationFlow
+flow_class_2 = transforms.NonLinearIARFlow 
+# flow_class_2 = transforms.NotManyReflectionsRotationFlow
 for i in range(n_flows):
     flow_class_1_parameters = None
     if flow_class_1.required_num_parameters(n_dim) > 0: flow_class_1_parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_class_1.required_num_parameters(n_dim), use_bias = False, activation = None)
@@ -184,6 +166,7 @@ for i in range(n_flows):
     if flow_class_2.required_num_parameters(n_dim) > 0: flow_class_2_parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_class_2.required_num_parameters(n_dim), use_bias = False, activation = None)
     normalizing_flow_list.append(flow_class_2(input_dim=n_dim, parameters=flow_class_2_parameters))
 serial_flow = transforms.SerialFlow(normalizing_flow_list)
+location_transformed_tf, _ = serial_flow.inverse_transform(location_input_tf, None)
 
 def nonlinear_pixel_transformation_clousure(input_pixels):
     # input = [tf.shape(input_pixels)[0] (corresponding the individual pixels in a grid of output image), 2]
@@ -197,15 +180,31 @@ def nonlinear_pixel_transformation_clousure(input_pixels):
 
 ################################################################################################################################################################
 
-im_transformed, im_target_gathered = spatial_transformer.transformer(input_im=im_input, pixel_transformation_clousure=nonlinear_pixel_transformation_clousure, 
+weighted_scaled_costs = []
+# for (downsample_rate, weight) in [(0.5, 1.0), (0.25, 1.0), (0.10, 1.0)]:
+for (downsample_rate, weight) in [(0.10, 1.0)]:
+    new_height = tf.cast(tf.cast(tf.shape(im_input)[1], tf.float32)*downsample_rate, tf.int32)
+    new_width = tf.cast(tf.cast(tf.shape(im_input)[2], tf.float32)*downsample_rate, tf.int32)
+    im_input_rescaled = tf.image.resize_images(im_input, [new_height, new_width], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR, align_corners=False, preserve_aspect_ratio=False)
+    im_target_rescaled = tf.image.resize_images(im_target, [new_height, new_width], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR, align_corners=False, preserve_aspect_ratio=False)
+
+    im_scaled_transformed_sampled, _, im_scaled_target_gathered_sampled, _ = spatial_transformer.transformer(input_im=im_input_rescaled, pixel_transformation_clousure=nonlinear_pixel_transformation_clousure, 
+                                                                             out_size=[new_height, new_width], n_location_samples=n_location_samples, out_comparison_im=im_target_rescaled)
+    weighted_scaled_costs.append(weight*tf.reduce_mean((im_scaled_transformed_sampled-im_scaled_target_gathered_sampled)**2))
+
+im_transformed, vis_im_transformed, im_target_gathered, invalid_map = spatial_transformer.transformer(input_im=im_input, pixel_transformation_clousure=nonlinear_pixel_transformation_clousure, 
                                                                      out_size=[tf.shape(im_input)[1], tf.shape(im_input)[2]], 
                                                                      n_location_samples=None, out_comparison_im=im_target)
 
-im_transformed_sampled, im_target_gathered_sampled = spatial_transformer.transformer(input_im=im_input, pixel_transformation_clousure=nonlinear_pixel_transformation_clousure, 
+im_transformed_sampled, vis_im_transformed_sampled, im_target_gathered_sampled, invalid_map = spatial_transformer.transformer(input_im=im_input, pixel_transformation_clousure=nonlinear_pixel_transformation_clousure, 
                                                                      out_size=[tf.shape(im_input)[1], tf.shape(im_input)[2]], 
                                                                      n_location_samples=n_location_samples, out_comparison_im=im_target)
 
-cost = tf.reduce_mean((im_transformed_sampled-im_target_gathered_sampled)**2)
+if ignore_background_cost:
+    cost = tf.reduce_mean(((im_transformed_sampled-im_target_gathered_sampled)*tf.stop_gradient(1-invalid_map))**2) + tf.add_n(weighted_scaled_costs)
+else:
+    # cost = tf.reduce_mean((im_transformed_sampled-im_target_gathered_sampled)**2)+tf.add_n(weighted_scaled_costs)
+    cost = tf.add_n(weighted_scaled_costs)
 
 optimizer = tf.train.AdamOptimizer(learning_rate=init_learning_rate, beta1=beta1, beta2=beta2, epsilon=1e-08)
 opt_step = optimizer.minimize(cost)
@@ -224,8 +223,40 @@ for epoch in range(1, n_epochs+1):
     if epoch == 1 or epoch == n_epochs or epoch % vis_epoch_rate == 0: 
         print('Eval and Visualize: Epoch, Time: {:d} {:.3f}'.format(epoch, time.time()-start))
         fd = {im_input: im_input_np, im_target: im_target_np}
-        im_transformed_np = sess.run(im_transformed, feed_dict=fd)
-        plt.imsave(exp_dir+'im_transformed_np_'+str(epoch)+'.png', im_transformed_np[0, :, :, :])
+        im_transformed_np = sess.run(vis_im_transformed, feed_dict=fd)
+        in_out_target = np.concatenate([im_input_np[0, :, :, :], im_transformed_np[0, :, :, :], im_target_np[0, :, :, :]], axis=1) 
+        plt.imsave(exp_dir+'im/im_transformed_np_'+str(epoch)+'.png', im_transformed_np[0, :, :, :])
+        plt.imsave(exp_dir+'all/all_im_transformed_np_'+str(epoch)+'.png', in_out_target)
+
+    if epoch == 1 or epoch == n_epochs or epoch % loc_vis_epoch_rate == 0: 
+        all_transformed_grid_samples_np = np.zeros(grid_samples.shape)
+        for i in range(math.ceil(grid_samples.shape[0]/float(loc_batch_size))):
+            curr_batch_np = grid_samples[i*loc_batch_size:min((i+1)*loc_batch_size, grid_samples.shape[0]), :]
+            fd = {location_input_tf: curr_batch_np}
+            location_transformed_np = sess.run(location_transformed_tf, feed_dict=fd)
+            all_transformed_grid_samples_np[i*loc_batch_size:min((i+1)*loc_batch_size, grid_samples.shape[0]), :] = location_transformed_np
+
+        fig, ax = plt.subplots(figsize=(7*3, 7*1))
+        plt.clf()
+        ax_1 = fig.add_subplot(1, 3, 1)
+        ax_1.scatter(grid_samples[:, 1], -grid_samples[:, 0], s=marker_size, lw = marker_line, edgecolors='k')
+        ax_2 = fig.add_subplot(1, 3, 2)
+        ax_2.scatter(all_transformed_grid_samples_np[:, 1], -all_transformed_grid_samples_np[:, 0], s=marker_size, lw = marker_line, edgecolors='k')
+        ax_3 = fig.add_subplot(1, 3, 3)
+        ax_3.scatter(grid_samples[:, 1], -grid_samples[:, 0], s=marker_size, lw = marker_line, edgecolors='k')
+
+        for ax in [ax_1, ax_2, ax_3]:
+            ax.set_xlim(range_1_min, range_1_max)
+            ax.set_ylim(range_1_min, range_1_max)
+            set_axis_prop(ax, grid_on, ticks_on, axis_on)
+        
+        # plt.subplots_adjust(wspace=0.05, hspace=0.05)
+        plt.subplots_adjust(wspace=0.0, hspace=0.0)
+        plt.draw()
+        plt.savefig(exp_dir+'gt/gt_'+str(epoch)+'.png', bbox_inches='tight', format='png', dpi=int(quality*my_dpi), transparent=False)
+        tmp_image = plt.imread(exp_dir+'gt/gt_'+str(epoch)+'.png')[:,:,:3]
+        scaled_tmp_image = rescale(tmp_image, (in_out_target.shape[0]/tmp_image.shape[0], in_out_target.shape[1]/tmp_image.shape[1]), anti_aliasing=False)
+        plt.imsave(exp_dir+'gt/gt_'+str(epoch)+'.png', np.concatenate([scaled_tmp_image, in_out_target], axis=0))
 
     for i in range(1, n_updates_per_epoch+1):
         fd = {im_input: im_input_np, im_target: im_target_np}
@@ -269,8 +300,35 @@ for epoch in range(1, n_epochs+1):
 
 
 
+# unwarped_max = -1000
+# warped_max = -1000
+# for i in range(location_np.shape[0]):
+#     for j in range(location_np.shape[1]):
+        
+#         index_loc = -1 + unwarped_withlocation_np[i,j,3:5].astype(int)
+#         curr_max = (np.abs(unwarped_withlocation_np[i,j,:3]-unwarped_np[index_loc[0], index_loc[1],:]).max())
+#         if curr_max > unwarped_max: unwarped_max = curr_max
+        
+#         index_loc = -1 + warped_withlocation_np[i,j,3:5].astype(int)
+#         curr_max = (np.abs(warped_withlocation_np[i,j,:3]-warped_np[index_loc[0], index_loc[1],:]).max())
+#         if curr_max > warped_max: warped_max = curr_max
+# print(unwarped_max, warped_max)
+
+# plt.imshow(unwarped_np)
+# plt.show()
 
 
+
+
+# x_range = np.linspace(0, unwarped_np.shape[1]-1, unwarped_np.shape[1])
+# y_range = np.linspace(0, unwarped_np.shape[0]-1, unwarped_np.shape[0])
+# xv, yv = np.meshgrid(x_range, y_range)
+# location_np = np.concatenate([yv[:, :, np.newaxis], xv[:, :, np.newaxis]], axis=2)+1
+# unwarped_withlocation_np = np.concatenate([unwarped_np, location_np], axis=2)
+# warped_withlocation_np = np.concatenate([warped_np, location_np], axis=2)
+
+# unwarped_withlocation_flat_np = unwarped_withlocation_np.reshape(-1, unwarped_withlocation_np.shape[2])
+# warped_withlocation_flat_np = warped_withlocation_np.reshape(-1, warped_withlocation_np.shape[2])
 
 
 

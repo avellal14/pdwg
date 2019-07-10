@@ -442,7 +442,6 @@ class NotManyReflectionsRotationFlow():
         if self._parameters is not None: self._parameters = self._parameter_scale*self._parameters
         self._input_dim = input_dim
         assert (NotManyReflectionsRotationFlow.n_steps % 2 == 0) # Required for SO(n)
-        assert (self._parameters.get_shape()[0].value == 1) # For now we force rotation flows to have a fixed set of parameters
 
         self._parameters.get_shape().assert_is_compatible_with([None, NotManyReflectionsRotationFlow.required_num_parameters(self._input_dim)])
 
@@ -464,14 +463,14 @@ class NotManyReflectionsRotationFlow():
         return NotManyReflectionsRotationFlow.n_steps*input_dim
 
     def get_batched_rot_matrix(self):
-        identity_mat = tf.constant(np.eye(self._input_dim), tf.float32)
+        identity_mat = tf.constant(np.eye(self._input_dim), tf.float32)[np.newaxis,:,:]
         overall_rot_mat = None
         for i in range(self._householder_vec_dir.get_shape()[1].value):
             curr_dir = self._householder_vec_dir[:,i,:]
-            curr_rot_mat = identity_mat-2*tf.matmul(curr_dir, curr_dir, transpose_a=True, transpose_b=False)
+            curr_rot_mat = identity_mat-2*tf.matmul(curr_dir[:,:,np.newaxis], curr_dir[:,np.newaxis, :], transpose_a=False, transpose_b=False)
             if overall_rot_mat is None: overall_rot_mat = curr_rot_mat
             else: overall_rot_mat = tf.matmul(curr_rot_mat, overall_rot_mat, transpose_a=False, transpose_b=False)
-        return overall_rot_mat[np.newaxis, :, :]
+        return overall_rot_mat
 
     def transform(self, z0, log_pdf_z0):
         if log_pdf_z0 is not None: verify_size(z0, log_pdf_z0)
@@ -518,7 +517,6 @@ class ManyReflectionsRotationFlow():
         if self._parameters is not None: self._parameters = self._parameter_scale*self._parameters
         self._input_dim = input_dim
         assert (ManyReflectionsRotationFlow.n_steps % 2 == 0) # Required for SO(n)
-        assert (self._parameters.get_shape()[0].value == 1) # For now we force rotation flows to have a fixed set of parameters
 
         self._parameters.get_shape().assert_is_compatible_with([None, ManyReflectionsRotationFlow.required_num_parameters(self._input_dim)])
 
@@ -540,14 +538,14 @@ class ManyReflectionsRotationFlow():
         return ManyReflectionsRotationFlow.n_steps*input_dim
 
     def get_batched_rot_matrix(self):
-        identity_mat = tf.constant(np.eye(self._input_dim), tf.float32)
+        identity_mat = tf.constant(np.eye(self._input_dim), tf.float32)[np.newaxis,:,:]
         overall_rot_mat = None
         for i in range(self._householder_vec_dir.get_shape()[1].value):
             curr_dir = self._householder_vec_dir[:,i,:]
-            curr_rot_mat = identity_mat-2*tf.matmul(curr_dir, curr_dir, transpose_a=True, transpose_b=False)
+            curr_rot_mat = identity_mat-2*tf.matmul(curr_dir[:,:,np.newaxis], curr_dir[:,np.newaxis, :], transpose_a=False, transpose_b=False)
             if overall_rot_mat is None: overall_rot_mat = curr_rot_mat
             else: overall_rot_mat = tf.matmul(curr_rot_mat, overall_rot_mat, transpose_a=False, transpose_b=False)
-        return overall_rot_mat[np.newaxis, :, :]
+        return overall_rot_mat
 
     def transform(self, z0, log_pdf_z0):
         if log_pdf_z0 is not None: verify_size(z0, log_pdf_z0)
@@ -603,7 +601,6 @@ class HouseholdRotationFlow():
         assert (self._init_reflection == 1 or self._init_reflection == -1)
         assert (self._mode == 'matrix' or self._mode == 'vector')
         assert (HouseholdRotationFlow.max_steps % 2 == 0) # Required for SO(n)
-        assert (self._parameters.get_shape()[0].value == 1) # For now we force rotation flows to have a fixed set of parameters
 
         if self._parameters is not None:
             self._parameters.get_shape().assert_is_compatible_with([None, HouseholdRotationFlow.required_num_parameters(self._input_dim)])
@@ -639,7 +636,7 @@ class HouseholdRotationFlow():
             if self._parameters is None or self._parameters.get_shape()[0].value == 1: #one set of parameters
                 z = tf.matmul(z0, self._batched_rot_matrix[0, :, :], transpose_a=False, transpose_b=True)
             else: # batched parameters
-                z = tf.matmul(self._batched_rot_matrix, z0[:,:,np.newaxis])[:, :, 0]
+                z = tf.matmul(self._batched_rot_matrix, z0[:,:,np.newaxis], transpose_a=False, transpose_b=False)[:, :, 0]
 
         elif self._mode == 'vector':
             curr_z = z0 
@@ -662,26 +659,25 @@ class HouseholdRotationFlow():
     def inverse_transform(self, z, log_pdf_z):
         if log_pdf_z is not None: verify_size(z, log_pdf_z)
         
-        if self._parameters is None or self._parameters.get_shape()[0].value == 1: #one set of parameters
-            if self._mode == 'matrix':
+        if self._mode == 'matrix':
+            if self._parameters is None or self._parameters.get_shape()[0].value == 1: #one set of parameters
                 z0 = tf.matmul(z, self._batched_rot_matrix[0, :, :], transpose_a=False, transpose_b=False)
-            elif self._mode == 'vector':
-                curr_z = z
-                for i in range(len(self._list_batched_householder_dirs)):
-                    curr_batched_householder_dir = self._list_batched_householder_dirs[len(self._list_batched_householder_dirs)-i-1]
-                    start_ind = None
-                    if isinstance(curr_batched_householder_dir, float): 
-                        start_ind = self._input_dim-1
-                        reflected = curr_z[:, start_ind:]*curr_batched_householder_dir
-                    else: 
-                        start_ind = self._input_dim-curr_batched_householder_dir.get_shape().as_list()[1]
-                        reflected = curr_z[:, start_ind:]-2*curr_batched_householder_dir*tf.reduce_sum(curr_z[:, start_ind:]*curr_batched_householder_dir, axis=1, keep_dims=True)
-                    curr_z = tf.concat([curr_z[:, :start_ind], reflected], axis=1)
-                z0 = curr_z
-
-        else: # batched parameters
-            print('Parameters depend on unknown z0. Therefore, there is no analytical inverse.')
-            quit()
+            else: # batched parameters
+                z0 = tf.matmul(self._batched_rot_matrix, z[:,:,np.newaxis],  transpose_a=True, transpose_b=False)[:, :, 0]
+            
+        elif self._mode == 'vector':
+            curr_z = z
+            for i in range(len(self._list_batched_householder_dirs)):
+                curr_batched_householder_dir = self._list_batched_householder_dirs[len(self._list_batched_householder_dirs)-i-1]
+                start_ind = None
+                if isinstance(curr_batched_householder_dir, float): 
+                    start_ind = self._input_dim-1
+                    reflected = curr_z[:, start_ind:]*curr_batched_householder_dir
+                else: 
+                    start_ind = self._input_dim-curr_batched_householder_dir.get_shape().as_list()[1]
+                    reflected = curr_z[:, start_ind:]-2*curr_batched_householder_dir*tf.reduce_sum(curr_z[:, start_ind:]*curr_batched_householder_dir, axis=1, keep_dims=True)
+                curr_z = tf.concat([curr_z[:, :start_ind], reflected], axis=1)
+            z0 = curr_z
 
         if log_pdf_z is not None: log_pdf_z0 = log_pdf_z 
         else: log_pdf_z0 = None
@@ -784,27 +780,23 @@ class CompoundRotationFlow():
     def inverse_transform(self, z, log_pdf_z):
         if log_pdf_z is not None: verify_size(z, log_pdf_z)
 
-        if self._parameters is None or self._parameters.get_shape()[0].value == 1: #one set of parameters
-            c_index = np.sum((np.asarray(CompoundRotationFlow.compound_structure) == 'C'))
-            h_index = np.sum((np.asarray(CompoundRotationFlow.compound_structure) == 'H'))
-            p_index = np.sum((np.asarray(CompoundRotationFlow.compound_structure) == 'P'))
-            curr_z = z
-            for i in range(len(CompoundRotationFlow.compound_structure)-1, -1, -1):
-                # print('c_index, h_index, p_index ', c_index, h_index, p_index)
-                if CompoundRotationFlow.compound_structure[i] == 'C':
-                    c_index -= 1
-                    curr_z, _ = tf.matmul(curr_z, self._constant_rot_mats_list[c_index], transpose_a=False, transpose_b=False), None
-                elif CompoundRotationFlow.compound_structure[i] == 'H':
-                    h_index -= 1
-                    curr_z, _ = self._householder_flows_list[h_index].inverse_transform(curr_z, None)
-                elif CompoundRotationFlow.compound_structure[i] == 'P':
-                    p_index -= 1
-                    curr_z, _ = self._specific_order_dimension_flows_list[p_index].inverse_transform(curr_z, None)
-                assert (c_index >= 0 and h_index >= 0 and p_index >= 0)
-            z0 = curr_z
-        else: # batched parameters
-            print('Parameters depend on unknown z0. Therefore, there is no analytical inverse.')
-            quit()
+        c_index = np.sum((np.asarray(CompoundRotationFlow.compound_structure) == 'C'))
+        h_index = np.sum((np.asarray(CompoundRotationFlow.compound_structure) == 'H'))
+        p_index = np.sum((np.asarray(CompoundRotationFlow.compound_structure) == 'P'))
+        curr_z = z
+        for i in range(len(CompoundRotationFlow.compound_structure)-1, -1, -1):
+            # print('c_index, h_index, p_index ', c_index, h_index, p_index)
+            if CompoundRotationFlow.compound_structure[i] == 'C':
+                c_index -= 1
+                curr_z, _ = tf.matmul(curr_z, self._constant_rot_mats_list[c_index], transpose_a=False, transpose_b=False), None
+            elif CompoundRotationFlow.compound_structure[i] == 'H':
+                h_index -= 1
+                curr_z, _ = self._householder_flows_list[h_index].inverse_transform(curr_z, None)
+            elif CompoundRotationFlow.compound_structure[i] == 'P':
+                p_index -= 1
+                curr_z, _ = self._specific_order_dimension_flows_list[p_index].inverse_transform(curr_z, None)
+            assert (c_index >= 0 and h_index >= 0 and p_index >= 0)
+        z0 = curr_z
 
         if log_pdf_z is not None: log_pdf_z0 = log_pdf_z 
         else: log_pdf_z0 = None

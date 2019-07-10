@@ -215,18 +215,19 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 #     print('z0_inv:')
 #     print(z0_inv_np[0,:])
 
-#####################################################################################
-##################################  Rotation Flows ##################################
-#####################################################################################
+# ####################################################################################
+# #################################  Rotation Flows ##################################
+# ####################################################################################
 
 # batch_size = 5
 # n_input = 6
+
 # for transform_to_check in [\
 #                            transforms.SpecificRotationFlow, \
 #                            transforms.NotManyReflectionsRotationFlow, \
-#                            # transforms.ManyReflectionsRotationFlow, \
+#                            transforms.ManyReflectionsRotationFlow, \
 #                            transforms.HouseholdRotationFlow, \
-#                            # transforms.CompoundRotationFlow, \
+#                            transforms.CompoundRotationFlow, \
 #                           ]:
 #     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 #     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
@@ -239,34 +240,56 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 #     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
 #     n_parameter = transform_to_check.required_num_parameters(n_input)
-#     parameters = None
+#     parameters, parameters_batch = None, None
 #     if n_parameter > 0: parameters = 10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
+#     if n_parameter > 0: parameters_batch = 10*tf.layers.dense(inputs = tf.ones(shape=(batch_size, 1)), units = n_parameter, use_bias = False, activation = None)
 
 #     z0 = tf.random_uniform(shape=(batch_size, n_input), dtype=tf.float32) # required for some transforms#
 #     transform = transform_to_check(input_dim=n_input, parameters=parameters)
+#     transform_batch = transform_to_check(input_dim=n_input, parameters=parameters_batch)
 #     z, _ = transform.transform(z0, None)
 #     z0_inv, _ = transform.inverse_transform(z, None)
 #     rot_mat = transform.get_batched_rot_matrix()
 
+#     z_batch, _ = transform_batch.transform(z0, None)
+#     z0_batch_inv, _ = transform_batch.inverse_transform(z_batch, None)
+#     rot_batch_mat = transform_batch.get_batched_rot_matrix()
+
 #     if hasattr(transform, '_mode'):
 #         transform._mode = 'matrix'
-#         transform._batched_rot_matrix = rot_mat
+#         transform._batched_rot_matrix = transform.get_batched_rot_matrix() 
+#         transform_batch._mode = 'matrix'
+#         transform_batch._batched_rot_matrix = transform_batch.get_batched_rot_matrix() 
+
 #         z_mat_mode, _  = transform.transform(z0, None)
 #         z0_inv_mat_mode, _ = transform.inverse_transform(z_mat_mode, None)
+#         z_batch_mat_mode, _ = transform_batch.transform(z0, None)
+#         z0_batch_inv_mat_mode, _ = transform_batch.inverse_transform(z_batch_mat_mode, None)
+
 #         transform._mode = 'vector'
+#         transform_batch._mode = 'vector'
 #     else:
 #         z_mat_mode = z
 #         z0_inv_mat_mode = z0_inv
+#         z_batch_mat_mode = z_batch
+#         z0_batch_inv_mat_mode = z0_batch_inv
 
 #     init = tf.initialize_all_variables()
 #     sess = tf.InteractiveSession()  
 #     sess.run(init)
-#     z0_np, z_np, z0_inv_np, rot_mat_np, z_mat_mode_np, z0_inv_mat_mode_np = sess.run([z0, z, z0_inv, rot_mat, z_mat_mode, z0_inv_mat_mode])
+#     rot_mat_np, rot_batch_mat_np, z0_np, z_np, z0_inv_np, z_batch_np, z0_batch_inv_np, z_mat_mode_np, z0_inv_mat_mode_np, z_batch_mat_mode_np, z0_batch_inv_mat_mode_np = \
+#         sess.run([rot_mat, rot_batch_mat, z0, z, z0_inv, z_batch, z0_batch_inv, z_mat_mode, z0_inv_mat_mode, z_batch_mat_mode, z0_batch_inv_mat_mode])
     
 #     print('\n\n')
 #     print('Max absolute difference between z0 and z0_inv: ', np.abs((z0_np-z0_inv_np)).max())
 #     print(np.max(np.abs((z0_np-z0_inv_np)), axis=0))
-    
+#     print('\n\n')
+#     print('Max absolute difference between z0 and z0_batch_inv: ', np.abs((z0_np-z0_batch_inv_np)).max())
+#     print(np.max(np.abs((z0_np-z0_batch_inv_np)), axis=0))
+#     print('\n\n')
+#     print('Max absolute difference between z0 and z0_batch_inv_mat_mode: ', np.abs((z0_np-z0_batch_inv_mat_mode_np)).max())
+#     print(np.max(np.abs((z0_np-z0_batch_inv_mat_mode_np)), axis=0))
+        
 #     print('\n\n')
 #     print('Examples:')
 #     print('\n\n')
@@ -278,15 +301,42 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 #     print(z0_inv_np[0,:])
 
 #     print('\n\n')
-#     print('Max absolute difference between z and z_mat_mode: ', np.abs((z_np-z_mat_mode_np)).max())
-#     print(np.max(np.abs((z_np-z_mat_mode_np)), axis=0))
+#     print('Examples batched:')
+#     print('\n\n')
+#     print('z0:')
+#     print(z0_np[0,:])
+#     print('z_batch:')
+#     print(z_batch_np[0,:])
+#     print('z0_batch_inv:')
+#     print(z0_batch_inv_np[0,:])
 
 #     print('\n\n')
+#     print('Max absolute difference between z and z_mat_mode: ', np.abs((z_np-z_mat_mode_np)).max())
+#     print(np.max(np.abs((z_np-z_mat_mode_np)), axis=0))
+#     print('\n\n')
+#     print('Max absolute difference between z_batch and z_batch_mat_mode: ', np.abs((z_batch_np-z_batch_mat_mode_np)).max())
+#     print(np.max(np.abs((z_batch_np-z_batch_mat_mode_np)), axis=0))
+
+#     print('\n\n')
+#     print('Rotation matrix shape: ', rot_mat_np.shape)
+#     assert(rot_mat_np.shape[0] == 1 and rot_mat_np.shape[1] == n_input and rot_mat_np.shape[2] == n_input)
 #     print('Rotation matrix diagonal: ')
 #     print(np.diag(rot_mat_np[0]))    
 
+#     print('\n\n')
+#     print('Rotation matrix batched shape: ', rot_batch_mat_np.shape)
+#     if n_parameter > 0:
+#         assert(rot_batch_mat_np.shape[0] == batch_size and rot_batch_mat_np.shape[1] == n_input and rot_batch_mat_np.shape[2] == n_input)
+#     else:
+#         assert(rot_batch_mat_np.shape[0] == 1 and rot_batch_mat_np.shape[1] == n_input and rot_batch_mat_np.shape[2] == n_input)
+#     print('Rotation matrix batched diagonal: ')
+#     print(np.diag(rot_batch_mat_np[0]))    
+
 #     print('Rotation matrix determinant: ', np.linalg.det(rot_mat_np[0]))
 #     print('Rotation matrix eye-R*R^T == 0, Error:', np.abs(np.eye(rot_mat_np[0].shape[0])-np.dot(rot_mat_np[0], rot_mat_np[0].T)).max())
+
+#     print('Rotation matrix batched determinant: ', np.linalg.det(rot_batch_mat_np[0]))
+#     print('Rotation matrix batched eye-R*R^T == 0, Error:', np.abs(np.eye(rot_batch_mat_np[0].shape[0])-np.dot(rot_batch_mat_np[0], rot_batch_mat_np[0].T)).max())
 
 #     # plt.imshow(rot_mat_np[0], cmap='hot', interpolation='nearest')
 #     # plt.show()

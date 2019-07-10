@@ -39,7 +39,11 @@ def transformer(input_im, pixel_transformation_clousure, out_size, n_location_sa
             Ilist.append(tf.gather(im_flat, flat_ind))
         return Ilist
 
-    def _interpolate(im, y, x, n_location_samples):
+    def _is_approx_zero(x, scale=1e-3):
+        # x >= -scale and x <= scale ---> 1 else ----> 0
+        return tf.cast(tf.math.less(x, scale), tf.float32)*tf.cast(tf.math.greater(x, -scale), tf.float32)
+
+    def _interpolate(im, y, x, n_location_samples, use_mean_background=True, train_background=[1, 1, 1], vis_background=[0, 0, 0]):
 
         # do sampling
         y0 = tf.cast(tf.floor(y), 'int32')
@@ -51,7 +55,6 @@ def transformer(input_im, pixel_transformation_clousure, out_size, n_location_sa
         y1 = tf.clip_by_value(y1, tf.zeros([], dtype='int32'), tf.shape(im)[1]-1)
         x0 = tf.clip_by_value(x0, tf.zeros([], dtype='int32'), tf.shape(im)[2]-1)
         x1 = tf.clip_by_value(x1, tf.zeros([], dtype='int32'), tf.shape(im)[2]-1)
-
         Ia, Ib, Ic, Id = _gather_from_ims(im, [(y0, x0), (y1, x0), (y0, x1), (y1, x1)], n_location_samples)
 
         # and finally calculate interpolated values
@@ -65,8 +68,19 @@ def transformer(input_im, pixel_transformation_clousure, out_size, n_location_sa
         wb = ((x1_f-x)*(y-y0_f))[:, np.newaxis]
         wa = ((x1_f-x)*(y1_f-y))[:, np.newaxis]
 
-        output = (wa*Ia)+(wb*Ib)+(wc*Ic)+(wd*Id)
-        return output
+        invalid_map = _is_approx_zero(wa+wb+wc+wd)
+        raw_out = (wa*Ia)+(wb*Ib)+(wc*Ic)+(wd*Id)
+        
+        if use_mean_background:
+            mean_rgb_per_im = tf.reduce_mean(im, axis=[1,2])
+            train_background = tf.reduce_mean(mean_rgb_per_im, axis=0)
+            vis_background = train_background
+        else:
+            train_background = tf.constant(train_background, tf.float32)
+            vis_background = tf.constant(vis_background, tf.float32)
+        train_output = raw_out+invalid_map*train_background[np.newaxis, :]
+        vis_output = raw_out+invalid_map*vis_background[np.newaxis, :]
+        return train_output, vis_output, invalid_map
 
     def _meshgrid(height, width):
         y_t = tf.tile(tf.linspace(-1.0, 1.0, height)[:, np.newaxis], [1, width])
@@ -107,26 +121,27 @@ def transformer(input_im, pixel_transformation_clousure, out_size, n_location_sa
 
     # FULL OUTPUT GRID
     if n_location_samples is None: 
-        input_transformed_flat = _interpolate(input_im, expanded_input_y_sample_flat, expanded_input_x_sample_flat, out_size[0]*out_size[1])
+        input_transformed_flat, vis_input_transformed_flat, invalid_map = _interpolate(input_im, expanded_input_y_sample_flat, expanded_input_x_sample_flat, out_size[0]*out_size[1])
         output = tf.reshape(input_transformed_flat, [tf.shape(input_im)[0], out_size[0], out_size[1], tf.shape(input_im)[3]])
+        vis_output = tf.reshape(vis_input_transformed_flat, [tf.shape(input_im)[0], out_size[0], out_size[1], tf.shape(input_im)[3]])
         if out_comparison_im is not None:
             expanded_out_y_flat_int =  tf.cast(tf.floor(tf.reshape(tf.tile(out_y[np.newaxis,:,0], [tf.shape(out_comparison_im)[0], 1]), [-1])), 'int32')
             expanded_out_x_flat_int =  tf.cast(tf.floor(tf.reshape(tf.tile(out_x[np.newaxis,:,0], [tf.shape(out_comparison_im)[0], 1]), [-1])), 'int32')
             out_comparison_im_gathered_flat = _gather_from_ims(out_comparison_im, [(expanded_out_y_flat_int, expanded_out_x_flat_int)], out_size[0]*out_size[1])[0] 
             out_comparison_im_gathered = tf.reshape(out_comparison_im_gathered_flat, [tf.shape(out_comparison_im)[0], out_size[0], out_size[1], 3])
-        return output, out_comparison_im_gathered
+        return output, vis_output, out_comparison_im_gathered, invalid_map
 
     # SAMPLED OUTPUT GRID
     else:
-        input_transformed_flat_sampled = _interpolate(input_im, expanded_input_y_sample_flat, expanded_input_x_sample_flat, n_location_samples)
+        input_transformed_flat_sampled, vis_input_transformed_flat_sampled, invalid_map = _interpolate(input_im, expanded_input_y_sample_flat, expanded_input_x_sample_flat, n_location_samples)
         output = tf.reshape(input_transformed_flat_sampled, [tf.shape(input_im)[0], -1, 3])
+        vis_output = tf.reshape(vis_input_transformed_flat_sampled, [tf.shape(input_im)[0], -1, 3])
         if out_comparison_im is not None:
             expanded_out_y_flat_int =  tf.cast(tf.floor(tf.reshape(tf.tile(out_y[np.newaxis,:,0], [tf.shape(out_comparison_im)[0], 1]), [-1])), 'int32')
             expanded_out_x_flat_int =  tf.cast(tf.floor(tf.reshape(tf.tile(out_x[np.newaxis,:,0], [tf.shape(out_comparison_im)[0], 1]), [-1])), 'int32')
             out_comparison_im_gathered_flat = _gather_from_ims(out_comparison_im, [(expanded_out_y_flat_int, expanded_out_x_flat_int)], n_location_samples)[0] 
             out_comparison_im_gathered = tf.reshape(out_comparison_im_gathered_flat, [tf.shape(out_comparison_im)[0], -1, 3])
-
-        return output, out_comparison_im_gathered
+        return output, vis_output, out_comparison_im_gathered, invalid_map
 
 
 
