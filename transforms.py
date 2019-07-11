@@ -1426,7 +1426,20 @@ class LinearIARFlow():
         return z, log_pdf_z
 
     def inverse_transform(self, z, log_pdf_z):
-        pdb.set_trace()
+        if log_pdf_z is not None: verify_size(z, log_pdf_z)
+
+        z0 = None
+        for i in range(self._input_dim):
+            if i == 0:
+                z0_new = z[:, np.newaxis, i]/self._cho[:, i, i, np.newaxis]
+            else:
+                subs_dot_prod = tf.reduce_sum(z0*self._cho[:, i, 0:i], axis=-1, keep_dims=True)
+                z0_new = (z[:, np.newaxis, i]-subs_dot_prod)/self._cho[:, i, i, np.newaxis]
+            if z0 is None: z0 = z0_new
+            else: z0 = tf.concat([z0, z0_new], axis=-1)
+
+        log_pdf_z0 = log_pdf_z 
+        return z0, log_pdf_z0
 
 class NonLinearIARFlow():
     """
@@ -1441,7 +1454,7 @@ class NonLinearIARFlow():
     # layer_expansions = [5,5,5] ## dont make it wider, make it deeper [2,2,2] instead of [5,5] for speed
     layer_expansions = [50,50,50] ## dont make it wider, make it deeper [2,2,2] instead of [5,5] for speed
 
-    def __init__(self, input_dim, parameters, mode='ScaleShift', name='nonlinearIAR_transform'):   #real
+    def __init__(self, input_dim, parameters, mode='BoundedScaleShift', name='nonlinearIAR_transform'):   #real
         self._parameter_scale = 1
         self._parameters = self._parameter_scale*parameters
         self._input_dim = input_dim

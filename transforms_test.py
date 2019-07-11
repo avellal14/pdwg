@@ -215,18 +215,18 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 #     print('z0_inv:')
 #     print(z0_inv_np[0,:])
 
-# ####################################################################################
-# #################################  Rotation Flows ##################################
-# ####################################################################################
+####################################################################################
+#################################  Rotation Flows ##################################
+####################################################################################
 
 # batch_size = 5
 # n_input = 6
 
 # for transform_to_check in [\
-#                            transforms.SpecificRotationFlow, \
-#                            transforms.NotManyReflectionsRotationFlow, \
-#                            transforms.ManyReflectionsRotationFlow, \
-#                            transforms.HouseholdRotationFlow, \
+#                            # transforms.SpecificRotationFlow, \
+#                            # transforms.NotManyReflectionsRotationFlow, \
+#                            # transforms.ManyReflectionsRotationFlow, \
+#                            # transforms.HouseholdRotationFlow, \
 #                            transforms.CompoundRotationFlow, \
 #                           ]:
 #     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
@@ -242,16 +242,17 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 #     n_parameter = transform_to_check.required_num_parameters(n_input)
 #     parameters, parameters_batch = None, None
 #     if n_parameter > 0: parameters = 10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
-#     if n_parameter > 0: parameters_batch = 10*tf.layers.dense(inputs = tf.ones(shape=(batch_size, 1)), units = n_parameter, use_bias = False, activation = None)
+#     if n_parameter > 0: parameters_batch = 10*tf.layers.dense(inputs = tf.random_uniform(shape=(batch_size, 100), dtype=tf.float32), units = n_parameter, use_bias = False, activation = None)
 
 #     z0 = tf.random_uniform(shape=(batch_size, n_input), dtype=tf.float32) # required for some transforms#
+#     z0_same = tf.tile(z0[0, np.newaxis, :], [batch_size, 1])
 #     transform = transform_to_check(input_dim=n_input, parameters=parameters)
 #     transform_batch = transform_to_check(input_dim=n_input, parameters=parameters_batch)
 #     z, _ = transform.transform(z0, None)
 #     z0_inv, _ = transform.inverse_transform(z, None)
 #     rot_mat = transform.get_batched_rot_matrix()
 
-#     z_batch, _ = transform_batch.transform(z0, None)
+#     z_batch, _ = transform_batch.transform(z0_same, None)
 #     z0_batch_inv, _ = transform_batch.inverse_transform(z_batch, None)
 #     rot_batch_mat = transform_batch.get_batched_rot_matrix()
 
@@ -263,7 +264,7 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 
 #         z_mat_mode, _  = transform.transform(z0, None)
 #         z0_inv_mat_mode, _ = transform.inverse_transform(z_mat_mode, None)
-#         z_batch_mat_mode, _ = transform_batch.transform(z0, None)
+#         z_batch_mat_mode, _ = transform_batch.transform(z0_same, None)
 #         z0_batch_inv_mat_mode, _ = transform_batch.inverse_transform(z_batch_mat_mode, None)
 
 #         transform._mode = 'vector'
@@ -277,18 +278,21 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 #     init = tf.initialize_all_variables()
 #     sess = tf.InteractiveSession()  
 #     sess.run(init)
-#     rot_mat_np, rot_batch_mat_np, z0_np, z_np, z0_inv_np, z_batch_np, z0_batch_inv_np, z_mat_mode_np, z0_inv_mat_mode_np, z_batch_mat_mode_np, z0_batch_inv_mat_mode_np = \
-#         sess.run([rot_mat, rot_batch_mat, z0, z, z0_inv, z_batch, z0_batch_inv, z_mat_mode, z0_inv_mat_mode, z_batch_mat_mode, z0_batch_inv_mat_mode])
+#     rot_mat_np, rot_batch_mat_np, z0_np, z0_same_np, z_np, z0_inv_np, z_batch_np, z0_batch_inv_np, z_mat_mode_np, z0_inv_mat_mode_np, z_batch_mat_mode_np, z0_batch_inv_mat_mode_np = \
+#         sess.run([rot_mat, rot_batch_mat, z0, z0_same, z, z0_inv, z_batch, z0_batch_inv, z_mat_mode, z0_inv_mat_mode, z_batch_mat_mode, z0_batch_inv_mat_mode])
     
 #     print('\n\n')
 #     print('Max absolute difference between z0 and z0_inv: ', np.abs((z0_np-z0_inv_np)).max())
 #     print(np.max(np.abs((z0_np-z0_inv_np)), axis=0))
 #     print('\n\n')
-#     print('Max absolute difference between z0 and z0_batch_inv: ', np.abs((z0_np-z0_batch_inv_np)).max())
-#     print(np.max(np.abs((z0_np-z0_batch_inv_np)), axis=0))
+#     print('Max absolute difference between z0 and z0_inv_mat_mode: ', np.abs((z0_np-z0_inv_mat_mode_np)).max())
+#     print(np.max(np.abs((z0_np-z0_inv_mat_mode_np)), axis=0))
 #     print('\n\n')
-#     print('Max absolute difference between z0 and z0_batch_inv_mat_mode: ', np.abs((z0_np-z0_batch_inv_mat_mode_np)).max())
-#     print(np.max(np.abs((z0_np-z0_batch_inv_mat_mode_np)), axis=0))
+#     print('Max absolute difference between z0_same and z0_batch_inv: ', np.abs((z0_same_np-z0_batch_inv_np)).max())
+#     print(np.max(np.abs((z0_same_np-z0_batch_inv_np)), axis=0))
+#     print('\n\n')
+#     print('Max absolute difference between z0 and z0_batch_inv_mat_mode: ', np.abs((z0_same_np-z0_batch_inv_mat_mode_np)).max())
+#     print(np.max(np.abs((z0_same_np-z0_batch_inv_mat_mode_np)), axis=0))
         
 #     print('\n\n')
 #     print('Examples:')
@@ -303,12 +307,19 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 #     print('\n\n')
 #     print('Examples batched:')
 #     print('\n\n')
-#     print('z0:')
-#     print(z0_np[0,:])
-#     print('z_batch:')
+#     print('z0 0:')
+#     print(z0_same_np[0,:])
+#     print('z0 1:')
+#     print(z0_same_np[1,:])
+#     print('z_batch 0:')
 #     print(z_batch_np[0,:])
-#     print('z0_batch_inv:')
+#     print('z_batch 1:')
+#     print(z_batch_np[1,:])
+#     print('z0_batch_inv 0:')
 #     print(z0_batch_inv_np[0,:])
+#     print('z0_batch_inv 1:')
+#     print(z0_batch_inv_np[1,:])
+#     if n_parameter > 0: assert((np.abs(z_batch_np[0,:]-z_batch_np[1,:])).max()>0)
 
 #     print('\n\n')
 #     print('Max absolute difference between z and z_mat_mode: ', np.abs((z_np-z_mat_mode_np)).max())
@@ -471,119 +482,119 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 #     print(np.max(np.abs((z_np-z_mat_mode_np)), axis=0))
 
 
-batch_size = 10
-n_input = 3
-n_input_NOM, n_output_NOM = 4, 3
-transform_to_check = transforms.RiemannianFlow
+# batch_size = 10
+# n_input = 3
+# n_input_NOM, n_output_NOM = 4, 3
+# transform_to_check = transforms.RiemannianFlow
 
-# for n_out in [5, 6, 7]:
-for n_out in [7,]:
-    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-    print('\n\n\n')
-    print('            '+str(transform_to_check)+'               ')
-    print('       (n_input, n_out): '+str((n_input, n_out))+'    ')
-    print('\n\n\n')    
-    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+# # for n_out in [5, 6, 7]:
+# for n_out in [7,]:
+#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+#     print('\n\n\n')
+#     print('            '+str(transform_to_check)+'               ')
+#     print('       (n_input, n_out): '+str((n_input, n_out))+'    ')
+#     print('\n\n\n')    
+#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
     
-    n_parameter = transform_to_check.required_num_parameters(n_input, n_out, n_input_NOM, n_output_NOM)
-    parameters = None
-    if n_parameter > 0: parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
+#     n_parameter = transform_to_check.required_num_parameters(n_input, n_out, n_input_NOM, n_output_NOM)
+#     parameters = None
+#     if n_parameter > 0: parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
 
-    z0 = tf.random_normal((batch_size, n_input), 0, 1, dtype=tf.float32)
-    log_pdf_z0 = tf.zeros(shape=(batch_size, 1), dtype=tf.float32)
-    transform = transform_to_check(input_dim=n_input, output_dim=n_out, n_input_NOM=n_input_NOM, n_output_NOM=n_output_NOM, parameters=parameters)
+#     z0 = tf.random_normal((batch_size, n_input), 0, 1, dtype=tf.float32)
+#     log_pdf_z0 = tf.zeros(shape=(batch_size, 1), dtype=tf.float32)
+#     transform = transform_to_check(input_dim=n_input, output_dim=n_out, n_input_NOM=n_input_NOM, n_output_NOM=n_output_NOM, parameters=parameters)
 
-    z, log_pdf_z, all_scales = transform.transform(z0, log_pdf_z0, mode='scales')
-    additional_jacobian = transform.jacobian(z0, mode='additional')
-    full_jacobian = transform.jacobian(z0, mode='full')
+#     z, log_pdf_z, all_scales = transform.transform(z0, log_pdf_z0, mode='scales')
+#     additional_jacobian = transform.jacobian(z0, mode='additional')
+#     full_jacobian = transform.jacobian(z0, mode='full')
 
-    init = tf.initialize_all_variables()
-    sess = tf.InteractiveSession()  
-    sess.run(init)
-    z0_np, log_pdf_z0_np, z_np, log_pdf_z_np, all_scales_np, jacobian_np, full_jacobian_np = sess.run([z0, log_pdf_z0, z, log_pdf_z, all_scales, additional_jacobian, full_jacobian])
+#     init = tf.initialize_all_variables()
+#     sess = tf.InteractiveSession()  
+#     sess.run(init)
+#     z0_np, log_pdf_z0_np, z_np, log_pdf_z_np, all_scales_np, jacobian_np, full_jacobian_np = sess.run([z0, log_pdf_z0, z, log_pdf_z, all_scales, additional_jacobian, full_jacobian])
 
-    print('\n\n')
-    print('Examples:')
-    print('\n\n')
-    print('z0:')
-    print(z0_np[0,:])
-    print('z:')
-    print(z_np[0,:])
+#     print('\n\n')
+#     print('Examples:')
+#     print('\n\n')
+#     print('z0:')
+#     print(z0_np[0,:])
+#     print('z:')
+#     print(z_np[0,:])
 
-    print('\n\n\n')
-    print('Example Additional Jacobian Shape: ', jacobian_np.shape)
-    print('Example Additional Jacobian: \n', jacobian_np[0, :, :])
-    print('Example Additional Jacobian*Jacobian^T:\n', np.dot(jacobian_np[0, :, :], jacobian_np[0, :, :].T))
-    print('Example Additional Jacobian^T*Jacobian:\n', np.dot(jacobian_np[0, :, :].T, jacobian_np[0, :, :]))
+#     print('\n\n\n')
+#     print('Example Additional Jacobian Shape: ', jacobian_np.shape)
+#     print('Example Additional Jacobian: \n', jacobian_np[0, :, :])
+#     print('Example Additional Jacobian*Jacobian^T:\n', np.dot(jacobian_np[0, :, :], jacobian_np[0, :, :].T))
+#     print('Example Additional Jacobian^T*Jacobian:\n', np.dot(jacobian_np[0, :, :].T, jacobian_np[0, :, :]))
     
-    n_additional = n_out-n_input
-    JJ_smaller = np.zeros((jacobian_np.shape[0], min(n_input, n_additional), min(n_input, n_additional)))
-    if n_input > n_additional: 
-        for i in range(jacobian_np.shape[0]): 
-            JJ_smaller[i, :, :] = np.dot(jacobian_np[i, :, :], jacobian_np[i, :, :].T)
-    else:
-        for i in range(jacobian_np.shape[0]): 
-            JJ_smaller[i, :, :] = np.dot(jacobian_np[i, :, :].T, jacobian_np[i, :, :])
+#     n_additional = n_out-n_input
+#     JJ_smaller = np.zeros((jacobian_np.shape[0], min(n_input, n_additional), min(n_input, n_additional)))
+#     if n_input > n_additional: 
+#         for i in range(jacobian_np.shape[0]): 
+#             JJ_smaller[i, :, :] = np.dot(jacobian_np[i, :, :], jacobian_np[i, :, :].T)
+#     else:
+#         for i in range(jacobian_np.shape[0]): 
+#             JJ_smaller[i, :, :] = np.dot(jacobian_np[i, :, :].T, jacobian_np[i, :, :])
     
-    JJ_smaller_normalized = JJ_smaller/JJ_smaller[:,0,0][:,np.newaxis,np.newaxis]
+#     JJ_smaller_normalized = JJ_smaller/JJ_smaller[:,0,0][:,np.newaxis,np.newaxis]
 
-    print('\n\n\n')
-    print('Additional Jacobian*Jacobian^T or Jacobian^T*Jacobian is a scaled identity matrix:')
-    print('Additional JJ^T or J^T*J (whichever is smaller matrix) eye-JJ_smaller/JJ_smaller[0,0] == 0, Error:', np.abs(JJ_smaller_normalized-np.eye(min(n_input, n_additional))[np.newaxis,:,:]).max())
-    print(np.abs(JJ_smaller_normalized-np.eye(min(n_input, n_additional))[np.newaxis,:,:]).max(2).max(1))
+#     print('\n\n\n')
+#     print('Additional Jacobian*Jacobian^T or Jacobian^T*Jacobian is a scaled identity matrix:')
+#     print('Additional JJ^T or J^T*J (whichever is smaller matrix) eye-JJ_smaller/JJ_smaller[0,0] == 0, Error:', np.abs(JJ_smaller_normalized-np.eye(min(n_input, n_additional))[np.newaxis,:,:]).max())
+#     print(np.abs(JJ_smaller_normalized-np.eye(min(n_input, n_additional))[np.newaxis,:,:]).max(2).max(1))
 
-    scales_sq = ((all_scales_np**2))[:,0]
-    scales_sq_jacobian = JJ_smaller[:,0,0]
+#     scales_sq = ((all_scales_np**2))[:,0]
+#     scales_sq_jacobian = JJ_smaller[:,0,0]
     
-    print('\n\n\n')
-    print('scales^2 from all_scales vs scales^2 from additional jacobian, Error: ', np.abs(scales_sq_jacobian-scales_sq).max())
-    print(np.abs(scales_sq_jacobian-scales_sq))
+#     print('\n\n\n')
+#     print('scales^2 from all_scales vs scales^2 from additional jacobian, Error: ', np.abs(scales_sq_jacobian-scales_sq).max())
+#     print(np.abs(scales_sq_jacobian-scales_sq))
 
-    print('\n\n\n')
-    print('Example Full Jacobian Shape: ', full_jacobian_np.shape)
-    print('Example Full Jacobian: \n', full_jacobian_np[0, :, :])
-    print('Example Full Jacobian*Jacobian^T:\n', np.dot(full_jacobian_np[0, :, :], full_jacobian_np[0, :, :].T))
-    print('Example Full Jacobian^T*Jacobian:\n', np.dot(full_jacobian_np[0, :, :].T, full_jacobian_np[0, :, :]))
+#     print('\n\n\n')
+#     print('Example Full Jacobian Shape: ', full_jacobian_np.shape)
+#     print('Example Full Jacobian: \n', full_jacobian_np[0, :, :])
+#     print('Example Full Jacobian*Jacobian^T:\n', np.dot(full_jacobian_np[0, :, :], full_jacobian_np[0, :, :].T))
+#     print('Example Full Jacobian^T*Jacobian:\n', np.dot(full_jacobian_np[0, :, :].T, full_jacobian_np[0, :, :]))
     
-    full_JTJ = np.zeros((full_jacobian_np.shape[0], n_input, n_input))
-    for i in range(full_jacobian_np.shape[0]): 
-        full_JTJ[i, :, :] = np.dot(full_jacobian_np[i, :, :].T, full_jacobian_np[i, :, :])
-    full_JTJ_normalized = full_JTJ/full_JTJ[:,0,0][:,np.newaxis,np.newaxis]
+#     full_JTJ = np.zeros((full_jacobian_np.shape[0], n_input, n_input))
+#     for i in range(full_jacobian_np.shape[0]): 
+#         full_JTJ[i, :, :] = np.dot(full_jacobian_np[i, :, :].T, full_jacobian_np[i, :, :])
+#     full_JTJ_normalized = full_JTJ/full_JTJ[:,0,0][:,np.newaxis,np.newaxis]
 
-    scale_change = 1/np.exp(log_pdf_z_np-log_pdf_z0_np)
-    scale_change_full_jacobian = np.zeros(scale_change.shape)
+#     scale_change = 1/np.exp(log_pdf_z_np-log_pdf_z0_np)
+#     scale_change_full_jacobian = np.zeros(scale_change.shape)
 
-    for i in range(full_jacobian_np.shape[0]): 
-        scale_change_full_jacobian[i] = np.sqrt(np.linalg.det(full_JTJ[i, :, :]))
+#     for i in range(full_jacobian_np.shape[0]): 
+#         scale_change_full_jacobian[i] = np.sqrt(np.linalg.det(full_JTJ[i, :, :]))
     
-    print('\n\n\n')
-    print('scale_change from log_pdfs vs scale_change from full jacobian, Error: ', np.abs(scale_change-scale_change_full_jacobian).max())
-    print(np.abs(scale_change-scale_change_full_jacobian))
+#     print('\n\n\n')
+#     print('scale_change from log_pdfs vs scale_change from full jacobian, Error: ', np.abs(scale_change-scale_change_full_jacobian).max())
+#     print(np.abs(scale_change-scale_change_full_jacobian))
 
-    print('\n\n\n')
-    print('Check that Full Jacobian J^T*J is always scaled multiple of identity matrix when n_additional >= n_input.')
-    print('\n\n\n')
-    if (n_additional >= n_input): print('Error should be SMALL since n_additional >= n_input!!')
-    else: print('Error should be LARGE since n_additional < n_input!!')
-    print('Full Jacobian J^T*J eye-J^T*J/J^T*J[0,0] == 0, Error:', np.abs(full_JTJ_normalized-np.eye(n_input)[np.newaxis,:,:]).max())
-    print(np.abs(full_JTJ_normalized-np.eye(n_input)[np.newaxis,:,:]).max(2).max(1))
+#     print('\n\n\n')
+#     print('Check that Full Jacobian J^T*J is always scaled multiple of identity matrix when n_additional >= n_input.')
+#     print('\n\n\n')
+#     if (n_additional >= n_input): print('Error should be SMALL since n_additional >= n_input!!')
+#     else: print('Error should be LARGE since n_additional < n_input!!')
+#     print('Full Jacobian J^T*J eye-J^T*J/J^T*J[0,0] == 0, Error:', np.abs(full_JTJ_normalized-np.eye(n_input)[np.newaxis,:,:]).max())
+#     print(np.abs(full_JTJ_normalized-np.eye(n_input)[np.newaxis,:,:]).max(2).max(1))
 
 
-#####################################################################################
-#############################  Invertible Euclidean Flows ###########################
-#####################################################################################
+####################################################################################
+############################  Invertible Euclidean Flows ###########################
+####################################################################################
 
 # batch_size = 5
 # n_input = 6
 # for transform_to_check in [\
-#                            transforms.PiecewisePlanarScalingFlow,
-#                            # # transforms.LinearIARFlow, \
+#                            # transforms.PiecewisePlanarScalingFlow,
+#                            # transforms.LinearIARFlow, \
 #                            transforms.NonLinearIARFlow, \
-#                            transforms.RealNVPFlow, \
+#                            # transforms.RealNVPFlow, \
 #                           ]:
 #     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 #     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
@@ -596,22 +607,31 @@ for n_out in [7,]:
 #     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
 #     n_parameter = transform_to_check.required_num_parameters(n_input)
-#     parameters = None
+#     parameters, parameters_batch = None, None
 #     if n_parameter > 0: parameters = 10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
+#     if n_parameter > 0: parameters_batch = 10*tf.layers.dense(inputs = tf.random_uniform(shape=(batch_size, 100), dtype=tf.float32), units = n_parameter, use_bias = False, activation = None)
 
 #     z0 = tf.random_uniform(shape=(batch_size, n_input), dtype=tf.float32) # required for some transforms#
+#     z0_same = tf.tile(z0[0, np.newaxis, :], [batch_size, 1])
 #     transform = transform_to_check(input_dim=n_input, parameters=parameters)
+#     transform_batch = transform_to_check(input_dim=n_input, parameters=parameters_batch)
 #     z, _ = transform.transform(z0, None)
 #     z0_inv, _ = transform.inverse_transform(z, None)
+
+#     z_batch, _ = transform_batch.transform(z0_same, None)
+#     z0_batch_inv, _ = transform_batch.inverse_transform(z_batch, None)
 
 #     init = tf.initialize_all_variables()
 #     sess = tf.InteractiveSession()  
 #     sess.run(init)
-#     z0_np, z_np, z0_inv_np = sess.run([z0, z, z0_inv])
+#     z0_np, z0_same_np, z_np, z0_inv_np, z_batch_np, z0_batch_inv_np = sess.run([z0, z0_same, z, z0_inv, z_batch, z0_batch_inv])
     
 #     print('\n\n')
 #     print('Max absolute difference between z0 and z0_inv: ', np.abs((z0_np-z0_inv_np)).max())
 #     print(np.max(np.abs((z0_np-z0_inv_np)), axis=0))
+#     print('\n\n')
+#     print('Max absolute difference between z0_same and z0_batch_inv: ', np.abs((z0_same_np-z0_batch_inv_np)).max())
+#     print(np.max(np.abs((z0_same_np-z0_batch_inv_np)), axis=0))
 
 #     print('\n\n')
 #     print('Examples:')
@@ -622,6 +642,23 @@ for n_out in [7,]:
 #     print(z_np[0,:])
 #     print('z0_inv:')
 #     print(z0_inv_np[0,:])
+
+#     print('\n\n')
+#     print('Examples batched:')
+#     print('\n\n')
+#     print('z0 0:')
+#     print(z0_same_np[0,:])
+#     print('z0 1:')
+#     print(z0_same_np[1,:])
+#     print('z_batch 0:')
+#     print(z_batch_np[0,:])
+#     print('z_batch 1:')
+#     print(z_batch_np[1,:])
+#     print('z0_batch_inv 0:')
+#     print(z0_batch_inv_np[0,:])
+#     print('z0_batch_inv 1:')
+#     print(z0_batch_inv_np[1,:])
+#     if n_parameter > 0: assert((np.abs(z_batch_np[0,:]-z_batch_np[1,:])).max()>0)
 
 #####################################################################################
 ###########################  Serial Flows and Helpers ###############################

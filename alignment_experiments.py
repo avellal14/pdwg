@@ -76,11 +76,24 @@ def get_sparse_grid_samples(resolution=100, subsample_rate=10, range_min=-1, ran
     return full_grid_flat[subsample_mask,:]
 
 
-unwarped_path = '/Users/mevlana.gemici/unwarped_small.png'
-warped_path = '/Users/mevlana.gemici/warped_small.png'
-unwarped_np = plt.imread(unwarped_path)[:,:,:3]
-warped_np = plt.imread(warped_path)[:,:,:3]
-assert (warped_np.shape == unwarped_np.shape)
+unwarped_path_1 = '/Users/mevlana.gemici/unwarped_small_1.png'
+unwarped_path_2 = '/Users/mevlana.gemici/unwarped_small_2.png'
+warped_path_1 = '/Users/mevlana.gemici/warped_small_1.png'
+warped_path_2 = '/Users/mevlana.gemici/warped_small_2.png'
+warped_rot_path_1 = '/Users/mevlana.gemici/warped_rot_small_1.png'
+warped_rot_path_2 = '/Users/mevlana.gemici/warped_rot_small_2.png'
+
+unwarped_1_np = plt.imread(unwarped_path_1)[:,:,:3]
+unwarped_2_np = plt.imread(unwarped_path_2)[:,:,:3]
+warped_1_np = plt.imread(warped_path_1)[:,:,:3]
+warped_2_np = plt.imread(warped_path_2)[:,:,:3]
+warped_rot_1_np = plt.imread(warped_rot_path_1)[:,:,:3]
+warped_rot_2_np = plt.imread(warped_rot_path_2)[:,:,:3]
+
+assert (unwarped_1_np.shape == warped_1_np.shape)
+assert (unwarped_2_np.shape == warped_2_np.shape)
+assert (unwarped_1_np.shape == warped_rot_1_np.shape)
+assert (unwarped_2_np.shape == warped_rot_2_np.shape)
 
 resolution = 1000
 loc_batch_size = 100
@@ -113,14 +126,15 @@ init_learning_rate = 0.00025
 min_learning_rate = 0.00025
 ignore_background_cost = False
 
-# im_input_np = np.tile(warped_np[np.newaxis, 150:250, 150:250:, :], [1, 1, 1, 1])
-# im_target_np = np.tile(unwarped_np[np.newaxis, 150:250, 150:250, :], [1, 1, 1, 1])
+# im_target_np = np.tile(unwarped_1_np[np.newaxis, :, :, :], [1, 1, 1, 1])
+# im_input_np = np.tile(warped_rot_1_np[np.newaxis, :, :, :], [1, 1, 1, 1])
 
-im_input_np = np.tile(warped_np[np.newaxis, :, :, :], [1, 1, 1, 1])
-im_target_np = np.tile(unwarped_np[np.newaxis, :, :, :], [1, 1, 1, 1])
+im_target_np = np.concatenate([unwarped_1_np[np.newaxis, :, :, :], unwarped_2_np[np.newaxis, :, :, :]], axis=0)
+im_input_np = np.concatenate([warped_rot_1_np[np.newaxis, :, :, :], warped_rot_2_np[np.newaxis, :, :, :]], axis=0)
+im_auxiliary_np = np.concatenate([warped_1_np[np.newaxis, :, :, :], warped_2_np[np.newaxis, :, :, :]], axis=0)
 
-im_input = tf.placeholder(tf.float32, [None, None, None, 3])
-im_target = tf.placeholder(tf.float32, [None, None, None, 3])
+im_target = tf.placeholder(tf.float32, [None, im_target_np.shape[1], im_target_np.shape[2], im_target_np.shape[3]])
+im_input = tf.placeholder(tf.float32, [None, im_input_np.shape[1], im_input_np.shape[2], im_input_np.shape[3]])
 location_input_tf = tf.placeholder(tf.float32, [None, 2])
 batch_size_tf = tf.shape(im_input)[0]
 ################################################################################################################################################################
@@ -149,21 +163,31 @@ def linear_pixel_transformation_clousure(input_pixels):
     return output_pixels
 
 ################################################################################################################################################################
+n_filters = 32
+im_both = tf.concat([im_input, im_target], axis=-1)
+lay1_image = tf.layers.conv2d(inputs=im_both, filters=n_filters, kernel_size=[5, 5], strides=[2, 2], padding="valid", use_bias=True, activation=tf.nn.relu)
+lay2_image = tf.layers.conv2d(inputs=lay1_image, filters=n_filters, kernel_size=[5, 5], strides=[2, 2], padding="valid", use_bias=True, activation=tf.nn.relu)
+lay3_image = tf.layers.conv2d(inputs=lay2_image, filters=2*n_filters, kernel_size=[5, 5], strides=[2, 2], padding="valid", use_bias=True, activation=tf.nn.relu)
+lay4_image = tf.layers.conv2d(inputs=lay3_image, filters=2*n_filters, kernel_size=[5, 5], strides=[2, 2], padding="valid", use_bias=True, activation=tf.nn.relu)
+lay5_image = tf.layers.conv2d(inputs=lay4_image, filters=4*n_filters, kernel_size=[5, 5], strides=[2, 2], padding="valid", use_bias=True, activation=tf.nn.relu)
+lay6_image = tf.layers.conv2d(inputs=lay5_image, filters=4*n_filters, kernel_size=[5, 5], strides=[2, 2], padding="valid", use_bias=True, activation=tf.nn.relu)
+flow_param_input = tf.reshape(lay6_image, [-1, lay6_image.get_shape()[1].value*lay6_image.get_shape()[2].value*4*n_filters])
+# flow_param_input = tf.ones(shape=(1, 1)) # single map
 
 n_dim = 2
-n_flows = 10
+n_flows = 1
 normalizing_flow_list = []
-# flow_class_1 = transforms.NonLinearIARFlow 
-flow_class_1 = transforms.NotManyReflectionsRotationFlow
+flow_class_1 = transforms.NonLinearIARFlow 
+# flow_class_1 = transforms.NotManyReflectionsRotationFlow
 flow_class_2 = transforms.NonLinearIARFlow 
 # flow_class_2 = transforms.NotManyReflectionsRotationFlow
 for i in range(n_flows):
     flow_class_1_parameters = None
-    if flow_class_1.required_num_parameters(n_dim) > 0: flow_class_1_parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_class_1.required_num_parameters(n_dim), use_bias = False, activation = None)
+    if flow_class_1.required_num_parameters(n_dim) > 0: flow_class_1_parameters = 1*tf.layers.dense(inputs = flow_param_input, units = flow_class_1.required_num_parameters(n_dim), use_bias = False, activation = None)
     normalizing_flow_list.append(flow_class_1(input_dim=n_dim, parameters=flow_class_1_parameters))
 
     flow_class_2_parameters = None
-    if flow_class_2.required_num_parameters(n_dim) > 0: flow_class_2_parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_class_2.required_num_parameters(n_dim), use_bias = False, activation = None)
+    if flow_class_2.required_num_parameters(n_dim) > 0: flow_class_2_parameters = 1*tf.layers.dense(inputs = flow_param_input, units = flow_class_2.required_num_parameters(n_dim), use_bias = False, activation = None)
     normalizing_flow_list.append(flow_class_2(input_dim=n_dim, parameters=flow_class_2_parameters))
 serial_flow = transforms.SerialFlow(normalizing_flow_list)
 location_transformed_tf, _ = serial_flow.inverse_transform(location_input_tf, None)
@@ -180,17 +204,17 @@ def nonlinear_pixel_transformation_clousure(input_pixels):
 
 ################################################################################################################################################################
 
-weighted_scaled_costs = []
-# for (downsample_rate, weight) in [(0.5, 1.0), (0.25, 1.0), (0.10, 1.0)]:
-for (downsample_rate, weight) in [(0.10, 1.0)]:
-    new_height = tf.cast(tf.cast(tf.shape(im_input)[1], tf.float32)*downsample_rate, tf.int32)
-    new_width = tf.cast(tf.cast(tf.shape(im_input)[2], tf.float32)*downsample_rate, tf.int32)
-    im_input_rescaled = tf.image.resize_images(im_input, [new_height, new_width], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR, align_corners=False, preserve_aspect_ratio=False)
-    im_target_rescaled = tf.image.resize_images(im_target, [new_height, new_width], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR, align_corners=False, preserve_aspect_ratio=False)
+# weighted_scaled_costs = []
+# # for (downsample_rate, weight) in [(0.5, 1.0), (0.25, 1.0), (0.10, 1.0)]:
+# for (downsample_rate, weight) in [(0.10, 1.0)]:
+#     new_height = tf.cast(tf.cast(tf.shape(im_input)[1], tf.float32)*downsample_rate, tf.int32)
+#     new_width = tf.cast(tf.cast(tf.shape(im_input)[2], tf.float32)*downsample_rate, tf.int32)
+#     im_input_rescaled = tf.image.resize_images(im_input, [new_height, new_width], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR, align_corners=False, preserve_aspect_ratio=False)
+#     im_target_rescaled = tf.image.resize_images(im_target, [new_height, new_width], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR, align_corners=False, preserve_aspect_ratio=False)
 
-    im_scaled_transformed_sampled, _, im_scaled_target_gathered_sampled, _ = spatial_transformer.transformer(input_im=im_input_rescaled, pixel_transformation_clousure=nonlinear_pixel_transformation_clousure, 
-                                                                             out_size=[new_height, new_width], n_location_samples=n_location_samples, out_comparison_im=im_target_rescaled)
-    weighted_scaled_costs.append(weight*tf.reduce_mean((im_scaled_transformed_sampled-im_scaled_target_gathered_sampled)**2))
+#     im_scaled_transformed_sampled, _, im_scaled_target_gathered_sampled, _ = spatial_transformer.transformer(input_im=im_input_rescaled, pixel_transformation_clousure=nonlinear_pixel_transformation_clousure, 
+#                                                                              out_size=[new_height, new_width], n_location_samples=n_location_samples, out_comparison_im=im_target_rescaled)
+#     weighted_scaled_costs.append(weight*tf.reduce_mean((im_scaled_transformed_sampled-im_scaled_target_gathered_sampled)**2))
 
 im_transformed, vis_im_transformed, im_target_gathered, invalid_map = spatial_transformer.transformer(input_im=im_input, pixel_transformation_clousure=nonlinear_pixel_transformation_clousure, 
                                                                      out_size=[tf.shape(im_input)[1], tf.shape(im_input)[2]], 
@@ -201,10 +225,10 @@ im_transformed_sampled, vis_im_transformed_sampled, im_target_gathered_sampled, 
                                                                      n_location_samples=n_location_samples, out_comparison_im=im_target)
 
 if ignore_background_cost:
-    cost = tf.reduce_mean(((im_transformed_sampled-im_target_gathered_sampled)*tf.stop_gradient(1-invalid_map))**2) + tf.add_n(weighted_scaled_costs)
+    cost = tf.reduce_mean(((im_transformed_sampled-im_target_gathered_sampled)*tf.stop_gradient(1-invalid_map))**2) #+tf.add_n(weighted_scaled_costs)
 else:
-    # cost = tf.reduce_mean((im_transformed_sampled-im_target_gathered_sampled)**2)+tf.add_n(weighted_scaled_costs)
-    cost = tf.add_n(weighted_scaled_costs)
+    cost = tf.reduce_mean((im_transformed_sampled-im_target_gathered_sampled)**2) #+tf.add_n(weighted_scaled_costs)
+    # cost = tf.add_n(weighted_scaled_costs)
 
 optimizer = tf.train.AdamOptimizer(learning_rate=init_learning_rate, beta1=beta1, beta2=beta2, epsilon=1e-08)
 opt_step = optimizer.minimize(cost)
@@ -281,54 +305,8 @@ for epoch in range(1, n_epochs+1):
 
 
 
-# init = tf.initialize_all_variables()
-# sess = tf.InteractiveSession()  
-# sess.run(init)
-
-# fd = {im_input: im_input_np, im_target: im_target_np}
-# print( sess.run(diff_mat, feed_dict=fd))
-# # im_transformed_np, im_target_gathered_np, out_yx_int_np = sess.run([im_transformed, im_target_gathered, out_yx_int], feed_dict=fd)
-# # for i in range(out_yx_int_np.shape[0]): 
-# #     print(np.abs(im_target_np[:, out_yx_int_np[i][0], out_yx_int_np[i][1], :] - im_target_gathered_np[:,i,:]).max())
-# pdb.set_trace()
 
 
-
-
-
-
-
-
-
-# unwarped_max = -1000
-# warped_max = -1000
-# for i in range(location_np.shape[0]):
-#     for j in range(location_np.shape[1]):
-        
-#         index_loc = -1 + unwarped_withlocation_np[i,j,3:5].astype(int)
-#         curr_max = (np.abs(unwarped_withlocation_np[i,j,:3]-unwarped_np[index_loc[0], index_loc[1],:]).max())
-#         if curr_max > unwarped_max: unwarped_max = curr_max
-        
-#         index_loc = -1 + warped_withlocation_np[i,j,3:5].astype(int)
-#         curr_max = (np.abs(warped_withlocation_np[i,j,:3]-warped_np[index_loc[0], index_loc[1],:]).max())
-#         if curr_max > warped_max: warped_max = curr_max
-# print(unwarped_max, warped_max)
-
-# plt.imshow(unwarped_np)
-# plt.show()
-
-
-
-
-# x_range = np.linspace(0, unwarped_np.shape[1]-1, unwarped_np.shape[1])
-# y_range = np.linspace(0, unwarped_np.shape[0]-1, unwarped_np.shape[0])
-# xv, yv = np.meshgrid(x_range, y_range)
-# location_np = np.concatenate([yv[:, :, np.newaxis], xv[:, :, np.newaxis]], axis=2)+1
-# unwarped_withlocation_np = np.concatenate([unwarped_np, location_np], axis=2)
-# warped_withlocation_np = np.concatenate([warped_np, location_np], axis=2)
-
-# unwarped_withlocation_flat_np = unwarped_withlocation_np.reshape(-1, unwarped_withlocation_np.shape[2])
-# warped_withlocation_flat_np = warped_withlocation_np.reshape(-1, warped_withlocation_np.shape[2])
 
 
 
