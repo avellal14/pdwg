@@ -61,9 +61,9 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
     else: print('Transform update incorrect !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Max error: ', np.abs(logdet_expected-logdet).max())
     print(np.abs(logdet_expected-logdet))
 
-# #####################################################################################
-# ######################### Euclidean Flows Jacobian Test #############################
-# #####################################################################################
+#####################################################################################
+######################### Euclidean Flows Jacobian Test #############################
+#####################################################################################
 
 # n_tests = 1
 # batch_size = 5
@@ -84,13 +84,14 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 #                            # transforms.InverseOpenIntervalDimensionFlow, \
                            
 #                            ##################################  Rotation Flows ##################################
-                           # transforms.SpecificRotationFlow, \
-                           # transforms.NotManyReflectionsRotationFlow, \
-                           # transforms.ManyReflectionsRotationFlow, \
-                           # transforms.HouseholdRotationFlow, \
-                           # transforms.CompoundRotationFlow, \
+#                            # transforms.SpecificRotationFlow, \
+#                            # transforms.NotManyReflectionsRotationFlow, \
+#                            # transforms.ManyReflectionsRotationFlow, \
+#                            # transforms.HouseholdRotationFlow, \
+#                            # transforms.CompoundRotationFlow, \
 
 #                            #############################  Invertible Euclidean Flows ###########################
+#                            # transforms.ProperIsometricFlow,
 #                            # transforms.PiecewisePlanarScalingFlow,
 #                            # transforms.LinearIARFlow, \
 #                            # transforms.NonLinearIARFlow, \
@@ -591,9 +592,10 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 # batch_size = 5
 # n_input = 6
 # for transform_to_check in [\
+#                            transforms.ProperIsometricFlow,
 #                            # transforms.PiecewisePlanarScalingFlow,
 #                            # transforms.LinearIARFlow, \
-#                            transforms.NonLinearIARFlow, \
+#                            # transforms.NonLinearIARFlow, \
 #                            # transforms.RealNVPFlow, \
 #                           ]:
 #     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')

@@ -1329,6 +1329,59 @@ class RiemannianFlow():
 #############################  Invertible Euclidean Flows ###########################
 #####################################################################################
 
+class ProperIsometricFlow():
+    """
+    A proper rigid transformation (also called Euclidean transformation or 
+    Euclidean isometry) that is made of rotations(SO(n))+translations. 
+    Args:
+      parameters: parameters of transformation all appended.
+      input_dim : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+    rotation_class = NotManyReflectionsRotationFlow
+
+    def __init__(self, input_dim, parameters, name='proper_isometric_transform'):  
+        self._parameter_scale = 1.
+        self._parameters = parameters
+        if self._parameters is not None: self._parameters = self._parameter_scale*self._parameters
+        self._input_dim = input_dim
+        
+        if self._parameters is not None:
+            self._parameters.get_shape().assert_is_compatible_with([None, ProperIsometricFlow.required_num_parameters(self._input_dim)])
+
+        param_index = 0
+        self._translation_param_raw, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim)
+        self._rotation_param, param_index = helper.slice_parameters(self._parameters, param_index, ProperIsometricFlow.rotation_class.required_num_parameters(self._input_dim))
+        self._rotation_flow = ProperIsometricFlow.rotation_class(input_dim=self._input_dim, parameters=self._rotation_param) 
+        self._translation_param = 0.1*self._translation_param_raw 
+        
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim
+
+    @staticmethod
+    def required_num_parameters(input_dim): 
+        return input_dim+ProperIsometricFlow.rotation_class.required_num_parameters(input_dim) 
+    
+    def transform(self, z0, log_pdf_z0):
+        if log_pdf_z0 is not None: verify_size(z0, log_pdf_z0)
+
+        z_rot, log_pdf_z = self._rotation_flow.transform(z0, log_pdf_z0)
+        z = z_rot+self._translation_param
+        return z, log_pdf_z
+
+    def inverse_transform(self, z, log_pdf_z):
+        if log_pdf_z is not None: verify_size(z, log_pdf_z)
+
+        z_rot = z-self._translation_param
+        z0, log_pdf_z0 = self._rotation_flow.inverse_transform(z_rot, log_pdf_z)
+        return z0, log_pdf_z0
+
 class PiecewisePlanarScalingFlow():
     """
     Connected Piecewise Scaling Flow class with Jacobians specified as scaled multiples of diagonal matrices.
@@ -1454,7 +1507,7 @@ class NonLinearIARFlow():
     # layer_expansions = [5,5,5] ## dont make it wider, make it deeper [2,2,2] instead of [5,5] for speed
     layer_expansions = [50,50,50] ## dont make it wider, make it deeper [2,2,2] instead of [5,5] for speed
 
-    def __init__(self, input_dim, parameters, mode='BoundedScaleShift', name='nonlinearIAR_transform'):   #real
+    def __init__(self, input_dim, parameters, mode='ScaleShift', name='nonlinearIAR_transform'):   #real
         self._parameter_scale = 1
         self._parameters = self._parameter_scale*parameters
         self._input_dim = input_dim

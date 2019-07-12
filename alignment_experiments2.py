@@ -95,12 +95,10 @@ assert (unwarped_2_np.shape == warped_2_np.shape)
 assert (unwarped_1_np.shape == warped_rot_1_np.shape)
 assert (unwarped_2_np.shape == warped_rot_2_np.shape)
 
-
 resolution = 1000
 loc_batch_size = 100
-loc_vis_epoch_rate = 15
+loc_vis_epoch_rate = 5
 grid_samples = get_sparse_grid_samples(resolution=resolution, subsample_rate=10, range_min=10*range_1_min, range_max=10*range_1_max)
-grid_samples = grid_samples[:-(grid_samples.shape[0]%loc_batch_size),:]
 
 use_gpu = False 
 if platform.dist()[0] == 'Ubuntu': 
@@ -122,26 +120,24 @@ n_updates_per_epoch = 1000
 vis_epoch_rate = 1
 n_location_samples = 400
 
-beta1=0.9
-beta2=0.99
+beta1=0.99
+beta2=0.999
 init_learning_rate = 0.00025
 min_learning_rate = 0.00025
 ignore_background_cost = False
 
-# im_target_np = np.concatenate([unwarped_1_np[np.newaxis, :, :, :], unwarped_2_np[np.newaxis, :, :, :]], axis=0)
-# im_input_np = np.concatenate([warped_rot_1_np[np.newaxis, :, :, :], warped_rot_2_np[np.newaxis, :, :, :]], axis=0)
-# im_auxiliary_np = np.concatenate([warped_1_np[np.newaxis, :, :, :], warped_2_np[np.newaxis, :, :, :]], axis=0)
-im_target_np = np.concatenate([unwarped_1_np[np.newaxis, :, :, :], unwarped_1_np[np.newaxis, :, :, :]], axis=0)
-im_input_np = np.concatenate([warped_rot_1_np[np.newaxis, :, :, :], warped_rot_1_np[np.newaxis, :, :, :]], axis=0)
-im_auxiliary_np = np.concatenate([warped_1_np[np.newaxis, :, :, :], warped_1_np[np.newaxis, :, :, :]], axis=0)
+# im_target_np = np.tile(unwarped_1_np[np.newaxis, :, :, :], [1, 1, 1, 1])
+# im_input_np = np.tile(warped_rot_1_np[np.newaxis, :, :, :], [1, 1, 1, 1])
 
-# im_target = tf.placeholder(tf.float32, [None, None, None, 3])
-# im_input = tf.placeholder(tf.float32, [None, None, None, 3])
-# location_input_tf = tf.placeholder(tf.float32, [None, 2])
-im_target = tf.placeholder(tf.float32, im_target_np.shape)
-im_input = tf.placeholder(tf.float32, im_input_np.shape)
-location_input_tf = tf.placeholder(tf.float32, [None, 2])
+im_target_np = np.concatenate([unwarped_1_np[np.newaxis, :, :, :], unwarped_2_np[np.newaxis, :, :, :]], axis=0)
+im_input_np = np.concatenate([warped_rot_1_np[np.newaxis, :, :, :], warped_rot_2_np[np.newaxis, :, :, :]], axis=0)
+im_auxiliary_np = np.concatenate([warped_1_np[np.newaxis, :, :, :], warped_2_np[np.newaxis, :, :, :]], axis=0)
 
+# im_target = tf.placeholder(tf.float32, [None, im_target_np.shape[1], im_target_np.shape[2], im_target_np.shape[3]])
+# im_input = tf.placeholder(tf.float32, [None, im_input_np.shape[1], im_input_np.shape[2], im_input_np.shape[3]])
+im_target = tf.placeholder(tf.float32, [im_target_np.shape[1], im_target_np.shape[1], im_target_np.shape[2], im_target_np.shape[3]])
+im_input = tf.placeholder(tf.float32, [im_input_np.shape[1], im_input_np.shape[1], im_input_np.shape[2], im_input_np.shape[3]])
+location_input_tf = tf.placeholder(tf.float32, [loc_batch_size, 2])
 batch_size_tf = tf.shape(im_input)[0]
 ################################################################################################################################################################
 
@@ -181,43 +177,30 @@ def linear_pixel_transformation_clousure(input_pixels):
 flow_param_input = tf.ones(shape=(1, 1)) # single map
 
 n_dim = 2
-n_flows = 10
+n_flows = 1
 normalizing_flow_list = []
 normalizing_flow_sampled_list = []
 normalizing_flow_location_list = []
-
-flow_class_1 = transforms.ProperIsometricFlow
+flow_class_1 = transforms.NonLinearIARFlow 
+# flow_class_1 = transforms.NotManyReflectionsRotationFlow
 flow_class_2 = transforms.NonLinearIARFlow 
+# flow_class_2 = transforms.NotManyReflectionsRotationFlow
 for i in range(n_flows):
     flow_class_1_parameters = None
-    if flow_class_1.required_num_parameters(n_dim) > 0: 
-        with tf.variable_scope("eft_first"+str(i), reuse=False):
-            flow_class_1_parameters = 1*tf.layers.dense(inputs = flow_param_input, units = flow_class_1.required_num_parameters(n_dim), use_bias = False, activation = None)
-
-    if flow_class_1_parameters.get_shape()[0].value is not None and flow_class_1_parameters.get_shape()[0].value == 1: batch_tile_1 = im_target_np.shape[0]
-    else: batch_tile_1 = 1
-
-    flow_class_1_parameters_tiled = tf.reshape(tf.tile(flow_class_1_parameters[:,np.newaxis,:], [batch_tile_1, im_target_np.shape[1]*im_target_np.shape[2], 1]), [-1, flow_class_1_parameters.get_shape()[-1].value])
-    flow_class_1_parameters_sampled_tiled = tf.reshape(tf.tile(flow_class_1_parameters[:,np.newaxis,:], [batch_tile_1, n_location_samples, 1]), [-1, flow_class_1_parameters.get_shape()[-1].value])
-    flow_class_1_parameters_location_tiled = tf.reshape(tf.tile(flow_class_1_parameters[:,np.newaxis,:], [batch_tile_1, loc_batch_size, 1]), [-1, flow_class_1_parameters.get_shape()[-1].value])
-
-    normalizing_flow_list.append(flow_class_1(input_dim=n_dim, parameters=flow_class_1_parameters))
+    if flow_class_1.required_num_parameters(n_dim) > 0: flow_class_1_parameters = 1*tf.layers.dense(inputs = flow_param_input, units = flow_class_1.required_num_parameters(n_dim), use_bias = False, activation = None)
+    flow_class_1_parameters_tiled = tf.reshape(tf.tile(flow_class_1_parameters[:,np.newaxis,:], [1, im_target_np.shape[1]*im_target_np.shape[2], 1]), [-1, flow_class_1_parameters.get_shape()[-1].value])
+    flow_class_1_parameters_sampled_tiled = tf.reshape(tf.tile(flow_class_1_parameters[:,np.newaxis,:], [1, n_location_samples, 1]), [-1, flow_class_1_parameters.get_shape()[-1].value])
+    flow_class_1_parameters_location_tiled = tf.reshape(tf.tile(flow_class_1_parameters[:,np.newaxis,:], [1, loc_batch_size, 1]), [-1, flow_class_1_parameters.get_shape()[-1].value])
+    normalizing_flow_list.append(flow_class_1(input_dim=n_dim, parameters=flow_class_1_parameters_tiled))
     normalizing_flow_sampled_list.append(flow_class_1(input_dim=n_dim, parameters=flow_class_1_parameters_sampled_tiled))
     normalizing_flow_location_list.append(flow_class_1(input_dim=n_dim, parameters=flow_class_1_parameters_location_tiled))
 
     flow_class_2_parameters = None
-    if flow_class_2.required_num_parameters(n_dim) > 0:
-        with tf.variable_scope("eft_second"+str(i), reuse=False):
-            flow_class_2_parameters = 1*tf.layers.dense(inputs = flow_param_input, units = flow_class_2.required_num_parameters(n_dim), use_bias = False, activation = None)
-
-    if flow_class_2_parameters.get_shape()[0].value is not None and flow_class_2_parameters.get_shape()[0].value == 1: batch_tile_2 = im_target_np.shape[0]
-    else: batch_tile_2 = 1
-
-    flow_class_2_parameters_tiled = tf.reshape(tf.tile(flow_class_2_parameters[:,np.newaxis,:], [batch_tile_2, im_target_np.shape[1]*im_target_np.shape[2], 1]), [-1, flow_class_2_parameters.get_shape()[-1].value])
-    flow_class_2_parameters_sampled_tiled = tf.reshape(tf.tile(flow_class_2_parameters[:,np.newaxis,:], [batch_tile_2, n_location_samples, 1]), [-1, flow_class_2_parameters.get_shape()[-1].value])
-    flow_class_2_parameters_location_tiled = tf.reshape(tf.tile(flow_class_2_parameters[:,np.newaxis,:], [batch_tile_2, loc_batch_size, 1]), [-1, flow_class_2_parameters.get_shape()[-1].value])
-
-    normalizing_flow_list.append(flow_class_2(input_dim=n_dim, parameters=flow_class_2_parameters))
+    if flow_class_2.required_num_parameters(n_dim) > 0: flow_class_2_parameters = 1*tf.layers.dense(inputs = flow_param_input, units = flow_class_2.required_num_parameters(n_dim), use_bias = False, activation = None)
+    flow_class_2_parameters_tiled = tf.reshape(tf.tile(flow_class_2_parameters[:,np.newaxis,:], [1, im_target_np.shape[1]*im_target_np.shape[2], 1]), [-1, flow_class_2_parameters.get_shape()[-1].value])
+    flow_class_2_parameters_sampled_tiled = tf.reshape(tf.tile(flow_class_2_parameters[:,np.newaxis,:], [1, n_location_samples, 1]), [-1, flow_class_2_parameters.get_shape()[-1].value])
+    flow_class_2_parameters_location_tiled = tf.reshape(tf.tile(flow_class_2_parameters[:,np.newaxis,:], [1, loc_batch_size, 1]), [-1, flow_class_2_parameters.get_shape()[-1].value])
+    normalizing_flow_list.append(flow_class_2(input_dim=n_dim, parameters=flow_class_2_parameters_tiled))
     normalizing_flow_sampled_list.append(flow_class_2(input_dim=n_dim, parameters=flow_class_2_parameters_sampled_tiled))
     normalizing_flow_location_list.append(flow_class_2(input_dim=n_dim, parameters=flow_class_2_parameters_location_tiled))
 
@@ -227,47 +210,47 @@ serial_flow_location = transforms.SerialFlow(normalizing_flow_location_list)
 location_transformed_tf, _ = serial_flow_location.inverse_transform(location_input_tf, None)
 
 def clousure_of_closure(serial_flow):
-    def nonlinear_pixel_transformation_clousure(batch_input_pixels):
+    def nonlinear_pixel_transformation_clousure(input_pixels):
         # input = [tf.shape(input_pixels)[0] (corresponding the individual pixels in a grid of output image), 2]
         # output = [batch_size_tf, 2, tf.shape(input_pixels)[0]]
         # serial_flow does not allow different transformations for each image in the batch
         # See the note in linear_pixel_transformation_clousure for understanding the transformation.
-        
-        input_pixels_flat = tf.reshape(batch_input_pixels, [-1, batch_input_pixels.get_shape()[-1].value])
-        output_pixels_flat, _ = serial_flow.transform(input_pixels_flat, None)
-        batch_output_pixels = tf.reshape(output_pixels_flat, tf.shape(batch_input_pixels))
-        return batch_output_pixels
+
+        output_pixels_const, _ = serial_flow.transform(input_pixels, None)
+        output_pixels = tf.transpose(tf.tile(output_pixels_const[np.newaxis, :, :], [batch_size_tf, 1, 1]), [0, 2, 1])
+        return output_pixels
     return nonlinear_pixel_transformation_clousure
 ################################################################################################################################################################
 
-im_transformed, vis_im_transformed, im_target_gathered, invalid_map = spatial_transformer.transformer(input_im=im_input, pixel_transformation_clousure=clousure_of_closure(serial_flow), 
-                                                                      out_size=[tf.shape(im_input)[1], tf.shape(im_input)[2]], 
-                                                                      n_location_samples=None, out_comparison_im=im_target)
+# weighted_scaled_costs = []
+# # for (downsample_rate, weight) in [(0.5, 1.0), (0.25, 1.0), (0.10, 1.0)]:
+# for (downsample_rate, weight) in [(0.10, 1.0)]:
+#     new_height = tf.cast(tf.cast(tf.shape(im_input)[1], tf.float32)*downsample_rate, tf.int32)
+#     new_width = tf.cast(tf.cast(tf.shape(im_input)[2], tf.float32)*downsample_rate, tf.int32)
+#     im_input_rescaled = tf.image.resize_images(im_input, [new_height, new_width], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR, align_corners=False, preserve_aspect_ratio=False)
+#     im_target_rescaled = tf.image.resize_images(im_target, [new_height, new_width], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR, align_corners=False, preserve_aspect_ratio=False)
+
+#     im_scaled_transformed_sampled, _, im_scaled_target_gathered_sampled, _ = spatial_transformer.transformer(input_im=im_input_rescaled, pixel_transformation_clousure=nonlinear_pixel_transformation_clousure, 
+#                                                                              out_size=[new_height, new_width], n_location_samples=n_location_samples, out_comparison_im=im_target_rescaled)
+#     weighted_scaled_costs.append(weight*tf.reduce_mean((im_scaled_transformed_sampled-im_scaled_target_gathered_sampled)**2))
+
+pdb.set_trace()
+im_transformed, vis_im_transformed, im_target_gathered, invalid_map = spatial_transformer.transformer(input_im=im_input, pixel_transformation_clousure=clousure_of_closure(serial_flow),
+                                                                     out_size=[tf.shape(im_input)[1], tf.shape(im_input)[2]], 
+                                                                     n_location_samples=None, out_comparison_im=im_target)
 
 im_transformed_sampled, vis_im_transformed_sampled, im_target_gathered_sampled, invalid_map = spatial_transformer.transformer(input_im=im_input, pixel_transformation_clousure=clousure_of_closure(serial_flow_sampled), 
-                                                                                              out_size=[tf.shape(im_input)[1], tf.shape(im_input)[2]], 
-                                                                                              n_location_samples=n_location_samples, out_comparison_im=im_target)
+                                                                     out_size=[tf.shape(im_input)[1], tf.shape(im_input)[2]], 
+                                                                     n_location_samples=n_location_samples, out_comparison_im=im_target)
 
 if ignore_background_cost:
-    cost = tf.reduce_mean(((im_transformed_sampled-im_target_gathered_sampled)*tf.stop_gradient(1-invalid_map))**2)
+    cost = tf.reduce_mean(((im_transformed_sampled-im_target_gathered_sampled)*tf.stop_gradient(1-invalid_map))**2) #+tf.add_n(weighted_scaled_costs)
 else:
-    cost = tf.reduce_mean((im_transformed_sampled-im_target_gathered_sampled)**2)
+    cost = tf.reduce_mean((im_transformed_sampled-im_target_gathered_sampled)**2) #+tf.add_n(weighted_scaled_costs)
+    # cost = tf.add_n(weighted_scaled_costs)
 
-first_vars = [v for v in tf.trainable_variables() if 'first' in v.name]
-second_vars = [v for v in tf.trainable_variables() if 'second' in v.name] 
-eft_vars = [v for v in tf.trainable_variables() if 'eft' in v.name] 
-
-global_step = tf.Variable(0.0, name='global_step', trainable=False)
-opt_step_first = helper.clipped_optimizer_minimize(optimizer=tf.train.AdamOptimizer(
-                 learning_rate=init_learning_rate, beta1=beta1, beta2=beta2, epsilon=1e-08), 
-                 loss=cost, var_list=first_vars, global_step=global_step, clip_param=5)
-opt_step_second = helper.clipped_optimizer_minimize(optimizer=tf.train.AdamOptimizer(
-                 learning_rate=init_learning_rate, beta1=beta1, beta2=beta2, epsilon=1e-08), 
-                 loss=cost, var_list=second_vars, global_step=global_step, clip_param=5)
-opt_step_eft = helper.clipped_optimizer_minimize(optimizer=tf.train.AdamOptimizer(
-                 learning_rate=init_learning_rate, beta1=beta1, beta2=beta2, epsilon=1e-08), 
-                 loss=cost, var_list=eft_vars, global_step=global_step, clip_param=5)
-
+optimizer = tf.train.AdamOptimizer(learning_rate=init_learning_rate, beta1=beta1, beta2=beta2, epsilon=1e-08)
+opt_step = optimizer.minimize(cost)
 init = tf.initialize_all_variables()
 sess = tf.InteractiveSession()  
 sess.run(init)
@@ -278,9 +261,6 @@ plt.imsave(exp_dir+'im_target_np'+'.png', im_target_np[0, :, :, :])
 print('Start Timer: ')
 start = time.time();
 for epoch in range(1, n_epochs+1): 
-    if epoch < 20: opt_step = opt_step_first
-    else: opt_step = opt_step_eft
-
     learning_rate = init_learning_rate
     print('Current learning rate: ', learning_rate)
     if epoch == 1 or epoch == n_epochs or epoch % vis_epoch_rate == 0: 
@@ -291,8 +271,7 @@ for epoch in range(1, n_epochs+1):
         plt.imsave(exp_dir+'im/im_transformed_np_'+str(epoch)+'.png', im_transformed_np[0, :, :, :])
         plt.imsave(exp_dir+'all/all_im_transformed_np_'+str(epoch)+'.png', in_out_target)
 
-    # if epoch == 1 or epoch == n_epochs or epoch % loc_vis_epoch_rate == 0: 
-    if epoch == n_epochs or epoch % loc_vis_epoch_rate == 0: 
+    if epoch == 1 or epoch == n_epochs or epoch % loc_vis_epoch_rate == 0: 
         all_transformed_grid_samples_np = np.zeros(grid_samples.shape)
         for i in range(math.ceil(grid_samples.shape[0]/float(loc_batch_size))):
             curr_batch_np = grid_samples[i*loc_batch_size:min((i+1)*loc_batch_size, grid_samples.shape[0]), :]
@@ -330,38 +309,6 @@ for epoch in range(1, n_epochs+1):
 
 
 
-# n_dim = 2
-# n_flows = 10
-# normalizing_flow_list = []
-# normalizing_flow_sampled_list = []
-# normalizing_flow_location_list = []
-
-# flow_class_1 = transforms.ProperIsometricFlow
-# flow_class_2 = transforms.NonLinearIARFlow 
-# for i in range(n_flows):
-#     flow_class_1_parameters = None
-#     if flow_class_1.required_num_parameters(n_dim) > 0: 
-#         with tf.variable_scope("eft_first"+str(i), reuse=False):
-#             flow_class_1_parameters = 1*tf.layers.dense(inputs = flow_param_input, units = flow_class_1.required_num_parameters(n_dim), use_bias = False, activation = None)
-
-#     flow_class_1_parameters_tiled = tf.reshape(tf.tile(flow_class_1_parameters[:,np.newaxis,:], [1, im_target_np.shape[1]*im_target_np.shape[2], 1]), [-1, flow_class_1_parameters.get_shape()[-1].value])
-#     flow_class_1_parameters_sampled_tiled = tf.reshape(tf.tile(flow_class_1_parameters[:,np.newaxis,:], [1, n_location_samples, 1]), [-1, flow_class_1_parameters.get_shape()[-1].value])
-#     flow_class_1_parameters_location_tiled = tf.reshape(tf.tile(flow_class_1_parameters[:,np.newaxis,:], [1, loc_batch_size, 1]), [-1, flow_class_1_parameters.get_shape()[-1].value])
-#     normalizing_flow_list.append(flow_class_1(input_dim=n_dim, parameters=flow_class_1_parameters_tiled))
-#     normalizing_flow_sampled_list.append(flow_class_1(input_dim=n_dim, parameters=flow_class_1_parameters_sampled_tiled))
-#     normalizing_flow_location_list.append(flow_class_1(input_dim=n_dim, parameters=flow_class_1_parameters_location_tiled))
-
-#     flow_class_2_parameters = None
-#     if flow_class_2.required_num_parameters(n_dim) > 0:
-#         with tf.variable_scope("eft_second"+str(i), reuse=False):
-#             flow_class_2_parameters = 1*tf.layers.dense(inputs = flow_param_input, units = flow_class_2.required_num_parameters(n_dim), use_bias = False, activation = None)
-
-#     flow_class_2_parameters_tiled = tf.reshape(tf.tile(flow_class_2_parameters[:,np.newaxis,:], [1, im_target_np.shape[1]*im_target_np.shape[2], 1]), [-1, flow_class_2_parameters.get_shape()[-1].value])
-#     flow_class_2_parameters_sampled_tiled = tf.reshape(tf.tile(flow_class_2_parameters[:,np.newaxis,:], [1, n_location_samples, 1]), [-1, flow_class_2_parameters.get_shape()[-1].value])
-#     flow_class_2_parameters_location_tiled = tf.reshape(tf.tile(flow_class_2_parameters[:,np.newaxis,:], [1, loc_batch_size, 1]), [-1, flow_class_2_parameters.get_shape()[-1].value])
-#     normalizing_flow_list.append(flow_class_2(input_dim=n_dim, parameters=flow_class_2_parameters_tiled))
-#     normalizing_flow_sampled_list.append(flow_class_2(input_dim=n_dim, parameters=flow_class_2_parameters_sampled_tiled))
-#     normalizing_flow_location_list.append(flow_class_2(input_dim=n_dim, parameters=flow_class_2_parameters_location_tiled))
 
 
 
@@ -369,6 +316,8 @@ for epoch in range(1, n_epochs+1):
 
 
 
+        out_yx_unit_1_im = _meshgrid(out_size[0], out_size[1]) # [out_size[0]*out_size[1], 2]
+        out_yx_unit = tf.reshape(tf.tile(out_yx_unit_1_im[np.newaxis, :, :], [tf.shape(input_im)[0], 1, 1]), [-1, out_yx_unit_1_im.get_shape()[-1].value])
 
 
 
@@ -376,47 +325,6 @@ for epoch in range(1, n_epochs+1):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# weighted_scaled_costs = []
-# # for (downsample_rate, weight) in [(0.5, 1.0), (0.25, 1.0), (0.10, 1.0)]:
-# for (downsample_rate, weight) in [(0.10, 1.0)]:
-#     new_height = tf.cast(tf.cast(tf.shape(im_input)[1], tf.float32)*downsample_rate, tf.int32)
-#     new_width = tf.cast(tf.cast(tf.shape(im_input)[2], tf.float32)*downsample_rate, tf.int32)
-#     im_input_rescaled = tf.image.resize_images(im_input, [new_height, new_width], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR, align_corners=False, preserve_aspect_ratio=False)
-#     im_target_rescaled = tf.image.resize_images(im_target, [new_height, new_width], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR, align_corners=False, preserve_aspect_ratio=False)
-
-#     im_scaled_transformed_sampled, _, im_scaled_target_gathered_sampled, _ = spatial_transformer.transformer(input_im=im_input_rescaled, pixel_transformation_clousure=nonlinear_pixel_transformation_clousure, 
-#                                                                              out_size=[new_height, new_width], n_location_samples=n_location_samples, out_comparison_im=im_target_rescaled)
-#     weighted_scaled_costs.append(weight*tf.reduce_mean((im_scaled_transformed_sampled-im_scaled_target_gathered_sampled)**2))
-
-
-
-
-
-
-# if ignore_background_cost:
-#     cost = tf.reduce_mean(((im_transformed_sampled-im_target_gathered_sampled)*tf.stop_gradient(1-invalid_map))**2) #+tf.add_n(weighted_scaled_costs)
-# else:
-#     cost = tf.reduce_mean((im_transformed_sampled-im_target_gathered_sampled)**2) #+tf.add_n(weighted_scaled_costs)
 
 
 
