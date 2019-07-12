@@ -76,12 +76,12 @@ def get_sparse_grid_samples(resolution=100, subsample_rate=10, range_min=-1, ran
     return full_grid_flat[subsample_mask,:]
 
 
-unwarped_path_1 = '/Users/mevlana.gemici/unwarped_small_1.png'
-unwarped_path_2 = '/Users/mevlana.gemici/unwarped_small_2.png'
-warped_path_1 = '/Users/mevlana.gemici/warped_small_1.png'
-warped_path_2 = '/Users/mevlana.gemici/warped_small_2.png'
-warped_rot_path_1 = '/Users/mevlana.gemici/warped_rot_small_1.png'
-warped_rot_path_2 = '/Users/mevlana.gemici/warped_rot_small_2.png'
+unwarped_path_1 = str(Path.home())+'/unwarped_small_1.png'
+unwarped_path_2 = str(Path.home())+'/unwarped_small_2.png'
+warped_path_1 = str(Path.home())+'/warped_small_1.png'
+warped_path_2 = str(Path.home())+'/warped_small_2.png'
+warped_rot_path_1 = str(Path.home())+'/warped_rot_small_1.png'
+warped_rot_path_2 = str(Path.home())+'/warped_rot_small_2.png'
 
 unwarped_1_np = plt.imread(unwarped_path_1)[:,:,:3]
 unwarped_2_np = plt.imread(unwarped_path_2)[:,:,:3]
@@ -94,7 +94,6 @@ assert (unwarped_1_np.shape == warped_1_np.shape)
 assert (unwarped_2_np.shape == warped_2_np.shape)
 assert (unwarped_1_np.shape == warped_rot_1_np.shape)
 assert (unwarped_2_np.shape == warped_rot_2_np.shape)
-
 
 resolution = 1000
 loc_batch_size = 100
@@ -113,7 +112,7 @@ if use_gpu:
 
 exp_dir = str(Path.home())+'/ExperimentalResults/Align_EXP/'
 if not os.path.exists(exp_dir): os.makedirs(exp_dir)
-if not os.path.exists(exp_dir+'all/'): os.makedirs(exp_di+'all/')
+if not os.path.exists(exp_dir+'all/'): os.makedirs(exp_dir+'all/')
 if not os.path.exists(exp_dir+'im/'): os.makedirs(exp_dir+'im/')
 if not os.path.exists(exp_dir+'gt/'): os.makedirs(exp_dir+'gt/')
 
