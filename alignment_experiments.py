@@ -76,12 +76,12 @@ def get_sparse_grid_samples(resolution=100, subsample_rate=10, range_min=-1, ran
     return full_grid_flat[subsample_mask,:]
 
 
-unwarped_path_1 = str(Path.home())+'/unwarped_small_1.png'
-unwarped_path_2 = str(Path.home())+'/unwarped_small_2.png'
-warped_path_1 = str(Path.home())+'/warped_small_1.png'
-warped_path_2 = str(Path.home())+'/warped_small_2.png'
-warped_rot_path_1 = str(Path.home())+'/warped_rot_small_1.png'
-warped_rot_path_2 = str(Path.home())+'/warped_rot_small_2.png'
+unwarped_path_1 = '/Users/mevlana.gemici/unwarped_small_1.png'
+unwarped_path_2 = '/Users/mevlana.gemici/unwarped_small_2.png'
+warped_path_1 = '/Users/mevlana.gemici/warped_small_1.png'
+warped_path_2 = '/Users/mevlana.gemici/warped_small_2.png'
+warped_rot_path_1 = '/Users/mevlana.gemici/warped_rot_small_1.png'
+warped_rot_path_2 = '/Users/mevlana.gemici/warped_rot_small_2.png'
 
 unwarped_1_np = plt.imread(unwarped_path_1)[:,:,:3]
 unwarped_2_np = plt.imread(unwarped_path_2)[:,:,:3]
@@ -95,11 +95,11 @@ assert (unwarped_2_np.shape == warped_2_np.shape)
 assert (unwarped_1_np.shape == warped_rot_1_np.shape)
 assert (unwarped_2_np.shape == warped_rot_2_np.shape)
 
+
 resolution = 1000
 loc_batch_size = 100
-loc_vis_epoch_rate = 15
+loc_vis_epoch_rate = 5
 grid_samples = get_sparse_grid_samples(resolution=resolution, subsample_rate=10, range_min=10*range_1_min, range_max=10*range_1_max)
-grid_samples = grid_samples[:-(grid_samples.shape[0]%loc_batch_size),:]
 
 use_gpu = False 
 if platform.dist()[0] == 'Ubuntu': 
@@ -112,7 +112,7 @@ if use_gpu:
 
 exp_dir = str(Path.home())+'/ExperimentalResults/Align_EXP/'
 if not os.path.exists(exp_dir): os.makedirs(exp_dir)
-if not os.path.exists(exp_dir+'all/'): os.makedirs(exp_dir+'all/')
+if not os.path.exists(exp_dir+'all/'): os.makedirs(exp_di+'all/')
 if not os.path.exists(exp_dir+'im/'): os.makedirs(exp_dir+'im/')
 if not os.path.exists(exp_dir+'gt/'): os.makedirs(exp_dir+'gt/')
 
@@ -131,7 +131,8 @@ ignore_background_cost = False
 # im_input_np = np.concatenate([warped_rot_1_np[np.newaxis, :, :, :], warped_rot_2_np[np.newaxis, :, :, :]], axis=0)
 # im_auxiliary_np = np.concatenate([warped_1_np[np.newaxis, :, :, :], warped_2_np[np.newaxis, :, :, :]], axis=0)
 im_target_np = np.concatenate([unwarped_1_np[np.newaxis, :, :, :], unwarped_1_np[np.newaxis, :, :, :]], axis=0)
-im_input_np = np.concatenate([warped_rot_1_np[np.newaxis, :, :, :], warped_rot_1_np[np.newaxis, :, :, :]], axis=0)
+# im_input_np = np.concatenate([warped_rot_1_np[np.newaxis, :, :, :], warped_rot_1_np[np.newaxis, :, :, :]], axis=0)
+im_input_np = np.concatenate([warped_1_np[np.newaxis, :, :, :], warped_1_np[np.newaxis, :, :, :]], axis=0)
 im_auxiliary_np = np.concatenate([warped_1_np[np.newaxis, :, :, :], warped_1_np[np.newaxis, :, :, :]], axis=0)
 
 # im_target = tf.placeholder(tf.float32, [None, None, None, 3])
@@ -168,82 +169,76 @@ def linear_pixel_transformation_clousure(input_pixels):
     return output_pixels
 
 ################################################################################################################################################################
-# n_filters = 32
+n_filters = 32
+
 # im_both = tf.concat([im_input, im_target], axis=-1)
-# lay1_image = tf.layers.conv2d(inputs=im_both, filters=n_filters, kernel_size=[5, 5], strides=[2, 2], padding="valid", use_bias=True, activation=tf.nn.relu)
-# lay2_image = tf.layers.conv2d(inputs=lay1_image, filters=n_filters, kernel_size=[5, 5], strides=[2, 2], padding="valid", use_bias=True, activation=tf.nn.relu)
-# lay3_image = tf.layers.conv2d(inputs=lay2_image, filters=2*n_filters, kernel_size=[5, 5], strides=[2, 2], padding="valid", use_bias=True, activation=tf.nn.relu)
-# lay4_image = tf.layers.conv2d(inputs=lay3_image, filters=2*n_filters, kernel_size=[5, 5], strides=[2, 2], padding="valid", use_bias=True, activation=tf.nn.relu)
-# lay5_image = tf.layers.conv2d(inputs=lay4_image, filters=4*n_filters, kernel_size=[5, 5], strides=[2, 2], padding="valid", use_bias=True, activation=tf.nn.relu)
-# lay6_image = tf.layers.conv2d(inputs=lay5_image, filters=4*n_filters, kernel_size=[5, 5], strides=[2, 2], padding="valid", use_bias=True, activation=tf.nn.relu)
+# with tf.variable_scope("eft_third", reuse=False):
+#     lay1_image = tf.layers.conv2d(inputs=im_both, filters=n_filters, kernel_size=[5, 5], strides=[2, 2], padding="valid", use_bias=True, activation=tf.nn.relu)
+#     lay2_image = tf.layers.conv2d(inputs=lay1_image, filters=n_filters, kernel_size=[5, 5], strides=[2, 2], padding="valid", use_bias=True, activation=tf.nn.relu)
+#     lay3_image = tf.layers.conv2d(inputs=lay2_image, filters=2*n_filters, kernel_size=[5, 5], strides=[2, 2], padding="valid", use_bias=True, activation=tf.nn.relu)
+#     lay4_image = tf.layers.conv2d(inputs=lay3_image, filters=2*n_filters, kernel_size=[5, 5], strides=[2, 2], padding="valid", use_bias=True, activation=tf.nn.relu)
+#     lay5_image = tf.layers.conv2d(inputs=lay4_image, filters=4*n_filters, kernel_size=[5, 5], strides=[2, 2], padding="valid", use_bias=True, activation=tf.nn.relu)
+#     lay6_image = tf.layers.conv2d(inputs=lay5_image, filters=4*n_filters, kernel_size=[5, 5], strides=[2, 2], padding="valid", use_bias=True, activation=tf.nn.relu)
 # flow_param_input = tf.reshape(lay6_image, [-1, lay6_image.get_shape()[1].value*lay6_image.get_shape()[2].value*4*n_filters])
-flow_param_input = tf.ones(shape=(1, 1)) # single map
+
+im_both = tf.concat([helper.tf_resize_image(im_input, resize_ratios=[1/16,1/16]), helper.tf_resize_image(im_target, resize_ratios=[1/16,1/16])], axis=-1)
+with tf.variable_scope("eft_third", reuse=False):
+    lay1_image = tf.layers.conv2d(inputs=im_both, filters=n_filters, kernel_size=[5, 5], strides=[2, 2], padding="valid", use_bias=True, activation=tf.nn.relu)
+    lay2_image = tf.layers.conv2d(inputs=lay1_image, filters=2*n_filters, kernel_size=[5, 5], strides=[1, 1], padding="valid", use_bias=True, activation=tf.nn.relu)
+    lay3_image = tf.layers.conv2d(inputs=lay2_image, filters=4*n_filters, kernel_size=[4, 4], strides=[1, 1], padding="valid", use_bias=True, activation=tf.nn.relu)
+flow_param_input = tf.reshape(lay3_image, [-1, lay3_image.get_shape()[1].value*lay3_image.get_shape()[2].value*4*n_filters])
+
+# flow_param_input = tf.ones(shape=(im_input_np.shape[0], 1)) # single map
 
 n_dim = 2
 n_flows = 10
-normalizing_flow_list = []
-normalizing_flow_sampled_list = []
-normalizing_flow_location_list = []
-
 flow_class_1 = transforms.ProperIsometricFlow
 flow_class_2 = transforms.NonLinearIARFlow 
+
+flow_class_1_parameters_list, flow_class_2_parameters_list = [], []
 for i in range(n_flows):
-    flow_class_1_parameters = None
     if flow_class_1.required_num_parameters(n_dim) > 0: 
         with tf.variable_scope("eft_first"+str(i), reuse=False):
-            flow_class_1_parameters = 1*tf.layers.dense(inputs = flow_param_input, units = flow_class_1.required_num_parameters(n_dim), use_bias = False, activation = None)
+            flow_class_1_parameters = 1*tf.layers.dense(inputs = flow_param_input, units = flow_class_1.required_num_parameters(n_dim), use_bias = True, activation = None)
+            flow_class_1_parameters_list.append(flow_class_1_parameters)
 
-    if flow_class_1_parameters.get_shape()[0].value is not None and flow_class_1_parameters.get_shape()[0].value == 1: batch_tile_1 = im_target_np.shape[0]
-    else: batch_tile_1 = 1
-
-    flow_class_1_parameters_tiled = tf.reshape(tf.tile(flow_class_1_parameters[:,np.newaxis,:], [batch_tile_1, im_target_np.shape[1]*im_target_np.shape[2], 1]), [-1, flow_class_1_parameters.get_shape()[-1].value])
-    flow_class_1_parameters_sampled_tiled = tf.reshape(tf.tile(flow_class_1_parameters[:,np.newaxis,:], [batch_tile_1, n_location_samples, 1]), [-1, flow_class_1_parameters.get_shape()[-1].value])
-    flow_class_1_parameters_location_tiled = tf.reshape(tf.tile(flow_class_1_parameters[:,np.newaxis,:], [batch_tile_1, loc_batch_size, 1]), [-1, flow_class_1_parameters.get_shape()[-1].value])
-
-    normalizing_flow_list.append(flow_class_1(input_dim=n_dim, parameters=flow_class_1_parameters))
-    normalizing_flow_sampled_list.append(flow_class_1(input_dim=n_dim, parameters=flow_class_1_parameters_sampled_tiled))
-    normalizing_flow_location_list.append(flow_class_1(input_dim=n_dim, parameters=flow_class_1_parameters_location_tiled))
-
-    flow_class_2_parameters = None
     if flow_class_2.required_num_parameters(n_dim) > 0:
         with tf.variable_scope("eft_second"+str(i), reuse=False):
-            flow_class_2_parameters = 1*tf.layers.dense(inputs = flow_param_input, units = flow_class_2.required_num_parameters(n_dim), use_bias = False, activation = None)
+            flow_class_2_parameters = 1*tf.layers.dense(inputs = flow_param_input, units = flow_class_2.required_num_parameters(n_dim), use_bias = True, activation = None)
+            flow_class_2_parameters_list.append(flow_class_2_parameters)
 
-    if flow_class_2_parameters.get_shape()[0].value is not None and flow_class_2_parameters.get_shape()[0].value == 1: batch_tile_2 = im_target_np.shape[0]
-    else: batch_tile_2 = 1
+serial_flow_list = []
+for j in range(im_input_np.shape[0]):
+    normalizing_flow_list = []
+    for i in range(n_flows):
+        normalizing_flow_list.append(flow_class_1(input_dim=n_dim, parameters=flow_class_1_parameters_list[i][j, np.newaxis, :]))
+        normalizing_flow_list.append(flow_class_2(input_dim=n_dim, parameters=flow_class_2_parameters_list[i][j, np.newaxis, :]))
+    serial_flow_list.append(transforms.SerialFlow(normalizing_flow_list))
 
-    flow_class_2_parameters_tiled = tf.reshape(tf.tile(flow_class_2_parameters[:,np.newaxis,:], [batch_tile_2, im_target_np.shape[1]*im_target_np.shape[2], 1]), [-1, flow_class_2_parameters.get_shape()[-1].value])
-    flow_class_2_parameters_sampled_tiled = tf.reshape(tf.tile(flow_class_2_parameters[:,np.newaxis,:], [batch_tile_2, n_location_samples, 1]), [-1, flow_class_2_parameters.get_shape()[-1].value])
-    flow_class_2_parameters_location_tiled = tf.reshape(tf.tile(flow_class_2_parameters[:,np.newaxis,:], [batch_tile_2, loc_batch_size, 1]), [-1, flow_class_2_parameters.get_shape()[-1].value])
+def nonlinear_pixel_transformation_clousure(batch_input_pixels, b_inverse=False):
+    # input = [tf.shape(input_pixels)[0] (corresponding the individual pixels in a grid of output image), 2]
+    # output = [batch_size_tf, 2, tf.shape(input_pixels)[0]]
+    # serial_flow does not allow different transformations for each image in the batch
+    # See the note in linear_pixel_transformation_clousure for understanding the transformation.
+    
+    output_pixels_list = []
+    for j in range(im_input_np.shape[0]):
+        if b_inverse: curr_output_pixels, _ = serial_flow_list[j].inverse_transform(batch_input_pixels[j,:,:], None)
+        else: curr_output_pixels, _ = serial_flow_list[j].transform(batch_input_pixels[j,:,:], None)
+        output_pixels_list.append(curr_output_pixels[np.newaxis,:,:])
+    batch_output_pixels = tf.concat(output_pixels_list, axis=0)
+    return batch_output_pixels
 
-    normalizing_flow_list.append(flow_class_2(input_dim=n_dim, parameters=flow_class_2_parameters))
-    normalizing_flow_sampled_list.append(flow_class_2(input_dim=n_dim, parameters=flow_class_2_parameters_sampled_tiled))
-    normalizing_flow_location_list.append(flow_class_2(input_dim=n_dim, parameters=flow_class_2_parameters_location_tiled))
+location_input_tiled = tf.tile(location_input_tf[np.newaxis, :, :], [im_input_np.shape[0], 1, 1])
+location_transformed_tf = nonlinear_pixel_transformation_clousure(location_input_tiled, b_inverse=True)
 
-serial_flow = transforms.SerialFlow(normalizing_flow_list)
-serial_flow_sampled = transforms.SerialFlow(normalizing_flow_sampled_list)
-serial_flow_location = transforms.SerialFlow(normalizing_flow_location_list)
-location_transformed_tf, _ = serial_flow_location.inverse_transform(location_input_tf, None)
-
-def clousure_of_closure(serial_flow):
-    def nonlinear_pixel_transformation_clousure(batch_input_pixels):
-        # input = [tf.shape(input_pixels)[0] (corresponding the individual pixels in a grid of output image), 2]
-        # output = [batch_size_tf, 2, tf.shape(input_pixels)[0]]
-        # serial_flow does not allow different transformations for each image in the batch
-        # See the note in linear_pixel_transformation_clousure for understanding the transformation.
-        
-        input_pixels_flat = tf.reshape(batch_input_pixels, [-1, batch_input_pixels.get_shape()[-1].value])
-        output_pixels_flat, _ = serial_flow.transform(input_pixels_flat, None)
-        batch_output_pixels = tf.reshape(output_pixels_flat, tf.shape(batch_input_pixels))
-        return batch_output_pixels
-    return nonlinear_pixel_transformation_clousure
 ################################################################################################################################################################
 
-im_transformed, vis_im_transformed, im_target_gathered, invalid_map = spatial_transformer.transformer(input_im=im_input, pixel_transformation_clousure=clousure_of_closure(serial_flow), 
+im_transformed, vis_im_transformed, im_target_gathered, invalid_map = spatial_transformer.transformer(input_im=im_input, pixel_transformation_clousure=nonlinear_pixel_transformation_clousure, 
                                                                       out_size=[tf.shape(im_input)[1], tf.shape(im_input)[2]], 
                                                                       n_location_samples=None, out_comparison_im=im_target)
 
-im_transformed_sampled, vis_im_transformed_sampled, im_target_gathered_sampled, invalid_map = spatial_transformer.transformer(input_im=im_input, pixel_transformation_clousure=clousure_of_closure(serial_flow_sampled), 
+im_transformed_sampled, vis_im_transformed_sampled, im_target_gathered_sampled, invalid_map = spatial_transformer.transformer(input_im=im_input, pixel_transformation_clousure=nonlinear_pixel_transformation_clousure, 
                                                                                               out_size=[tf.shape(im_input)[1], tf.shape(im_input)[2]], 
                                                                                               n_location_samples=n_location_samples, out_comparison_im=im_target)
 
@@ -277,49 +272,60 @@ plt.imsave(exp_dir+'im_target_np'+'.png', im_target_np[0, :, :, :])
 print('Start Timer: ')
 start = time.time();
 for epoch in range(1, n_epochs+1): 
-    if epoch < 20: opt_step = opt_step_first
+    if epoch < -1: opt_step = opt_step_first
     else: opt_step = opt_step_eft
 
     learning_rate = init_learning_rate
     print('Current learning rate: ', learning_rate)
-    if epoch == 1 or epoch == n_epochs or epoch % vis_epoch_rate == 0: 
+    # if epoch == 1 or epoch == n_epochs or epoch % vis_epoch_rate == 0: 
+    if epoch == n_epochs or epoch % vis_epoch_rate == 0: 
         print('Eval and Visualize: Epoch, Time: {:d} {:.3f}'.format(epoch, time.time()-start))
         fd = {im_input: im_input_np, im_target: im_target_np}
         im_transformed_np = sess.run(vis_im_transformed, feed_dict=fd)
-        in_out_target = np.concatenate([im_input_np[0, :, :, :], im_transformed_np[0, :, :, :], im_target_np[0, :, :, :]], axis=1) 
-        plt.imsave(exp_dir+'im/im_transformed_np_'+str(epoch)+'.png', im_transformed_np[0, :, :, :])
+
+        im_transformed_all_list, in_out_target_list = [], []
+        for i in range(im_input_np.shape[0]):
+            im_transformed_all_list.append(im_transformed_np[i, :, :, :])
+            in_out_target_list.append(np.concatenate([im_input_np[i, :, :, :], im_transformed_np[i, :, :, :], im_target_np[i, :, :, :]], axis=1)) 
+        im_transformed_all = np.concatenate(im_transformed_all_list, axis=0)
+        in_out_target = np.concatenate(in_out_target_list, axis=0)
+        plt.imsave(exp_dir+'im/im_transformed_np_'+str(epoch)+'.png', im_transformed_all)
         plt.imsave(exp_dir+'all/all_im_transformed_np_'+str(epoch)+'.png', in_out_target)
 
     # if epoch == 1 or epoch == n_epochs or epoch % loc_vis_epoch_rate == 0: 
     if epoch == n_epochs or epoch % loc_vis_epoch_rate == 0: 
-        all_transformed_grid_samples_np = np.zeros(grid_samples.shape)
+        all_transformed_grid_samples_np = np.zeros([im_input_np.shape[0], *grid_samples.shape])
         for i in range(math.ceil(grid_samples.shape[0]/float(loc_batch_size))):
             curr_batch_np = grid_samples[i*loc_batch_size:min((i+1)*loc_batch_size, grid_samples.shape[0]), :]
-            fd = {location_input_tf: curr_batch_np}
+            fd = {im_input: im_input_np, im_target: im_target_np, location_input_tf: curr_batch_np}
             location_transformed_np = sess.run(location_transformed_tf, feed_dict=fd)
-            all_transformed_grid_samples_np[i*loc_batch_size:min((i+1)*loc_batch_size, grid_samples.shape[0]), :] = location_transformed_np
+            all_transformed_grid_samples_np[:, i*loc_batch_size:min((i+1)*loc_batch_size, grid_samples.shape[0]), :] = location_transformed_np
+            
+        gt_list = []
+        for i in range(im_input_np.shape[0]):
+            fig, ax = plt.subplots(figsize=(7*3, 7*1))
+            plt.clf()
+            
+            ax_1 = fig.add_subplot(1, 3, 1)
+            ax_1.scatter(grid_samples[:, 1], -grid_samples[:, 0], s=marker_size, lw = marker_line, edgecolors='k')
+            ax_2 = fig.add_subplot(1, 3, 2)
+            ax_2.scatter(all_transformed_grid_samples_np[i, :, 1], -all_transformed_grid_samples_np[i, :, 0], s=marker_size, lw = marker_line, edgecolors='k')
+            ax_3 = fig.add_subplot(1, 3, 3)
+            ax_3.scatter(grid_samples[:, 1], -grid_samples[:, 0], s=marker_size, lw = marker_line, edgecolors='k')
 
-        fig, ax = plt.subplots(figsize=(7*3, 7*1))
-        plt.clf()
-        ax_1 = fig.add_subplot(1, 3, 1)
-        ax_1.scatter(grid_samples[:, 1], -grid_samples[:, 0], s=marker_size, lw = marker_line, edgecolors='k')
-        ax_2 = fig.add_subplot(1, 3, 2)
-        ax_2.scatter(all_transformed_grid_samples_np[:, 1], -all_transformed_grid_samples_np[:, 0], s=marker_size, lw = marker_line, edgecolors='k')
-        ax_3 = fig.add_subplot(1, 3, 3)
-        ax_3.scatter(grid_samples[:, 1], -grid_samples[:, 0], s=marker_size, lw = marker_line, edgecolors='k')
-
-        for ax in [ax_1, ax_2, ax_3]:
-            ax.set_xlim(range_1_min, range_1_max)
-            ax.set_ylim(range_1_min, range_1_max)
-            set_axis_prop(ax, grid_on, ticks_on, axis_on)
-        
-        # plt.subplots_adjust(wspace=0.05, hspace=0.05)
-        plt.subplots_adjust(wspace=0.0, hspace=0.0)
-        plt.draw()
-        plt.savefig(exp_dir+'gt/gt_'+str(epoch)+'.png', bbox_inches='tight', format='png', dpi=int(quality*my_dpi), transparent=False)
-        tmp_image = plt.imread(exp_dir+'gt/gt_'+str(epoch)+'.png')[:,:,:3]
-        scaled_tmp_image = rescale(tmp_image, (in_out_target.shape[0]/tmp_image.shape[0], in_out_target.shape[1]/tmp_image.shape[1]), anti_aliasing=False)
-        plt.imsave(exp_dir+'gt/gt_'+str(epoch)+'.png', np.concatenate([scaled_tmp_image, in_out_target], axis=0))
+            for ax in [ax_1, ax_2, ax_3]:
+                ax.set_xlim(range_1_min, range_1_max)
+                ax.set_ylim(range_1_min, range_1_max)
+                set_axis_prop(ax, grid_on, ticks_on, axis_on)
+            
+            plt.subplots_adjust(wspace=0.02, hspace=0.02)
+            plt.draw()
+            plt.savefig(exp_dir+'gt/gt_temp.png', bbox_inches='tight', format='png', dpi=int(quality*my_dpi), transparent=False)
+            
+            tmp_image = plt.imread(exp_dir+'gt/gt_temp.png')[:,:,:3]
+            scaled_tmp_image = rescale(tmp_image, (in_out_target.shape[0]/im_input_np.shape[0]/tmp_image.shape[0], in_out_target.shape[1]/tmp_image.shape[1]), anti_aliasing=False)
+            gt_list.append(np.concatenate([scaled_tmp_image, in_out_target[int(i*in_out_target.shape[0]/im_input_np.shape[0]):int((i+1)*in_out_target.shape[0]/im_input_np.shape[0]), ...]], axis=0))
+        plt.imsave(exp_dir+'gt/gt_'+str(epoch)+'.png',  np.concatenate(gt_list, axis=0))
 
     for i in range(1, n_updates_per_epoch+1):
         fd = {im_input: im_input_np, im_target: im_target_np}
@@ -329,69 +335,46 @@ for epoch in range(1, n_epochs+1):
 
 
 
+
+
+
+
+
+
+
 # n_dim = 2
 # n_flows = 10
 # normalizing_flow_list = []
-# normalizing_flow_sampled_list = []
-# normalizing_flow_location_list = []
-
 # flow_class_1 = transforms.ProperIsometricFlow
 # flow_class_2 = transforms.NonLinearIARFlow 
 # for i in range(n_flows):
 #     flow_class_1_parameters = None
 #     if flow_class_1.required_num_parameters(n_dim) > 0: 
 #         with tf.variable_scope("eft_first"+str(i), reuse=False):
-#             flow_class_1_parameters = 1*tf.layers.dense(inputs = flow_param_input, units = flow_class_1.required_num_parameters(n_dim), use_bias = False, activation = None)
-
-#     flow_class_1_parameters_tiled = tf.reshape(tf.tile(flow_class_1_parameters[:,np.newaxis,:], [1, im_target_np.shape[1]*im_target_np.shape[2], 1]), [-1, flow_class_1_parameters.get_shape()[-1].value])
-#     flow_class_1_parameters_sampled_tiled = tf.reshape(tf.tile(flow_class_1_parameters[:,np.newaxis,:], [1, n_location_samples, 1]), [-1, flow_class_1_parameters.get_shape()[-1].value])
-#     flow_class_1_parameters_location_tiled = tf.reshape(tf.tile(flow_class_1_parameters[:,np.newaxis,:], [1, loc_batch_size, 1]), [-1, flow_class_1_parameters.get_shape()[-1].value])
-#     normalizing_flow_list.append(flow_class_1(input_dim=n_dim, parameters=flow_class_1_parameters_tiled))
-#     normalizing_flow_sampled_list.append(flow_class_1(input_dim=n_dim, parameters=flow_class_1_parameters_sampled_tiled))
-#     normalizing_flow_location_list.append(flow_class_1(input_dim=n_dim, parameters=flow_class_1_parameters_location_tiled))
+#             flow_class_1_parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_class_1.required_num_parameters(n_dim), use_bias = False, activation = None)
+#     normalizing_flow_list.append(flow_class_1(input_dim=n_dim, parameters=flow_class_1_parameters))
 
 #     flow_class_2_parameters = None
 #     if flow_class_2.required_num_parameters(n_dim) > 0:
 #         with tf.variable_scope("eft_second"+str(i), reuse=False):
-#             flow_class_2_parameters = 1*tf.layers.dense(inputs = flow_param_input, units = flow_class_2.required_num_parameters(n_dim), use_bias = False, activation = None)
+#             flow_class_2_parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = flow_class_2.required_num_parameters(n_dim), use_bias = False, activation = None)
+#     normalizing_flow_list.append(flow_class_2(input_dim=n_dim, parameters=flow_class_2_parameters))
+# serial_flow = transforms.SerialFlow(normalizing_flow_list)
 
-#     flow_class_2_parameters_tiled = tf.reshape(tf.tile(flow_class_2_parameters[:,np.newaxis,:], [1, im_target_np.shape[1]*im_target_np.shape[2], 1]), [-1, flow_class_2_parameters.get_shape()[-1].value])
-#     flow_class_2_parameters_sampled_tiled = tf.reshape(tf.tile(flow_class_2_parameters[:,np.newaxis,:], [1, n_location_samples, 1]), [-1, flow_class_2_parameters.get_shape()[-1].value])
-#     flow_class_2_parameters_location_tiled = tf.reshape(tf.tile(flow_class_2_parameters[:,np.newaxis,:], [1, loc_batch_size, 1]), [-1, flow_class_2_parameters.get_shape()[-1].value])
-#     normalizing_flow_list.append(flow_class_2(input_dim=n_dim, parameters=flow_class_2_parameters_tiled))
-#     normalizing_flow_sampled_list.append(flow_class_2(input_dim=n_dim, parameters=flow_class_2_parameters_sampled_tiled))
-#     normalizing_flow_location_list.append(flow_class_2(input_dim=n_dim, parameters=flow_class_2_parameters_location_tiled))
+# def nonlinear_pixel_transformation_clousure(batch_input_pixels, b_inverse=False):
+#     # input = [tf.shape(input_pixels)[0] (corresponding the individual pixels in a grid of output image), 2]
+#     # output = [batch_size_tf, 2, tf.shape(input_pixels)[0]]
+#     # serial_flow does not allow different transformations for each image in the batch
+#     # See the note in linear_pixel_transformation_clousure for understanding the transformation.
+    
+#     input_pixels_flat = tf.reshape(batch_input_pixels, [-1, batch_input_pixels.get_shape()[-1].value])
+#     if b_inverse: output_pixels_flat, _ = serial_flow.inverse_transform(input_pixels_flat, None)
+#     else: output_pixels_flat, _ = serial_flow.transform(input_pixels_flat, None)
+#     batch_output_pixels = tf.reshape(output_pixels_flat, tf.shape(batch_input_pixels))
+#     return batch_output_pixels
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# location_input_tiled = tf.tile(location_input_tf[np.newaxis, :, :], [im_input_np.shape[0], 1, 1])
+# location_transformed_tf = nonlinear_pixel_transformation_clousure(location_input_tiled, b_inverse=True)
 
 
 

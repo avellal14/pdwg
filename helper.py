@@ -1752,7 +1752,11 @@ def tf_standard_basis_vector(dim, index):
 	return tf.constant(vec, tf.float32)
 
 def tf_resize_image(x, resize_ratios=[2,2]):
-	return tf.image.resize_images(x, [resize_ratios[0]*x.get_shape().as_list()[1], resize_ratios[1]*x.get_shape().as_list()[2]], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+	# new_shape_1 = tf.cast(resize_ratios[0]*x.get_shape().as_list()[1], tf.int32)
+	# new_shape_2 = tf.cast(resize_ratios[1]*x.get_shape().as_list()[2], tf.int32)
+	new_shape_1 = int(resize_ratios[0]*x.get_shape().as_list()[1])
+	new_shape_2 = int(resize_ratios[1]*x.get_shape().as_list()[2])
+	return tf.image.resize_images(x, [new_shape_1, new_shape_2], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
 
 def tf_center_crop_image(x, resize_ratios=[28,28]):
 	shape_0 = x.get_shape().as_list()[1]
@@ -1760,7 +1764,6 @@ def tf_center_crop_image(x, resize_ratios=[28,28]):
 	start_0 = int((shape_0-resize_ratios[0])/2)
 	start_1 = int((shape_1-resize_ratios[1])/2)
 	return x[:, start_0:start_0+resize_ratios[0], start_1:start_1+resize_ratios[1], :]
-
 
 def normalized_bell_np(x):
 	return 2./(1+np.exp(-8*x-4))+2./(1+np.exp(8*x-4))-3
