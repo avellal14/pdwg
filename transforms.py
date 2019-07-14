@@ -1505,17 +1505,19 @@ class NonLinearIARFlow():
       ValueError: 
     """
     # layer_expansions = [5,5,5] ## dont make it wider, make it deeper [2,2,2] instead of [5,5] for speed
-    layer_expansions = [50,50,50] ## dont make it wider, make it deeper [2,2,2] instead of [5,5] for speed
+    # layer_expansions = [50,50,50] ## dont make it wider, make it deeper [2,2,2] instead of [5,5] for speed
+    layer_expansions = [10,10,10] ## dont make it wider, make it deeper [2,2,2] instead of [5,5] for speed
 
     def __init__(self, input_dim, parameters, mode='ScaleShift', name='nonlinearIAR_transform'):   #real
         self._parameter_scale = 1
         self._parameters = self._parameter_scale*parameters
         self._input_dim = input_dim
-        self._nonlinearity = helper.LeakyReLU # tf.nn.tanh
-        # self._nonlinearity = tf.nn.tanh # tf.nn.tanh
+        self._nonlinearity = helper.LeakyReLU 
+        # self._nonlinearity = tf.nn.tanh
         self._mode = mode
-        self._max_bounded_scale = 10
-        self._min_bounded_scale = 1/self._max_bounded_scale
+        self._max_bounded_scale = 1.1
+        self._min_bounded_scale = 0.9
+        # self._min_bounded_scale = 1/self._max_bounded_scale
         assert (self._input_dim > 1)
         assert (self._max_bounded_scale > 1 and self._min_bounded_scale >= 0 and self._max_bounded_scale > self._min_bounded_scale)
 
@@ -1635,6 +1637,12 @@ class NonLinearIARFlow():
         elif self._mode == 'BoundedScaleShift':
             mu = pre_mu
             gap = (self._max_bounded_scale-self._min_bounded_scale)
+            scale = tf.clip_by_value(self._min_bounded_scale+tf.nn.sigmoid(pre_scale)*gap, 1e-7, np.inf)  
+            z = mu+scale*z0
+            if log_pdf_z0 is not None: log_abs_det_jacobian = tf.reduce_sum(tf.log(scale), axis=[1], keep_dims=True)
+        elif self._mode == 'BoundedScaleShiftAdjusted': ## CAUSED SOME NAN ISSUES
+            mu = pre_mu
+            gap = (self._max_bounded_scale-self._min_bounded_scale)
             scale = tf.clip_by_value(self._min_bounded_scale+tf.nn.sigmoid(pre_scale+scipy.special.logit(1/gap))*gap, 1e-7, np.inf)  
             z = mu+scale*z0
             if log_pdf_z0 is not None: log_abs_det_jacobian = tf.reduce_sum(tf.log(scale), axis=[1], keep_dims=True)
@@ -1693,6 +1701,11 @@ class NonLinearIARFlow():
                 scale_i = tf.clip_by_value(tf.exp(pre_scale_i), 1e-7, np.inf)  
                 z0_i = (z[:, i, np.newaxis]-mu_i)/scale_i
             elif self._mode == 'BoundedScaleShift':
+                mu_i = pre_mu_i
+                gap = (self._max_bounded_scale-self._min_bounded_scale)
+                scale_i = tf.clip_by_value(self._min_bounded_scale+tf.nn.sigmoid(pre_scale_i)*gap, 1e-7, np.inf)  
+                z0_i = (z[:, i, np.newaxis]-mu_i)/scale_i
+            elif self._mode == 'BoundedScaleShiftAdjusted': ## CAUSED SOME NAN ISSUES
                 mu_i = pre_mu_i
                 gap = (self._max_bounded_scale-self._min_bounded_scale)
                 scale_i = tf.clip_by_value(self._min_bounded_scale+tf.nn.sigmoid(pre_scale_i+scipy.special.logit(1/gap))*gap, 1e-7, np.inf)  
@@ -1832,6 +1845,12 @@ class RealNVPFlow():
         elif self._mode == 'BoundedScaleShift':
             mu = pre_mu
             gap = (self._max_bounded_scale-self._min_bounded_scale)
+            scale = tf.clip_by_value(self._min_bounded_scale+tf.nn.sigmoid(pre_scale)*gap, 1e-7, np.inf)
+            z_change = mu+scale*z0_change
+            if log_pdf_z0 is not None: log_abs_det_jacobian = tf.reduce_sum(tf.log(scale), axis=[1], keep_dims=True)
+        elif self._mode == 'BoundedScaleShiftAdjusted': ## CAUSED SOME NAN ISSUES
+            mu = pre_mu
+            gap = (self._max_bounded_scale-self._min_bounded_scale)
             scale = tf.clip_by_value(self._min_bounded_scale+tf.nn.sigmoid(pre_scale+scipy.special.logit(1/gap))*gap, 1e-7, np.inf)
             z_change = mu+scale*z0_change
             if log_pdf_z0 is not None: log_abs_det_jacobian = tf.reduce_sum(tf.log(scale), axis=[1], keep_dims=True)
@@ -1875,6 +1894,12 @@ class RealNVPFlow():
             z0_change = (z_change-mu)/scale
             if log_pdf_z is not None: log_abs_det_jacobian = -tf.reduce_sum(pre_scale, axis=[1], keep_dims=True)
         elif self._mode == 'BoundedScaleShift':
+            mu = pre_mu
+            gap = (self._max_bounded_scale-self._min_bounded_scale)
+            scale = tf.clip_by_value(self._min_bounded_scale+tf.nn.sigmoid(pre_scale)*gap, 1e-7, np.inf)  
+            z0_change = (z_change-mu)/scale
+            if log_pdf_z is not None: log_abs_det_jacobian = -tf.reduce_sum(tf.log(scale), axis=[1], keep_dims=True)
+        elif self._mode == 'BoundedScaleShiftAdjusted': ## CAUSED SOME NAN ISSUES
             mu = pre_mu
             gap = (self._max_bounded_scale-self._min_bounded_scale)
             scale = tf.clip_by_value(self._min_bounded_scale+tf.nn.sigmoid(pre_scale+scipy.special.logit(1/gap))*gap, 1e-7, np.inf)  
