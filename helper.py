@@ -9,16 +9,17 @@ from scipy.misc import imsave
 
 import tensorflow as tf
 from tensorflow.python.framework import ops
+matplotlib.use('TkAgg')
 
-import platform
-if platform.dist()[0] == 'centos':
-	matplotlib.use('Agg')
-elif platform.dist()[0] == 'debian': 
-	matplotlib.use('Agg')
-elif platform.dist()[0] == 'Ubuntu': 
-	print('On Collab')
-else: 
-	matplotlib.use('TkAgg')
+# import platform
+# if platform.dist()[0] == 'centos':
+# 	matplotlib.use('Agg')
+# elif platform.dist()[0] == 'debian': 
+# 	matplotlib.use('Agg')
+# elif platform.dist()[0] == 'Ubuntu': 
+# 	print('On Collab')
+# # else: 
+	# matplotlib.use('TkAgg')
 
 import matplotlib.pyplot as plt
 import mpl_toolkits.mplot3d.axes3d as p3

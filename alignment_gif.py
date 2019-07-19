@@ -37,13 +37,15 @@ duplicate_first_frame = 5
 gt_augment = True
 
 main_folder = str(Path.home())+'/ExperimentalResults/Align_EXP/'
+if os.path.exists(main_folder+'gt/gt_temp.png'): os.remove(main_folder+'gt/gt_temp.png')
+
 for subdir in ['gt', 'all', 'im']:
+# for subdir in ['all', 'gt',  'im']:
 	exp_folder = main_folder+ subdir +'/'
 	result_folder = main_folder+ subdir +'/'
-	print('\nProcessing folder: ', exp_folder)
+	print('\nProcessing folder: ', main_folder+ subdir +'/')
 
-	all_png_path = exp_folder+'*.png'
-	files = glob.glob(all_png_path)
+	files = glob.glob(main_folder+ subdir +'/*.png')
 
 	try: order = list(np.argsort([int(filename.split('_')[-3]) for filename in files]))
 	except: order = list(np.argsort([int(filename.split('_')[-1][:-len('.png')]) for filename in files]))
@@ -52,18 +54,23 @@ for subdir in ['gt', 'all', 'im']:
 	ordered_files_str = ''
 	
 	if gt_augment and subdir == 'gt':
+		
+		first_ind = int(ordered_files[0][ordered_files[0].find('gt_')+3:-4])
 		last_ind = int(ordered_files[-1][ordered_files[-1].find('gt_')+3:-4])
+		latest_existing_path = main_folder+subdir+'/gt_'+str(first_ind)+'.png'
 		latest = None
 		for i in range(last_ind):
-			if not os.path.exists(main_folder+'gt/gt_'+str(i+1)+'.png'):
+			if not os.path.exists(main_folder+subdir+'/gt_'+str(i+1)+'.png'):
 				new_im = plt.imread(latest_existing_path)[:,:,:3] 
 				augment_im = plt.imread(main_folder+ 'all/all_im_transformed_np_'+str(i+1)+'.png')[:,:,:3] 
 				new_im[-augment_im.shape[0]:,:,:] = augment_im
-				plt.imsave(main_folder+'gt/gt_'+str(i+1)+'.png', new_im)
+				plt.imsave(main_folder+subdir+'/gt_filled/gt_'+str(i+1)+'.png', new_im)
 			else:
-				latest_existing_path = main_folder+'gt/gt_'+str(i+1)+'.png'
+				latest_existing_path = main_folder+subdir+'/gt_'+str(i+1)+'.png'
+				existing_im = plt.imread(latest_existing_path)[:,:,:3]
+				plt.imsave(main_folder+subdir+'/gt_filled/gt_'+str(i+1)+'.png', existing_im)
 
-		files = glob.glob(all_png_path)
+		files = glob.glob(main_folder+subdir+'/gt_filled/*.png')
 
 		try: order = list(np.argsort([int(filename.split('_')[-3]) for filename in files]))
 		except: order = list(np.argsort([int(filename.split('_')[-1][:-len('.png')]) for filename in files]))
@@ -83,7 +90,7 @@ for subdir in ['gt', 'all', 'im']:
 		n_steps = 20
 		last_image_in = last_image[:, :last_image.shape[0],:]
 		last_image_out = last_image[:, last_image.shape[0]:2*last_image.shape[0],:]
-		last_image_target = last_image[:, 2*last_image.shape[0]:,:]
+		last_image_target = last_image[:, 2*last_image.shape[0]:2*last_image.shape[0]+last_image.shape[0],:]
 		mask_1 = (np.concatenate([np.linspace(0,1,n_steps), np.linspace(1,0,n_steps)]))[:, np.newaxis, np.newaxis, np.newaxis]
 		mask_2 = 1-mask_1
 

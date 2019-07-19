@@ -121,17 +121,25 @@ n_updates_per_epoch = 1000
 vis_epoch_rate = 1
 n_location_samples = 400
 
-beta1=0.9
-beta2=0.99
+beta1=0.99
+beta2=0.999
 init_learning_rate = 0.00025
 min_learning_rate = 0.00025
+
+# beta1=0.99
+# beta2=0.999
+# init_learning_rate = 0.0001
+# min_learning_rate = 0.0001
+
+
 ignore_background_cost = False
 
 # im_target_np = np.concatenate([unwarped_1_np[np.newaxis, :, :, :], unwarped_2_np[np.newaxis, :, :, :]], axis=0)
 # im_input_np = np.concatenate([warped_rot_1_np[np.newaxis, :, :, :], warped_rot_2_np[np.newaxis, :, :, :]], axis=0)
 # im_auxiliary_np = np.concatenate([warped_1_np[np.newaxis, :, :, :], warped_2_np[np.newaxis, :, :, :]], axis=0)
 im_target_np = np.concatenate([unwarped_1_np[np.newaxis, :, :, :], unwarped_1_np[np.newaxis, :, :, :]], axis=0)
-im_input_np = np.concatenate([warped_rot_1_np[np.newaxis, :, :, :], warped_rot_1_np[np.newaxis, :, :, :]], axis=0)
+# im_input_np = np.concatenate([warped_rot_1_np[np.newaxis, :, :, :], warped_rot_1_np[np.newaxis, :, :, :]], axis=0)
+im_input_np = np.concatenate([warped_1_np[np.newaxis, :, :, :], warped_1_np[np.newaxis, :, :, :]], axis=0)
 im_auxiliary_np = np.concatenate([warped_1_np[np.newaxis, :, :, :], warped_1_np[np.newaxis, :, :, :]], axis=0)
 
 # im_target = tf.placeholder(tf.float32, [None, None, None, 3])
@@ -172,7 +180,8 @@ def linear_pixel_transformation_clousure(input_pixels):
 n_dim = 2
 n_flows = 10
 normalizing_flow_list = []
-flow_class_1 = transforms.ProperIsometricFlow
+# flow_class_1 = transforms.ProperIsometricFlow
+flow_class_1 = transforms.NotManyReflectionsRotationFlow
 flow_class_2 = transforms.NonLinearIARFlow 
 for i in range(n_flows):
     flow_class_1_parameters = None
@@ -201,6 +210,14 @@ def nonlinear_pixel_transformation_clousure(batch_input_pixels):
     return batch_output_pixels
 
 ################################################################################################################################################################
+# im_input_90 = tf.image.rot90(im_input, k=1)
+# im_input_180 = tf.image.rot90(im_input, k=2)
+# im_input_270 = tf.image.rot90(im_input, k=3)
+# im_input_all_rotations = tf.concat([im_input[:,:,:,:,np.newaxis], im_input_90[:,:,:,:,np.newaxis], im_input_180[:,:,:,:,np.newaxis], im_input_270[:,:,:,:,np.newaxis]], axis=-1)
+
+# with tf.variable_scope("eft_fourth", reuse=False):
+#     rot_weights = tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = 4, use_bias = True, activation = tf.nn.softmax)
+# im_input_attended = tf.reduce_sum(rot_weights[:, np.newaxis, np.newaxis, np.newaxis, :]*im_input_all_rotations, axis=-1) 
 
 im_transformed, vis_im_transformed, im_target_gathered, invalid_map = spatial_transformer.transformer(input_im=im_input, pixel_transformation_clousure=nonlinear_pixel_transformation_clousure, 
                                                                       out_size=[tf.shape(im_input)[1], tf.shape(im_input)[2]], 
@@ -240,7 +257,7 @@ plt.imsave(exp_dir+'im_target_np'+'.png', im_target_np[0, :, :, :])
 print('Start Timer: ')
 start = time.time();
 for epoch in range(1, n_epochs+1): 
-    if epoch < 20: opt_step = opt_step_first
+    if epoch < -1: opt_step = opt_step_first
     else: opt_step = opt_step_eft
 
     learning_rate = init_learning_rate

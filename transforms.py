@@ -1341,12 +1341,15 @@ class ProperIsometricFlow():
     """
     rotation_class = NotManyReflectionsRotationFlow
 
-    def __init__(self, input_dim, parameters, name='proper_isometric_transform'):  
+    def __init__(self, input_dim, parameters, mode='Bounded', name='proper_isometric_transform'):  
         self._parameter_scale = 1.
         self._parameters = parameters
         if self._parameters is not None: self._parameters = self._parameter_scale*self._parameters
         self._input_dim = input_dim
-        
+        self._mode = mode
+        self._max_bounded_translation = 0.02
+        self._min_bounded_translation = -0.02
+
         if self._parameters is not None:
             self._parameters.get_shape().assert_is_compatible_with([None, ProperIsometricFlow.required_num_parameters(self._input_dim)])
 
@@ -1354,7 +1357,7 @@ class ProperIsometricFlow():
         self._translation_param_raw, param_index = helper.slice_parameters(self._parameters, param_index, self._input_dim)
         self._rotation_param, param_index = helper.slice_parameters(self._parameters, param_index, ProperIsometricFlow.rotation_class.required_num_parameters(self._input_dim))
         self._rotation_flow = ProperIsometricFlow.rotation_class(input_dim=self._input_dim, parameters=self._rotation_param) 
-        self._translation_param = 0.1*self._translation_param_raw 
+        self._translation_param = self._translation_param_raw 
         
     @property
     def input_dim(self):
@@ -1372,13 +1375,24 @@ class ProperIsometricFlow():
         if log_pdf_z0 is not None: verify_size(z0, log_pdf_z0)
 
         z_rot, log_pdf_z = self._rotation_flow.transform(z0, log_pdf_z0)
-        z = z_rot+self._translation_param
+        if self._mode == 'Regular':
+            z = z_rot+self._translation_param
+        elif self._mode == 'Bounded':
+            gap = (self._max_bounded_translation-self._min_bounded_translation)
+            translation = self._min_bounded_translation+tf.nn.sigmoid(self._translation_param)*gap
+            z = z_rot+translation
         return z, log_pdf_z
 
     def inverse_transform(self, z, log_pdf_z):
         if log_pdf_z is not None: verify_size(z, log_pdf_z)
 
-        z_rot = z-self._translation_param
+        if self._mode == 'Regular':
+            z_rot = z-self._translation_param
+        elif self._mode == 'Bounded':
+            gap = (self._max_bounded_translation-self._min_bounded_translation)
+            translation = self._min_bounded_translation+tf.nn.sigmoid(self._translation_param)*gap
+            z_rot = z-translation
+
         z0, log_pdf_z0 = self._rotation_flow.inverse_transform(z_rot, log_pdf_z)
         return z0, log_pdf_z0
 
@@ -1505,8 +1519,8 @@ class NonLinearIARFlow():
       ValueError: 
     """
     # layer_expansions = [5,5,5] ## dont make it wider, make it deeper [2,2,2] instead of [5,5] for speed
-    # layer_expansions = [50,50,50] ## dont make it wider, make it deeper [2,2,2] instead of [5,5] for speed
-    layer_expansions = [10,10,10] ## dont make it wider, make it deeper [2,2,2] instead of [5,5] for speed
+    layer_expansions = [50,50,50] ## dont make it wider, make it deeper [2,2,2] instead of [5,5] for speed
+    # layer_expansions = [10,10,10] ## dont make it wider, make it deeper [2,2,2] instead of [5,5] for speed
 
     def __init__(self, input_dim, parameters, mode='ScaleShift', name='nonlinearIAR_transform'):   #real
         self._parameter_scale = 1
@@ -1944,6 +1958,19 @@ class SerialFlow():
         for i in range(len(self._transforms)):
             curr_z0, curr_log_pdf_z0 = self._transforms[-i-1].inverse_transform(curr_z0, curr_log_pdf_z0)
         return curr_z0, curr_log_pdf_z0
+
+class GeneralInverseFlow():
+    def __init__(self, transform, name='general_inverse_transform'): 
+        self._transform = transform
+        assert ('inverse_transform' in dir(self._transform))
+
+    def transform(self, z0, log_pdf_z0):
+        z, log_pdf_z = self._transform.inverse_transform(z0, log_pdf_z0)
+        return z, log_pdf_z
+    
+    def inverse_transform(self, z, log_pdf_z):
+        z0, log_pdf_z0 = self._transform.transform(z, log_pdf_z)
+        return z0, log_pdf_z0
 
 def verify_size(z0, log_pdf_z0):
   z0.get_shape().assert_is_compatible_with([None, None])

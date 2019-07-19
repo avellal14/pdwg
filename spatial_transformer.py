@@ -43,7 +43,9 @@ def transformer(input_im, pixel_transformation_clousure, out_size, n_location_sa
         # x >= -scale and x <= scale ---> 1 else ----> 0
         return tf.cast(tf.math.less(x, scale), tf.float32)*tf.cast(tf.math.greater(x, -scale), tf.float32)
 
-    def _interpolate(im, y, x, n_location_samples, use_mean_background=False, train_background=[1, 1, 1], vis_background=[0, 0, 0]):
+    # def _interpolate(im, y, x, n_location_samples, use_mean_background=False, train_background=[1, 1, 1], vis_background=[0, 0, 0]):
+    # def _interpolate(im, y, x, n_location_samples, use_mean_background=False, train_background=[0, 0, 0.], vis_background=[0, 0, 0]): this works well for single images
+    def _interpolate(im, y, x, n_location_samples, use_mean_background=False, train_background=[0, 0, 0.], vis_background=[0, 0, 0]): 
 
         # do sampling
         y0 = tf.cast(tf.floor(y), 'int32')
