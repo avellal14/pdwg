@@ -1329,6 +1329,131 @@ class RiemannianFlow():
 #############################  Invertible Euclidean Flows ###########################
 #####################################################################################
 
+class Affine2DFlow():
+    """
+    A affine transformation in 2D.
+
+    Args:
+      parameters: parameters of transformation all appended.
+      input_dim : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+    allowed = ['Rotation']
+    # allowed = ['Rotation', 'Translation']
+    # allowed = ['Rotation', 'Scale', 'Translation']
+    # allowed = ['Rotation', 'Scale', 'Shear', 'Translation']
+
+    def __init__(self, input_dim, parameters, mode='Bounded', name='affine_2D_transform'):  
+        self._parameter_scale = 1.
+        self._parameters = parameters
+        if self._parameters is not None: self._parameters = self._parameter_scale*self._parameters
+        self._input_dim = input_dim
+        self._mode = mode
+        self._shear_mode = 'first'
+        assert (input_dim == 2)
+
+        if self._parameters is not None:
+            self._parameters.get_shape().assert_is_compatible_with([None, Affine2DFlow.required_num_parameters(self._input_dim)])
+
+        param_index = 0
+        self._affine_matrix = tf.eye(2)[np.newaxis, :, :]
+        if 'Rotation' in Affine2DFlow.allowed:
+            self._radian_angle_param, param_index = helper.slice_parameters(self._parameters, param_index, 1)
+            self._sin = tf.math.sin(self._radian_angle_param)
+            self._cos = tf.math.cos(self._radian_angle_param)
+            self._rot_mat = tf.concat([tf.concat([self._cos[:,:,np.newaxis], -self._sin[:,:,np.newaxis]], axis=2), 
+                                 tf.concat([self._sin[:,:,np.newaxis],  self._cos[:,:,np.newaxis]], axis=2)], axis=1) 
+            self._affine_matrix = tf.matmul(self._affine_matrix, self._rot_mat)
+        if 'Scale' in Affine2DFlow.allowed:
+            self._scale_param_raw, param_index = helper.slice_parameters(self._parameters, param_index, 2)
+            self._scale_param = tf.clip_by_value(tf.nn.softplus(self._scale_param_raw), 1e-7, np.inf)  
+            self._scale_mat = tf.matmul(tf.eye(2)[np.newaxis, :, :], tf.tile(self._scale_param[:,np.newaxis,:], [1,2,1]))
+            self._affine_matrix = tf.matmul(self._affine_matrix, self._scale_mat)
+        if 'Shear' in Affine2DFlow.allowed: 
+            self._shear_param, param_index = helper.slice_parameters(self._parameters, param_index, 1)
+            if self._shear_mode == 'first':
+                temp = tf.concat([tf.tile(tf.constant([1,], tf.float32)[np.newaxis,:], [tf.shape(self._shear_param)[0], 1]), self._shear_param], axis=1)
+                self._shear_mat = tf.concat([temp[:, np.newaxis, :], tf.tile(tf.constant([0,1], tf.float32)[np.newaxis,:], [tf.shape(self._shear_param)[0], 1])[:, np.newaxis, :]], axis=1)
+            else:
+                temp = tf.concat([self._shear_param, tf.tile(tf.constant([1,], tf.float32)[np.newaxis,:], [tf.shape(self._shear_param)[0], 1])], axis=1)
+                self._shear_mat = tf.concat([tf.tile(tf.constant([1,0], tf.float32)[np.newaxis,:], [tf.shape(self._shear_param)[0], 1])[:, np.newaxis, :], temp[:, np.newaxis, :]], axis=1)
+            self._affine_matrix = tf.matmul(self._affine_matrix, self._shear_mat)
+        if 'Translation' in Affine2DFlow.allowed:
+            self._translation_param, param_index = helper.slice_parameters(self._parameters, param_index, 2)
+
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim
+
+    @staticmethod
+    def required_num_parameters(input_dim): 
+        n_parameters = 0 
+        if 'Rotation' in Affine2DFlow.allowed: n_parameters = n_parameters+1
+        if 'Scale' in Affine2DFlow.allowed: n_parameters = n_parameters+2
+        if 'Shear' in Affine2DFlow.allowed: n_parameters = n_parameters+1
+        if 'Translation' in Affine2DFlow.allowed: n_parameters = n_parameters+2
+        return n_parameters
+    
+    def transform(self, z0, log_pdf_z0):
+        if log_pdf_z0 is not None: verify_size(z0, log_pdf_z0)
+
+        z_curr = z0
+        if 'Rotation' in Affine2DFlow.allowed:
+            z_curr = tf.matmul(self._rot_mat, z_curr[:,:,np.newaxis], transpose_a=False, transpose_b=False)[:,:,0]
+        if 'Scale' in Affine2DFlow.allowed:
+            z_curr = self._scale_param*z_curr
+        if 'Shear' in Affine2DFlow.allowed:
+            if self._shear_mode == 'first':
+                z_new_y = z_curr[:,1,np.newaxis]
+                z_new_x = z_curr[:,0,np.newaxis]+self._shear_param*z_new_y
+            else:
+                z_new_x = z_curr[:,0,np.newaxis]
+                z_new_y = z_curr[:,1,np.newaxis]+self._shear_param*z_new_x
+            z_curr = tf.concat([z_new_x, z_new_y], axis=1)
+        if 'Translation' in Affine2DFlow.allowed:
+            z_curr = z_curr+self._translation_param
+        z = z_curr 
+
+        if 'Scale' in Affine2DFlow.allowed and log_pdf_z0 is not None: 
+            log_abs_det_jacobian = tf.reduce_sum(tf.log(self._scale_param), axis=[1], keep_dims=True)
+
+        if log_pdf_z0 is not None: log_pdf_z = log_pdf_z0-log_abs_det_jacobian
+        else: log_pdf_z = log_pdf_z0
+        return z, log_pdf_z
+
+    def inverse_transform(self, z, log_pdf_z):
+        if log_pdf_z is not None: verify_size(z, log_pdf_z)
+
+        z_curr = z
+        if 'Translation' in Affine2DFlow.allowed:
+            z_curr = z_curr-self._translation_param
+        if 'Shear' in Affine2DFlow.allowed:
+            if self._shear_mode == 'first':
+                z_new_y = z_curr[:,1,np.newaxis]
+                z_new_x = z_curr[:,0,np.newaxis]-self._shear_param*z_new_y
+            else:
+                z_new_x = z_curr[:,0,np.newaxis]
+                z_new_y = z_curr[:,1,np.newaxis]-self._shear_param*z_new_x
+            z_curr = tf.concat([z_new_x, z_new_y], axis=1)
+        if 'Scale' in Affine2DFlow.allowed:
+            z_curr = z_curr/self._scale_param
+        if 'Rotation' in Affine2DFlow.allowed:
+            z_curr = tf.matmul(self._rot_mat, z_curr[:,:,np.newaxis], transpose_a=True, transpose_b=False)[:,:,0]
+
+        z0 = z_curr
+
+        if 'Scale' in Affine2DFlow.allowed and log_pdf_z is not None: 
+            log_abs_det_jacobian = -tf.reduce_sum(tf.log(self._scale_param), axis=[1], keep_dims=True)
+
+        if log_pdf_z is not None: log_pdf_z0 = log_pdf_z-log_abs_det_jacobian
+        else: log_pdf_z0 = log_pdf_z
+        return z0, log_pdf_z0
+
 class ProperIsometricFlow():
     """
     A proper rigid transformation (also called Euclidean transformation or 
@@ -1935,6 +2060,69 @@ class RealNVPFlow():
         if log_pdf_z is not None: log_pdf_z0 = log_pdf_z-log_abs_det_jacobian
         else: log_pdf_z0 = None
         return z0, log_pdf_z0
+
+#####################################################################################
+#####################  Convolutional Invertible Euclidean Flows #####################
+#####################################################################################
+
+
+# class ConvNonLinearIARFlow():
+#     """
+#     Non-Linear Inverse Autoregressive Flow class.
+
+#     Args:
+#       parameters: parameters of transformation all appended.
+#       input_dim : input dimensionality of the transformation. 
+#     Raises:
+#       ValueError: 
+#     """
+
+#     def __init__(self, input_dim, parameters, mode='ScaleShift', name='conv_nonlinearIAR_transform'):   #real
+#         self._parameter_scale = 1
+#         self._parameters = self._parameter_scale*parameters
+#         self._input_dim = input_dim
+#         self._nonlinearity = helper.LeakyReLU 
+#         # self._nonlinearity = tf.nn.tanh
+#         self._mode = mode
+#         self._max_bounded_scale = 1.1
+#         self._min_bounded_scale = 0.9
+#         # self._min_bounded_scale = 1/self._max_bounded_scale
+#         assert (self._input_dim > 1)
+#         assert (self._max_bounded_scale > 1 and self._min_bounded_scale >= 0 and self._max_bounded_scale > self._min_bounded_scale)
+
+#         self._parameters.get_shape().assert_is_compatible_with([None, NonLinearIARFlow.required_num_parameters(self._input_dim)])
+
+#         self._mask_tensors = helper.tf_get_mask_list_for_MADE(self._input_dim-1, NonLinearIARFlow.layer_expansions, add_mu_log_sigma_layer=True)
+#         self._pre_mu_for_1 = self._parameters[:, 0, np.newaxis]
+#         self._pre_scale_for_1 = self._parameters[:, 1, np.newaxis]
+#         self._layerwise_parameters = []
+
+#         start_ind = 2
+#         concat_layer_expansions = [1, *NonLinearIARFlow.layer_expansions, 2]
+#         for l in range(len(concat_layer_expansions)-1):
+#             W_num_param = concat_layer_expansions[l]*(self._input_dim-1)*concat_layer_expansions[l+1]*(self._input_dim-1) # matrix
+#             B_num_param = concat_layer_expansions[l+1]*(self._input_dim-1) # bias
+#             W_l_flat = tf.slice(self._parameters, [0, start_ind], [-1, W_num_param])
+#             B_l_flat = tf.slice(self._parameters, [0, start_ind+W_num_param], [-1, B_num_param])
+#             W_l = tf.reshape(W_l_flat, [-1, concat_layer_expansions[l+1]*(self._input_dim-1), concat_layer_expansions[l]*(self._input_dim-1)])              
+#             B_l = tf.reshape(B_l_flat, [-1, concat_layer_expansions[l+1]*(self._input_dim-1)])
+#             self._layerwise_parameters.append((W_l, B_l))  
+#             start_ind += (W_num_param+B_num_param)
+
+#     @property
+#     def input_dim(self):
+#         return self._input_dim
+
+#     @property
+#     def output_dim(self):
+#         return self._input_dim
+
+
+
+
+
+
+
 
 
 #####################################################################################

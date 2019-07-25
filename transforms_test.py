@@ -61,9 +61,9 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
     else: print('Transform update incorrect !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Max error: ', np.abs(logdet_expected-logdet).max())
     print(np.abs(logdet_expected-logdet))
 
-#####################################################################################
-######################### Euclidean Flows Jacobian Test #############################
-#####################################################################################
+####################################################################################
+######################## Euclidean Flows Jacobian Test #############################
+####################################################################################
 
 # n_tests = 1
 # batch_size = 5
@@ -91,6 +91,7 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 #                            # transforms.CompoundRotationFlow, \
 
 #                            #############################  Invertible Euclidean Flows ###########################
+#                            transforms.Affine2DFlow,
 #                            # transforms.ProperIsometricFlow,
 #                            # transforms.PiecewisePlanarScalingFlow,
 #                            # transforms.LinearIARFlow, \
@@ -107,14 +108,16 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 #     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 #     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
-#     n_parameter = transform_to_check.required_num_parameters(n_input)
+#     if transform_to_check == transforms.Affine2DFlow: curr_n_input = 2
+#     else: curr_n_input = n_input
+#     n_parameter = transform_to_check.required_num_parameters(curr_n_input)
 
 #     for parameter_scale in [1, 10]:
 #         parameters = None
 #         if n_parameter > 0: parameters = parameter_scale*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
-#         transform_object =  transform_to_check(input_dim=n_input, parameters=parameters)
+#         transform_object =  transform_to_check(input_dim=curr_n_input, parameters=parameters)
 
-#         z0 = tf.random_uniform(shape=(batch_size, n_input), dtype=tf.float32) # required for some transforms#
+#         z0 = tf.random_uniform(shape=(batch_size, curr_n_input), dtype=tf.float32) # required for some transforms#
 #         log_pdf_z0 = tf.zeros(shape=(batch_size, 1), dtype=tf.float32)
 
 #         for repeat in range(n_tests): _check_logdet(transform_object, z0, log_pdf_z0)
@@ -589,78 +592,83 @@ def _check_logdet(flow, z0, log_pdf_z0, rtol=1e-5):
 ############################  Invertible Euclidean Flows ###########################
 ####################################################################################
 
-# batch_size = 5
-# n_input = 6
-# for transform_to_check in [\
-#                            transforms.ProperIsometricFlow,
-#                            # transforms.PiecewisePlanarScalingFlow,
-#                            # transforms.LinearIARFlow, \
-#                            # transforms.NonLinearIARFlow, \
-#                            # transforms.RealNVPFlow, \
-#                           ]:
-#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-#     print('\n\n\n')
-#     print('            '+str(transform_to_check)+'               ')
-#     print('\n\n\n')    
-#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-#     print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+batch_size = 5
+n_input = 6
+for transform_to_check in [\
+                           transforms.Affine2DFlow,
+                           # transforms.ProperIsometricFlow,
+                           # transforms.PiecewisePlanarScalingFlow,
+                           # transforms.LinearIARFlow, \
+                           # transforms.NonLinearIARFlow, \
+                           # transforms.RealNVPFlow, \
+                          ]:
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    print('\n\n\n')
+    print('            '+str(transform_to_check)+'               ')
+    print('\n\n\n')    
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
-#     n_parameter = transform_to_check.required_num_parameters(n_input)
-#     parameters, parameters_batch = None, None
-#     if n_parameter > 0: parameters = 10*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
-#     if n_parameter > 0: parameters_batch = 10*tf.layers.dense(inputs = tf.random_uniform(shape=(batch_size, 100), dtype=tf.float32), units = n_parameter, use_bias = False, activation = None)
+    if transform_to_check == transforms.Affine2DFlow: curr_n_input = 2
+    else: curr_n_input = n_input
 
-#     z0 = tf.random_uniform(shape=(batch_size, n_input), dtype=tf.float32) # required for some transforms#
-#     z0_same = tf.tile(z0[0, np.newaxis, :], [batch_size, 1])
-#     transform = transform_to_check(input_dim=n_input, parameters=parameters)
-#     transform_batch = transform_to_check(input_dim=n_input, parameters=parameters_batch)
-#     z, _ = transform.transform(z0, None)
-#     z0_inv, _ = transform.inverse_transform(z, None)
+    n_parameter = transform_to_check.required_num_parameters(curr_n_input)
+    parameters, parameters_batch = None, None
+    parameter_scale = 5
+    if n_parameter > 0: parameters = parameter_scale*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
+    if n_parameter > 0: parameters_batch = parameter_scale*tf.layers.dense(inputs = tf.random_uniform(shape=(batch_size, 100), dtype=tf.float32), units = n_parameter, use_bias = False, activation = None)
 
-#     z_batch, _ = transform_batch.transform(z0_same, None)
-#     z0_batch_inv, _ = transform_batch.inverse_transform(z_batch, None)
+    z0 = tf.random_uniform(shape=(batch_size, curr_n_input), dtype=tf.float32) # required for some transforms#
+    z0_same = tf.tile(z0[0, np.newaxis, :], [batch_size, 1])
+    transform = transform_to_check(input_dim=curr_n_input, parameters=parameters)
+    transform_batch = transform_to_check(input_dim=curr_n_input, parameters=parameters_batch)
+    z, _ = transform.transform(z0, None)
+    z0_inv, _ = transform.inverse_transform(z, None)
 
-#     init = tf.initialize_all_variables()
-#     sess = tf.InteractiveSession()  
-#     sess.run(init)
-#     z0_np, z0_same_np, z_np, z0_inv_np, z_batch_np, z0_batch_inv_np = sess.run([z0, z0_same, z, z0_inv, z_batch, z0_batch_inv])
+    z_batch, _ = transform_batch.transform(z0_same, None)
+    z0_batch_inv, _ = transform_batch.inverse_transform(z_batch, None)
+
+    init = tf.initialize_all_variables()
+    sess = tf.InteractiveSession()  
+    sess.run(init)
+    z0_np, z0_same_np, z_np, z0_inv_np, z_batch_np, z0_batch_inv_np = sess.run([z0, z0_same, z, z0_inv, z_batch, z0_batch_inv])
     
-#     print('\n\n')
-#     print('Max absolute difference between z0 and z0_inv: ', np.abs((z0_np-z0_inv_np)).max())
-#     print(np.max(np.abs((z0_np-z0_inv_np)), axis=0))
-#     print('\n\n')
-#     print('Max absolute difference between z0_same and z0_batch_inv: ', np.abs((z0_same_np-z0_batch_inv_np)).max())
-#     print(np.max(np.abs((z0_same_np-z0_batch_inv_np)), axis=0))
+    print('\n\n')
+    print('Max absolute difference between z0 and z0_inv: ', np.abs((z0_np-z0_inv_np)).max())
+    print(np.max(np.abs((z0_np-z0_inv_np)), axis=0))
+    print('\n\n')
+    print('Max absolute difference between z0_same and z0_batch_inv: ', np.abs((z0_same_np-z0_batch_inv_np)).max())
+    print(np.max(np.abs((z0_same_np-z0_batch_inv_np)), axis=0))
 
-#     print('\n\n')
-#     print('Examples:')
-#     print('\n\n')
-#     print('z0:')
-#     print(z0_np[0,:])
-#     print('z:')
-#     print(z_np[0,:])
-#     print('z0_inv:')
-#     print(z0_inv_np[0,:])
+    print('\n\n')
+    print('Examples:')
+    print('\n\n')
+    print('z0:')
+    print(z0_np[0,:])
+    print('z:')
+    print(z_np[0,:])
+    print('z0_inv:')
+    print(z0_inv_np[0,:])
 
-#     print('\n\n')
-#     print('Examples batched:')
-#     print('\n\n')
-#     print('z0 0:')
-#     print(z0_same_np[0,:])
-#     print('z0 1:')
-#     print(z0_same_np[1,:])
-#     print('z_batch 0:')
-#     print(z_batch_np[0,:])
-#     print('z_batch 1:')
-#     print(z_batch_np[1,:])
-#     print('z0_batch_inv 0:')
-#     print(z0_batch_inv_np[0,:])
-#     print('z0_batch_inv 1:')
-#     print(z0_batch_inv_np[1,:])
-#     if n_parameter > 0: assert((np.abs(z_batch_np[0,:]-z_batch_np[1,:])).max()>0)
+    print('\n\n')
+    print('Examples batched:')
+    print('\n\n')
+    print('z0 0:')
+    print(z0_same_np[0,:])
+    print('z0 1:')
+    print(z0_same_np[1,:])
+    print('z_batch 0:')
+    print(z_batch_np[0,:])
+    print('z_batch 1:')
+    print(z_batch_np[1,:])
+    print('z0_batch_inv 0:')
+    print(z0_batch_inv_np[0,:])
+    print('z0_batch_inv 1:')
+    print(z0_batch_inv_np[1,:])
+    if n_parameter > 0: assert((np.abs(z_batch_np[0,:]-z_batch_np[1,:])).max()>0)
 
 #####################################################################################
 ###########################  Serial Flows and Helpers ###############################

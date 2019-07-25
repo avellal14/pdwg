@@ -131,7 +131,7 @@ def transformer(input_im, pixel_transformation_clousure, out_size, n_location_sa
             expanded_out_x_flat_int =  tf.cast(tf.floor(tf.reshape(tf.tile(out_x[np.newaxis,:,0], [tf.shape(out_comparison_im)[0], 1]), [-1])), 'int32')
             out_comparison_im_gathered_flat = _gather_from_ims(out_comparison_im, [(expanded_out_y_flat_int, expanded_out_x_flat_int)], out_size[0]*out_size[1])[0] 
             out_comparison_im_gathered = tf.reshape(out_comparison_im_gathered_flat, [tf.shape(out_comparison_im)[0], out_size[0], out_size[1], 3])
-        return output, vis_output, out_comparison_im_gathered, invalid_map
+        return output, vis_output, out_comparison_im_gathered, invalid_map, None
 
     # SAMPLED OUTPUT GRID
     else:
@@ -143,7 +143,9 @@ def transformer(input_im, pixel_transformation_clousure, out_size, n_location_sa
             expanded_out_x_flat_int =  tf.cast(tf.floor(tf.reshape(tf.tile(out_x[np.newaxis,:,0], [tf.shape(out_comparison_im)[0], 1]), [-1])), 'int32')
             out_comparison_im_gathered_flat = _gather_from_ims(out_comparison_im, [(expanded_out_y_flat_int, expanded_out_x_flat_int)], n_location_samples)[0] 
             out_comparison_im_gathered = tf.reshape(out_comparison_im_gathered_flat, [tf.shape(out_comparison_im)[0], -1, 3])
-        return output, vis_output, out_comparison_im_gathered, invalid_map
+            out_yx_int = tf.cast(tf.concat([out_y, out_x], axis=1), 'int32')
+            location_mask = tf.cast(tf.scatter_nd(out_yx_int, tf.ones((n_location_samples,), tf.float32), out_size), 'bool')
+        return output, vis_output, out_comparison_im_gathered, invalid_map, location_mask
 
 
 

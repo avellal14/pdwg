@@ -392,7 +392,7 @@ flow_class_list = [*[transforms.ProperIsometricFlow]*2,
                    # *[transforms.NotManyReflectionsRotationFlow, transforms.NonLinearIARFlow]*10, # make sure it is even
                    *[transforms.ProperIsometricFlow]*2,
 ]              
-# flow_class_list = [transforms.Affine2DFlow]              
+flow_class_list = [transforms.Affine2DFlow]              
 
 flow_parameters_list = [None]*len(flow_class_list)
 

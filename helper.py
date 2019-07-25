@@ -1752,14 +1752,17 @@ def tf_standard_basis_vector(dim, index):
 	vec[index] = 1
 	return tf.constant(vec, tf.float32)
 
-def tf_resize_image(x, resize_ratios=[2,2], b_unknown_shape=False):
-	if b_unknown_shape:
-		new_shape_1 = tf.cast(resize_ratios[0]*tf.shape(x)[1], tf.int32)
-		new_shape_2 = tf.cast(resize_ratios[1]*tf.shape(x)[2], tf.int32)
-	else:
-		new_shape_1 = int(resize_ratios[0]*x.get_shape().as_list()[1])
-		new_shape_2 = int(resize_ratios[1]*x.get_shape().as_list()[2])
-	return tf.image.resize_images(x, [new_shape_1, new_shape_2], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+def tf_resize_image(x, resize_ratios=[2,2], b_unknown_shape=False, mode='nearest'):
+    assert (mode == 'nearest' or mode == 'bicubic')
+    if b_unknown_shape:
+        new_shape_1 = tf.cast(resize_ratios[0]*tf.shape(x)[1], tf.int32)
+        new_shape_2 = tf.cast(resize_ratios[1]*tf.shape(x)[2], tf.int32)
+    else:
+        new_shape_1 = int(resize_ratios[0]*x.get_shape().as_list()[1])
+        new_shape_2 = int(resize_ratios[1]*x.get_shape().as_list()[2])
+    if mode == 'bicubic': method = tf.image.ResizeMethod.AREA
+    elif mode == 'nearest': method = tf.image.ResizeMethod.NEAREST_NEIGHBOR 
+    return tf.image.resize_images(x, [new_shape_1, new_shape_2], method=method)
 
 def tf_center_crop_image(x, resize_ratios=[28,28]):
 	shape_0 = x.get_shape().as_list()[1]
