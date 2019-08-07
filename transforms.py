@@ -425,6 +425,71 @@ class SpecificRotationFlow():
         else: log_pdf_z0 = None
         return z0, log_pdf_z0
 
+class MatrixExponentialRotationFlow():
+    """
+    Matrix exponential Rotation Flow class. SO(n) 
+    Args:
+      parameters: parameters of transformation all appended.
+      input_dim : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+
+    def __init__(self, input_dim, parameters, name='matrix_exponential_rotation_transform'):   
+        self._parameter_scale = 1.
+        self._parameters = parameters
+        if self._parameters is not None: self._parameters = self._parameter_scale*self._parameters
+        self._input_dim = input_dim
+        assert (self._input_dim > 1)
+
+        self._parameters.get_shape().assert_is_compatible_with([None, MatrixExponentialRotationFlow.required_num_parameters(self._input_dim)])        
+        
+        self._param_matrix = tf.reshape(self._parameters, [-1, self._input_dim, self._input_dim])
+        self._mask_mat_ones_np = helper._triangular_ones([self._input_dim, self._input_dim], trilmode=0)[np.newaxis, :, :]
+        self._mask_matrix = tf.constant(self._mask_mat_ones_np, tf.float32)
+        self._cho = self._mask_matrix*self._param_matrix
+        self._skew_symmetric_mat = self._cho - tf.transpose(self._cho, [0, 2, 1])
+        self._batched_rot_matrix = self.get_batched_rot_matrix()
+
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim
+
+    @staticmethod
+    def required_num_parameters(input_dim):
+        return input_dim*input_dim
+
+    def get_batched_rot_matrix(self):
+        return tf.linalg.expm(self._skew_symmetric_mat)
+
+    def transform(self, z0, log_pdf_z0):
+        if log_pdf_z0 is not None: verify_size(z0, log_pdf_z0)
+
+        if self._parameters is None or self._parameters.get_shape()[0].value == 1: #one set of parameters
+            z = tf.matmul(z0, self._batched_rot_matrix[0, :, :], transpose_a=False, transpose_b=True)
+        else: # batched parameters
+            z = tf.matmul(self._batched_rot_matrix, z0[:,:,np.newaxis], transpose_a=False, transpose_b=False)[:, :, 0]
+
+        if log_pdf_z0 is not None: log_pdf_z = log_pdf_z0 
+        else: log_pdf_z = None
+        return z, log_pdf_z
+
+    def inverse_transform(self, z, log_pdf_z):
+        if log_pdf_z is not None: verify_size(z, log_pdf_z)
+        
+        if self._parameters is None or self._parameters.get_shape()[0].value == 1: #one set of parameters
+            z0 = tf.matmul(z, self._batched_rot_matrix[0, :, :], transpose_a=False, transpose_b=False)
+        else: # batched parameters
+            z0 = tf.matmul(self._batched_rot_matrix, z[:,:,np.newaxis],  transpose_a=True, transpose_b=False)[:, :, 0]
+    
+        if log_pdf_z is not None: log_pdf_z0 = log_pdf_z 
+        else: log_pdf_z0 = None
+        return z0, log_pdf_z0
+
 class NotManyReflectionsRotationFlow():
     """
     Many Householder Reflections Rotation Flow class. SO(n) 
@@ -2065,6 +2130,75 @@ class RealNVPFlow():
 #####################  Convolutional Invertible Euclidean Flows #####################
 #####################################################################################
 
+class ConvSinglePixelFlow():
+    """
+    1x1 Convolution Flows.
+
+    Args:
+      parameters: parameters of transformation all appended.
+      image_size : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+    flow_classes = [RealNVPFlow, NonLinearIARFlow]
+
+    def __init__(self, input_dim, parameters, mode='Regular', name='conv_single_pixel_transform'): 
+        self._input_dim = input_dim
+        self._parameters = parameters
+        self._mode = mode
+        assert (len(self._input_dim) == 3)
+        self._n_channels = input_dim[-1]
+        self._parameters.get_shape().assert_is_compatible_with([None, ConvSinglePixelFlow.required_num_parameters(self._input_dim)])
+
+        transforms = []
+        param_index = 0
+        for i in range(len(ConvSinglePixelFlow.flow_classes)):
+            curr_flow_class = ConvSinglePixelFlow.flow_classes[i]
+            curr_param, param_index = helper.slice_parameters(self._parameters, param_index, curr_flow_class.required_num_parameters(self._n_channels))
+            transforms.append(curr_flow_class(input_dim=self._n_channels, parameters=curr_param))
+        self._serial_flow = SerialFlow(transforms)
+
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim
+
+    @staticmethod
+    def required_num_parameters(input_dim):
+        assert (len(input_dim) == 3)
+        n_channels = input_dim[-1]
+        n_parameters = 0
+        for i in range(len(ConvSinglePixelFlow.flow_classes)):
+            curr_flow_class = ConvSinglePixelFlow.flow_classes[i]
+            n_parameters = n_parameters + curr_flow_class.required_num_parameters(n_channels)
+        return n_parameters
+
+    def transform(self, z0, log_pdf_z0):
+        assert (len(z0.get_shape().as_list()) == 4)
+        z0_reshaped = tf.reshape(z0, [-1, tf.shape(z0)[-1]])
+        if log_pdf_z0 is not None: 
+            verify_size(z0_reshaped, log_pdf_z0)
+            log_pdf_z0_tiled = tf.tile(log_pdf_z0[:, np.newaxis, np.newaxis,:], [1,tf.shape(z0)[1], tf.shape(z0)[2],1])
+            log_pdf_z0_reshaped = tf.reshape(log_pdf_z0_tiled, [-1, tf.shape(log_pdf_z0_tiled)[-1]])
+        else: log_pdf_z0_reshaped = None
+
+        z_reshaped, log_pdf_z_reshaped = self._serial_flow.transform(z0_reshaped, log_pdf_z0_reshaped)
+        z = tf.reshape(z_reshaped, tf.shape(z0))
+        log_pdf_z_tiled = tf.reshape(log_pdf_z_reshaped, tf.shape(log_pdf_z0_tiled))
+        log_pdf_z = tf.reduce_sum(log_pdf_z_tiled, axis=[1,2])
+        return z, log_pdf_z
+    
+    def inverse_transform(self, z, log_pdf_z):
+        assert (len(z.get_shape().as_list()) == 4)
+        z_reshaped = tf.reshape(z, [-1, tf.shape(z)[-1]])
+        if log_pdf_z is not None: verify_size(z_reshaped, log_pdf_z)
+
+        z0_reshaped, log_pdf_z0 = self._serial_flow.inverse_transform(z_reshaped, log_pdf_z)
+        z0 = tf.reshape(z0_reshaped, tf.shape(z))
+        return z0, log_pdf_z0
 
 # class ConvNonLinearIARFlow():
 #     """
@@ -2120,9 +2254,81 @@ class RealNVPFlow():
 
 
 
+class ConvRealNVPFlow():
+    """
+    Convolutional Real Non-volume preserving Flow class.
+
+    Args:
+      parameters: parameters of transformation all appended.
+      input_dim : input dimensionality of the transformation. 
+    Raises:
+      ValueError: 
+    """
+    conv_block = [{'trans': False, 'times': 2, 'filter': [5, 5, 32], 'stride': [2,2], 'bias': True, 'nonlin': tf.nn.relu}, 
+                  {'trans': True, 'times': 2, 'filter': [5, 5, 32], 'stride': [2,2], 'bias': True, 'nonlin': tf.nn.relu}]
+
+    def __init__(self, input_dim, parameters, mode='ScaleShift', name='conv_realNVP_transform'):   #real
+        self._parameter_scale = 1
+        self._parameters = self._parameter_scale*parameters
+        self._input_dim = input_dim
+        self._nonlinearity = helper.LeakyReLU 
+        self._mode = mode
+        assert (len(self._input_dim) == 3)
+        self._n_channels = input_dim[-1]
+
+        self._parameters.get_shape().assert_is_compatible_with([None, ConvRealNVPFlow.required_num_parameters(self._input_dim)])
+        # pdb.set_trace()
+
+    @property
+    def input_dim(self):
+        return self._input_dim
+
+    @property
+    def output_dim(self):
+        return self._input_dim
+
+    @staticmethod
+    def required_num_parameters(input_dim):
+        return 5
+
+    def non_squeezed_layer(self, input_ims, filters):
+        condit_mask = tf_build_checker_board_for_images(input_ims, one_left_upper=True)
+        # change_mask = tf_build_checker_board_for_images(input_ims, one_left_upper=False)
+
+        condit_ims = condit_mask*input_ims
+
+
+        pre_scale_ims = tf.layers.conv2d(inputs=condit_ims, filters=input_ims.get_shape()[3].value, kernel_size=[3, 3], strides=[1, 1], padding="same", use_bias=True, activation=None)
+        out_ims = condit_ims+(1-condit_mask)*tf.nn.softplus(pre_scale_ims)*input_ims
+        tf.nn.softplus
+        return out_ims
+
+    def transform(self, z0, log_pdf_z0):
+        assert (len(z0.get_shape().as_list()) == 4)
+        pdb.set_trace()
 
 
 
+# images = tf.ones((10, 12, 12, 3))
+# # condit_mask = tf_build_checker_board_for_images(images, one_left_upper=True)
+# # change_mask = tf_build_checker_board_for_images(images, one_left_upper=False)
+
+# # condit_images = condit_mask*images
+# # change_images = change_mask*images
+
+# # scale_images = tf.layers.conv2d(inputs=condit_images, filters=images.get_shape()[3].value, kernel_size=[3, 3], strides=[1, 1], padding="same", use_bias=True, activation=tf.nn.softplus)
+# # changed_images = condit_mask*images+change_mask*scale_images*images
+
+# squeezed_images = squeeze_realnpv(images, squeeze_order=[1,4,2,3], verbose=True)
+
+# condit_squeezed_images = squeezed_images[:,:,:,:int(squeezed_images.get_shape()[3].value/2)]
+# change_squeezed_images = squeezed_images[:,:,:,int(squeezed_images.get_shape()[3].value/2):]
+
+# scale_squeezed_images = tf.layers.conv2d(inputs=condit_squeezed_images, filters=int(squeezed_images.get_shape()[3].value/2), kernel_size=[3, 3], strides=[1, 1], padding="same", use_bias=True, activation=tf.nn.softplus)
+# changed_squeezed_images = tf.concat([condit_squeezed_images, scale_squeezed_images*change_squeezed_images], axis=3)
+
+# changed_images = unsqueeze_realnpv(changed_squeezed_images, squeeze_order=[1,4,2,3], verbose=True)
+# pdb.set_trace()
 
 
 #####################################################################################
@@ -2150,7 +2356,6 @@ class SerialFlow():
 class GeneralInverseFlow():
     def __init__(self, transform, name='general_inverse_transform'): 
         self._transform = transform
-        assert ('inverse_transform' in dir(self._transform))
 
     def transform(self, z0, log_pdf_z0):
         z, log_pdf_z = self._transform.inverse_transform(z0, log_pdf_z0)
@@ -2164,11 +2369,6 @@ def verify_size(z0, log_pdf_z0):
   z0.get_shape().assert_is_compatible_with([None, None])
   if log_pdf_z0 is not None:
     log_pdf_z0.get_shape().assert_is_compatible_with([None, 1])
-
-
-
-
-
 
 
 

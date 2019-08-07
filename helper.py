@@ -9,6 +9,8 @@ from scipy.misc import imsave
 
 import tensorflow as tf
 from tensorflow.python.framework import ops
+from tensorflow.python.ops import gen_nn_ops
+
 matplotlib.use('TkAgg')
 
 # import platform
@@ -1196,6 +1198,129 @@ def interpolate_latent_codes(z, size=1, number_of_steps=10):
     z_interp = t*z_a[:, np.newaxis, :]+(1-t)*z_b[:, np.newaxis, :]
     return z_interp
 
+def squeeze_realnpv_depthspace(image, squeeze_order=[1,2,3,4], verbose=True):
+    assert (len(squeeze_order) == 4 and 1 in squeeze_order and 2 in squeeze_order and 3 in squeeze_order and 4 in squeeze_order)
+    if verbose:
+        order_str_list = [' top left ', ' top right ', ' bottom left ', ' bottom right ']
+        print('Squeeze order: ', order_str_list[squeeze_order[0]-1], order_str_list[squeeze_order[1]-1], 
+                                 order_str_list[squeeze_order[2]-1], order_str_list[squeeze_order[3]-1])
+    # image is  batch x height x width x channel
+    assert (image.get_shape()[1].value % 2 == 0)
+    assert (image.get_shape()[2].value % 2 == 0)
+
+    squeezed_regular = tf.nn.space_to_depth(image, 2)
+    regular_order = tf.split(tf.reshape(squeezed_regular, [-1, squeezed_regular.get_shape()[1].value, squeezed_regular.get_shape()[2].value, 4, image.get_shape()[3]]), 4, axis=3)
+    desired_order = [regular_order[squeeze_order[i]-1][:,:,:,0,:] for i in range(len(squeeze_order))]
+    squeezed = tf.concat(desired_order, axis=-1)
+    # squeezed is batch x height/2 x width/2 x channel*4 where original channels in input image are next to each other
+    return squeezed
+
+def squeeze_realnpv(image, squeeze_order=[1,2,3,4], verbose=True):
+    assert (len(squeeze_order) == 4 and 1 in squeeze_order and 2 in squeeze_order and 3 in squeeze_order and 4 in squeeze_order)
+    if verbose:
+        order_str_list = [' top left ', ' top right ', ' bottom left ', ' bottom right ']
+        print('Squeeze order: ', order_str_list[squeeze_order[0]-1], order_str_list[squeeze_order[1]-1], 
+                                 order_str_list[squeeze_order[2]-1], order_str_list[squeeze_order[3]-1])
+    # image is  batch x height x width x channel
+    assert (image.get_shape()[1].value % 2 == 0)
+    assert (image.get_shape()[2].value % 2 == 0)
+
+    top_rows = image[:, 0::2, :, :]
+    bottom_rows = image[:, 1::2, :, :]
+    top_rows_left_cols = top_rows[:, :, 0::2, :]
+    top_rows_right_cols = top_rows[:, :, 1::2, :]
+    bottom_rows_left_cols = bottom_rows[:, :, 0::2, :]
+    bottom_rows_right_cols = bottom_rows[:, :, 1::2, :]
+
+    regular_order = [top_rows_left_cols, top_rows_right_cols, bottom_rows_left_cols, bottom_rows_right_cols]
+    desired_order = [regular_order[squeeze_order[i]-1] for i in range(len(squeeze_order))]
+    squeezed = tf.concat(desired_order, axis=-1)
+    # squeezed is batch x height/2 x width/2 x channel*4 where original channels in input image are next to each other
+    return squeezed
+
+def unsqueeze_realnpv_depthspace(squeezed, squeeze_order=[1,2,3,4], verbose=True):
+    assert (len(squeeze_order) == 4 and 1 in squeeze_order and 2 in squeeze_order and 3 in squeeze_order and 4 in squeeze_order)
+    if verbose:
+        order_str_list = [' top left ', ' top right ', ' bottom left ', ' bottom right ']
+        print('Unsqueezing squeeze order: ', order_str_list[squeeze_order[0]-1], order_str_list[squeeze_order[1]-1], 
+                                             order_str_list[squeeze_order[2]-1], order_str_list[squeeze_order[3]-1])
+    # squeezed is batch x height/2 x width/2 x channel*4
+    assert (squeezed.get_shape()[3].value % 4 == 0)
+    out_n_channels = int(squeezed.get_shape()[3].value/4.)
+    desired_order = tf.split(tf.reshape(squeezed, [-1, squeezed.get_shape()[1].value, squeezed.get_shape()[2].value, 4, out_n_channels]), 4, axis=3)
+    regular_order = [None]*4
+    for i in range(len(desired_order)): regular_order[squeeze_order[i]-1] = desired_order[i][:,:,:,0,:]
+    image = tf.nn.depth_to_space(tf.concat(regular_order, axis=-1), 2)
+    return image
+
+def unsqueeze_realnpv(squeezed, squeeze_order=[1,2,3,4], verbose=True):
+    assert (len(squeeze_order) == 4 and 1 in squeeze_order and 2 in squeeze_order and 3 in squeeze_order and 4 in squeeze_order)
+    if verbose:
+        order_str_list = [' top left ', ' top right ', ' bottom left ', ' bottom right ']
+        print('Unsqueezing squeeze order: ', order_str_list[squeeze_order[0]-1], order_str_list[squeeze_order[1]-1], 
+                                             order_str_list[squeeze_order[2]-1], order_str_list[squeeze_order[3]-1])
+    # squeezed is batch x height/2 x width/2 x channel*4
+    assert (squeezed.get_shape()[3].value % 4 == 0)
+    out_n_channels = int(squeezed.get_shape()[3].value/4.)
+
+    desired_order = [squeezed[:, :, :, 0*out_n_channels:1*out_n_channels], squeezed[:, :, :, 1*out_n_channels:2*out_n_channels],
+                     squeezed[:, :, :, 2*out_n_channels:3*out_n_channels], squeezed[:, :, :, 3*out_n_channels:4*out_n_channels]]
+
+    regular_order = [None]*4
+    for i in range(len(desired_order)): regular_order[squeeze_order[i]-1] = desired_order[i]
+    top_rows_left_cols, top_rows_right_cols, bottom_rows_left_cols, bottom_rows_right_cols = regular_order
+
+    top_rows_left_cols_split = tf.split(top_rows_left_cols, top_rows_left_cols.get_shape()[2].value, axis=2)
+    top_rows_right_cols_split = tf.split(top_rows_right_cols, top_rows_right_cols.get_shape()[2].value, axis=2)
+    bottom_rows_left_cols_split = tf.split(bottom_rows_left_cols, bottom_rows_left_cols.get_shape()[2].value, axis=2)
+    bottom_rows_right_cols_split = tf.split(bottom_rows_right_cols, bottom_rows_right_cols.get_shape()[2].value, axis=2)
+    
+    assert (len(top_rows_left_cols_split) == len(top_rows_right_cols_split))
+    assert (len(bottom_rows_left_cols_split) == len(bottom_rows_right_cols_split))
+    assert (len(top_rows_left_cols_split) == len(bottom_rows_left_cols_split))
+
+    top_rows_split = []
+    bottom_rows_split = []
+    for i in range(len(top_rows_left_cols_split)):
+        top_rows_split.append(top_rows_left_cols_split[i])
+        top_rows_split.append(top_rows_right_cols_split[i])
+        bottom_rows_split.append(bottom_rows_left_cols_split[i])
+        bottom_rows_split.append(bottom_rows_right_cols_split[i])
+
+    top_rows = tf.concat(top_rows_split, axis=2)
+    bottom_rows = tf.concat(bottom_rows_split, axis=2)
+    top_rows_rowsplit = tf.split(top_rows, top_rows.get_shape()[1].value, axis=1)
+    bottom_rows_rowsplit = tf.split(bottom_rows, bottom_rows.get_shape()[1].value, axis=1)
+
+    assert (len(top_rows_rowsplit) == len(bottom_rows_rowsplit))
+
+    all_split = []
+    for i in range(len(top_rows_rowsplit)):
+        all_split.append(top_rows_rowsplit[i])
+        all_split.append(bottom_rows_rowsplit[i])
+
+    # image is  batch x height x width x channel
+    image = tf.concat(all_split, axis=1)
+    return image
+
+def build_checkerboard_np(w, h, one_left_upper=True):
+    if one_left_upper:
+        re = np.r_[w*[1,0]] # even-numbered rows
+        ro = np.r_[w*[0,1]]  # odd-numbered rows
+        return np.row_stack(h*(re, ro))
+    else:
+        re = np.r_[w*[0,1]] # even-numbered rows
+        ro = np.r_[w*[1,0]]  # odd-numbered rows
+        return np.row_stack(h*(re, ro))
+
+def tf_build_checker_board_for_images(image, one_left_upper=True):
+    assert (image.get_shape()[1].value % 2 == 0)
+    assert (image.get_shape()[2].value % 2 == 0)
+    mask_np = build_checkerboard_np(int(image.get_shape()[1].value/2), int(image.get_shape()[2].value/2), one_left_upper=one_left_upper)[np.newaxis, :, :, np.newaxis]
+    # print(mask_np[0,:,:,0])
+    mask = tf.constant(mask_np, tf.float32)
+    return mask
+
 def compute_MMD(sample_batch_1, sample_batch_2, mode='His', positive_only=False):
     if mode == 'Mine':
         k_sample_1_2 = tf.reduce_mean(self.kernel_function(sample_batch_1, sample_batch_2))
@@ -1341,7 +1466,6 @@ def apply_householder_reflections2(batch_input, batch_rand_dirs):
 	v_householder = batch_rand_dirs[:, np.newaxis,:]
 	householder_inner_expand = tf.reduce_sum(v_householder*batch_input, axis=2, keep_dims=True)  
 	return batch_input-2*householder_inner_expand*v_householder
-
 
 def variable_summaries(var, name):
 	mean = tf.reduce_mean(var)
@@ -2005,6 +2129,345 @@ def binaryStochastic_ST(x, slope_tensor=None, pass_through=False, stochastic=Fal
         return bernoulliSample(p)
     else:
         return binaryRound(p) # if x>=9e-8 then return 1 else 0
+
+def depthwise_conv2d_transpose(value, filter, output_shape, strides, padding='SAME', name=None):
+    output_shape_ = ops.convert_to_tensor(output_shape, name="output_shape")
+    value = ops.convert_to_tensor(value, name="value")
+    filter = ops.convert_to_tensor(filter, name="filter")
+    return gen_nn_ops.depthwise_conv2d_native_backprop_input(
+        input_sizes=output_shape_,
+        filter=filter,
+        out_backprop=value,
+        strides=strides,
+        padding=padding,
+        name=name)
+
+def tf_manual_conv2d_n_parameters(filter_height, filter_width, input_channels, output_channels):
+    return output_channels + filter_height*filter_width*input_channels*output_channels
+
+def upsample_bilinear_2x(input):
+    output_shape = input.get_shape().as_list()
+    output_shape[1] = output_shape[1]*2
+    output_shape[2] = output_shape[2]*2
+    output_shape[3] = output_shape[3]*7
+
+    f = [[0.25, 0.5, 0.25],
+         [0.5, 1, 0.5],
+         [0.25, 0.5, 0.25]]
+    f = np.array(f)
+    f = np.expand_dims(f, 2)
+    f = np.expand_dims(f, 3)
+    f = np.tile(f, (1, 1, input.get_shape().as_list()[3], 1))
+    f = f.astype(np.float32)
+    # f = np.tile(f, [1, 1, 1, 7])
+
+    print(input, f.shape, output_shape, [1,2,2,1])
+    return depthwise_conv2d_transpose(input, f, output_shape, [1,2,2,1])
+
+
+def tf_manual_batched_conv2d(input_ims, filters, strides = [1, 1], padding='VALID', transpose=False):
+    # input_ims shape: batch_size x height x width x input_channels
+    # filters shape: batch_size x filter_height x filter_width x input_channels x output_channels
+    height = input_ims.get_shape()[1].value
+    width = input_ims.get_shape()[2].value
+    input_channels = input_ims.get_shape()[3].value
+    filter_height = filters.get_shape()[1].value
+    filter_width = filters.get_shape()[2].value
+    output_channels = filters.get_shape()[4].value
+    if transpose:
+        if padding == 'VALID': 
+            projected_out_height_low, projected_out_height_high = (height-1)*strides[0]+filter_height-1+1, height*strides[0]+filter_height-1
+            projected_out_width_low, projected_out_width_high = (width-1)*strides[1]+filter_width-1+1,  width*strides[1]+filter_width-1
+            projected_out_height, projected_out_width = projected_out_height_low, projected_out_width_low, 
+        elif padding == 'SAME': 
+            projected_out_height_low, projected_out_height_high = (height-1)*strides[0]+1, height*strides[0]
+            projected_out_width_low, projected_out_width_high =  (width-1)*strides[1]+1, width*strides[1]
+            projected_out_height, projected_out_width = projected_out_height_high, projected_out_width_high
+    else:
+        if padding == 'VALID':
+            projected_out_height = int(np.ceil((float(height-filter_height+1)/float(strides[0]))))
+            projected_out_width = int(np.ceil((float(width-filter_width+1)/float(strides[1]))))
+        elif padding == 'SAME':
+            projected_out_height = int(np.ceil(float(height)/float(strides[0])))
+            projected_out_width = int(np.ceil(float(width)/float(strides[1])))
+    assert (input_channels == filters.get_shape()[3].value)
+    assert (padding == 'VALID' or padding == 'SAME')
+    assert (len(strides) == 2 and strides[0] > 0 and strides[1] > 0)
+
+    input_ims_r = tf.reshape(tf.transpose(input_ims, [1, 2, 0, 3]), [1, height, width, -1])
+    filters_r = tf.reshape(tf.transpose(filters, [1, 2, 0, 3, 4]), [filter_height, filter_width, -1, output_channels])
+    filters_r_2 = tf.reshape(tf.transpose(filters, [1, 2, 0, 4, 3]), [filter_height, filter_width, -1, output_channels])
+
+    if transpose: 
+        # output_shape = [tf.shape(input_ims)[0], projected_out_height, projected_out_width, output_channels] 
+        # out_conv_1 = tf.nn.conv2d_transpose(input_ims, tf.transpose(filters[0,:,:,:,:], [0,1,3,2]), strides=[1, strides[0], strides[1], 1], padding=padding, output_shape=output_shape) 
+        # out_conv = depthwise_conv2d_transpose(input_ims, tf.transpose(filters, [0,1,2,4,3]), strides=[1, strides[0], strides[1], 1], padding=padding, output_shape=output_shape) 
+        # out_conv_2 = depthwise_conv2d_transpose(input_ims, filters, strides=[1, strides[0], strides[1], 1], padding=padding, output_shape=output_shape) 
+
+        # output_shape_1 = [1, projected_out_height, projected_out_width, input_ims.get_shape()[0].value*input_channels*output_channels] 
+        # output_shape_2 = [1, projected_out_height, projected_out_width, tf.shape(input_ims)[0]*input_channels*output_channels] 
+        # output_shape_3 = [1, projected_out_height, projected_out_width, -1] 
+
+        # out_conv = tf.nn.depthwise_conv2d(input_ims_r, filter=filters_r, strides=[1, strides[0], strides[1], 1], padding=padding)
+        # orig = gen_nn_ops.depthwise_conv2d_native_backprop_input(input_sizes=[1,16,15,30], filter=filters_r, out_backprop=out_conv, strides=[1, strides[0], strides[1], 1], padding=padding)
+        # orig2 = gen_nn_ops.depthwise_conv2d_native_backprop_input(input_sizes=[1,16,15,11], filter=tf.transpose(filters_r, [0, 1, 3, 2]), out_backprop=out_conv, strides=[1, strides[0], strides[1], 1], padding=padding)
+
+        # filter_k = tf.reshape(filters_r, [filters_r.get_shape()[0].value, filters_r.get_shape()[1].value, -1, 1])
+
+        # (1, 16, 15, 30) --> (1, 8, 8, 330) using (5, 4, 30, 11) |||||||||||  (1, 8, 8, 30) --> (1, 16, 15, 330) using (5, 4, 30, 11)
+
+        # out_conv_2 = depthwise_conv2d_transpose(input_ims_r, filter=tf.transpose(filters_r, [0,1,3,2]), strides=[1, strides[0], strides[1], 1], padding=padding, output_shape=output_shape_2) 
+        # out_conv_3 = depthwise_conv2d_transpose(input_ims_r, filter=filters_r, strides=[1, strides[0], strides[1], 1], padding=padding, output_shape=output_shape_2) 
+        # out_conv_4 = depthwise_conv2d_transpose(input_ims_r, filter=filters_r_2, strides=[1, strides[0], strides[1], 1], padding=padding, output_shape=output_shape_2) 
+
+        # out_conv_5 = depthwise_conv2d_transpose(input_ims_r, filter=tf.transpose(filters_r, [0,1,3,2]), strides=[1, strides[0], strides[1], 1], padding=padding, output_shape=output_shape_3) 
+        # out_conv_6 = depthwise_conv2d_transpose(input_ims_r, filter=filters_r, strides=[1, strides[0], strides[1], 1], padding=padding, output_shape=output_shape_3) 
+        # out_conv_7 = depthwise_conv2d_transpose(input_ims_r, filter=filters_r_2, strides=[1, strides[0], strides[1], 1], padding=padding, output_shape=output_shape_3) 
+
+        # out_conv_7 = depthwise_conv2d_transpose(input_ims_r, filter=filters_r, strides=[1, strides[0], strides[1], 1], padding=padding, output_shape=output_shape_2) 
+        # out_conv_7 = depthwise_conv2d_transpose(input_ims_r, filter=tf.transpose(filters_r, [0, 1, 3, 2]), strides=[1, strides[0], strides[1], 1], padding=padding, output_shape=output_shape_2) 
+        
+        # sosf = upsample_bilinear_2x(tf.tile(input_ims_r, [5,1,1,1])[:,:,:,:28])
+        # out_conv_7 = depthwise_conv2d_transpose(input_ims_r, filter=filters_r, strides=[1, strides[0], strides[1], 1], padding=padding, output_shape=output_shape_1) 
+        # out_conv_8 = depthwise_conv2d_transpose(input_ims_r, filter=tf.transpose(filters_r, [0, 1, 3, 2]), strides=[1, strides[0], strides[1], 1], padding=padding, output_shape=output_shape_1) 
+        # out_conv_1 = depthwise_conv2d_transpose(input_ims_r, filter=filters_r, strides=[1, strides[0], strides[1], 1], output_shape=output_shape_1) 
+        # out_conv_2 = depthwise_conv2d_transpose(input_ims_r, filter=tf.transpose(filters_r, [0, 1, 3, 2]), strides=[1, strides[0], strides[1], 1], output_shape=output_shape_1) 
+
+        # init = tf.initialize_all_variables()
+        # sess = tf.InteractiveSession()  
+        # sess.run(init)
+        # # sess.run(input_ims_r).shape
+        # # sess.run(filters_r).shape
+        # pdb.set_trace()
+        # sess.run(out_conv).shape
+        # sess.run(orig).shape
+        # sess.run(orig2).shape
+
+        input_ims_outted = tf.layers.conv2d(inputs=input_ims, filters=output_channels, kernel_size=[1, 1], strides=[1, 1], padding="VALID", use_bias=True, activation=None)
+        input_ims_outted_r = tf.reshape(tf.transpose(input_ims_outted, [1, 2, 0, 3]), [1, input_ims_outted.get_shape()[1].value, input_ims_outted.get_shape()[2].value, -1])
+        new_filter = filters[:,:,:,0,:,np.newaxis]
+        new_filter_r = tf.reshape(tf.transpose(new_filter, [1, 2, 0, 3, 4]), [new_filter.get_shape()[1].value, new_filter.get_shape()[2].value, -1, new_filter.get_shape()[4].value])
+        out_conv = gen_nn_ops.depthwise_conv2d_native_backprop_input(input_sizes=[1, projected_out_height, projected_out_width, tf.shape(input_ims)[0]*output_channels], filter=new_filter_r, out_backprop=input_ims_outted_r, strides=[1, strides[0], strides[1], 1], padding=padding)
+        out_reshaped = tf.reshape(out_conv, [out_conv.get_shape()[1].value, out_conv.get_shape()[2].value, -1, output_channels, 1])
+        out = tf.transpose(out_reshaped, [2, 0, 1, 3, 4])[:,:,:,:,0]
+        
+        init = tf.initialize_all_variables()
+        sess = tf.InteractiveSession()  
+        sess.run(init)
+        # sess.run(out).shape
+        pdb.set_trace()
+    else: 
+        out_conv = tf.nn.depthwise_conv2d(input_ims_r, filter=filters_r, strides=[1, strides[0], strides[1], 1], padding=padding)
+        out_reshaped = tf.reshape(out_conv, [out_conv.get_shape()[1].value, out_conv.get_shape()[2].value, -1, input_channels, output_channels])
+        out = tf.reduce_sum(tf.transpose(out_reshaped, [2, 0, 1, 3, 4]), axis=3) # sum across input_channels
+        pdb.set_trace()
+    
+    
+    out_height = out.get_shape()[1].value 
+    out_width = out.get_shape()[2].value
+    # out_conv shape: 1 x out_height x out_width x batch_size*input_channels*output_channels
+    assert(out_height == projected_out_height)
+    assert(out_width == projected_out_width)
+    # out shape is: batch_size x out_height x out_width x out_channels 
+    return out
+
+def tf_manual_batched_conv2d_layer(input_ims, filters, biases, strides = [1, 1], padding='VALID', use_bias = True, nonlinearity=None, transpose=False, verbose=False):
+    # input_ims shape: batch_size x height x width x input_channels
+    # filters shape: batch_size x filter_height x filter_width x input_channels x output_channels
+    # biases shape: batch_size x output_channels
+    conv_ims = tf_manual_batched_conv2d(input_ims, filters, strides=strides, padding=padding, transpose=transpose)
+    if verbose: print('\nConvolution from, '+ str(input_ims.get_shape().as_list()) + ' to, ' + str(conv_ims.get_shape().as_list())+'\n')
+    if use_bias: conv_ims_biased = conv_ims + biases[:, np.newaxis, np.newaxis, :]
+    else: conv_ims_biased = conv_ims
+    if nonlinearity is not None: return nonlinearity(conv_ims_biased)
+    else: return conv_ims_biased
+
+def tf_manual_conv2d(input_ims, filters, strides = [1, 1], padding='VALID', transpose=False):
+    # input_ims shape: batch_size x height x width x input_channels
+    # filters shape: filter_height x filter_width x input_channels x output_channels
+    height = input_ims.get_shape()[1].value
+    width = input_ims.get_shape()[2].value
+    input_channels = input_ims.get_shape()[3].value
+    filter_height = filters.get_shape()[0].value
+    filter_width = filters.get_shape()[1].value
+    output_channels = filters.get_shape()[3].value
+    if transpose:
+        if padding == 'VALID': 
+            projected_out_height_low, projected_out_height_high = (height-1)*strides[0]+filter_height-1+1, height*strides[0]+filter_height-1
+            projected_out_width_low, projected_out_width_high = (width-1)*strides[1]+filter_width-1+1,  width*strides[1]+filter_width-1
+            projected_out_height, projected_out_width = projected_out_height_low, projected_out_width_low, 
+        elif padding == 'SAME': 
+            projected_out_height_low, projected_out_height_high = (height-1)*strides[0]+1, height*strides[0]
+            projected_out_width_low, projected_out_width_high =  (width-1)*strides[1]+1, width*strides[1]
+            projected_out_height, projected_out_width = projected_out_height_high, projected_out_width_high
+    else:
+        if padding == 'VALID':
+            projected_out_height = int(np.ceil((float(height-filter_height+1)/float(strides[0]))))
+            projected_out_width = int(np.ceil((float(width-filter_width+1)/float(strides[1]))))
+        elif padding == 'SAME':
+            projected_out_height = int(np.ceil(float(height)/float(strides[0])))
+            projected_out_width = int(np.ceil(float(width)/float(strides[1])))
+    assert (input_channels == filters.get_shape()[2].value)
+    assert (padding == 'VALID' or padding == 'SAME')
+    assert (len(strides) == 2 and strides[0] > 0 and strides[1] > 0)
+
+    if transpose: 
+        output_shape = [tf.shape(input_ims)[0], projected_out_height, projected_out_width, output_channels] 
+        out_conv = tf.nn.conv2d_transpose(input_ims, tf.transpose(filters, [0,1,3,2]), strides=[1, strides[0], strides[1], 1], padding=padding, output_shape=output_shape) 
+    else: 
+        out_conv = tf.nn.conv2d(input_ims, filters, strides=[1, strides[0], strides[1], 1], padding=padding)
+
+    out_height = out_conv.get_shape()[1].value 
+    out_width = out_conv.get_shape()[2].value
+    assert(out_height == projected_out_height)
+    assert(out_width == projected_out_width)
+    # out_conv shape is: batch_size x out_height x out_width x out_channels 
+    return out_conv
+
+def tf_manual_conv2d_layer(input_ims, filters, biases, strides = [1, 1], padding='VALID', use_bias = True, nonlinearity=None, transpose=False, verbose=False):
+    # input_ims shape: batch_size x height x width x input_channels
+    # filters shape: filter_height x filter_width x input_channels x output_channels
+    # biases shape: output_channels
+    conv_ims = tf_manual_conv2d(input_ims, filters, strides=strides, padding=padding, transpose=transpose)
+    if verbose: print('\nConvolution from, '+ str(input_ims.get_shape().as_list()) + ' to, ' + str(conv_ims.get_shape().as_list())+'\n')
+    if use_bias: conv_ims_biased = conv_ims + biases[np.newaxis, np.newaxis, np.newaxis, :]
+    else: conv_ims_biased = conv_ims
+    if nonlinearity is not None: return nonlinearity(conv_ims_biased)
+    else: return conv_ims_biased
+
+batch_size = 10
+im_height = 16
+im_width = 15
+n_in_channels = 3
+
+filter_height = 5
+filter_width = 4
+n_out_channels = 11
+
+strides = [2, 2]
+padding='SAME'
+nonlinearity = tf.nn.relu
+use_bias = True
+transpose = True
+verbose = True
+random_param = False
+
+input_ims =  tf.random_uniform(shape=(batch_size, im_height, im_width, n_in_channels), dtype=tf.float32) 
+
+if random_param:
+    input_filters_fixed =  tf.random_uniform(shape=(filter_height, filter_width, n_in_channels, n_out_channels), dtype=tf.float32)
+    input_filters_fixed_batched = tf.tile(input_filters_fixed[np.newaxis, :, :, : ,:], [batch_size, 1, 1, 1, 1])
+    input_filters_batched = tf.random_uniform(shape=(batch_size, filter_height, filter_width, n_in_channels, n_out_channels), dtype=tf.float32)
+    input_biases_fixed = tf.random_uniform(shape=(n_out_channels,), dtype=tf.float32)
+    input_biases_fixed_batched = tf.tile(input_biases_fixed[np.newaxis,:], [batch_size, 1])
+    input_biases_batched = tf.random_uniform(shape=(batch_size, n_out_channels), dtype=tf.float32)
+else:
+    n_parameter = tf_manual_conv2d_n_parameters(filter_height, filter_width, n_in_channels, n_out_channels)
+    fixed_parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
+    batched_parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(batch_size, 1)), units = n_parameter, use_bias = False, activation = None)
+
+    param_index = 0
+    input_filters_fixed_vec, param_index = slice_parameters(fixed_parameters, param_index, filter_height*filter_width*n_in_channels*n_out_channels) 
+    input_biases_fixed_vec, param_index = slice_parameters(fixed_parameters, param_index, n_out_channels) 
+
+    param_index = 0
+    input_filters_batched_vec, param_index = slice_parameters(batched_parameters, param_index, filter_height*filter_width*n_in_channels*n_out_channels) 
+    input_biases_batched_vec, param_index = slice_parameters(batched_parameters, param_index, n_out_channels) 
+
+    input_filters_fixed = tf.reshape(input_filters_fixed_vec[0, ...], [filter_height, filter_width, n_in_channels, n_out_channels])
+    input_filters_fixed_batched = tf.tile(input_filters_fixed[np.newaxis, :, :, : ,:], [batch_size, 1, 1, 1, 1])
+    input_filters_batched = tf.reshape(input_filters_batched_vec, [-1, filter_height, filter_width, n_in_channels, n_out_channels])
+
+    input_biases_fixed = input_biases_fixed_vec[0, :]
+    input_biases_fixed_batched = tf.tile(input_biases_fixed[np.newaxis,:], [batch_size, 1])
+    input_biases_batched = input_biases_batched_vec
+
+conv_ims_fixed = tf_manual_conv2d_layer(input_ims, input_filters_fixed, input_biases_fixed, strides=strides, padding=padding, use_bias=use_bias, nonlinearity=nonlinearity, transpose=transpose, verbose=verbose)
+conv_ims_fixed_batched = tf_manual_batched_conv2d_layer(input_ims, input_filters_fixed_batched, input_biases_fixed_batched, strides=strides, padding=padding, use_bias=use_bias, nonlinearity=nonlinearity, transpose=transpose, verbose=verbose)
+conv_ims_batched = tf_manual_batched_conv2d_layer(input_ims, input_filters_batched, input_biases_batched, strides=strides, padding=padding, use_bias=use_bias, nonlinearity=nonlinearity, transpose=transpose, verbose=verbose)
+
+pdb.set_trace()
+
+init = tf.initialize_all_variables()
+sess = tf.InteractiveSession()  
+sess.run(init)
+input_ims_np, conv_ims_fixed_np, conv_ims_fixed_batched_np, conv_ims_batched_np = sess.run([input_ims, conv_ims_fixed, conv_ims_fixed_batched, conv_ims_batched])
+print(np.abs(conv_ims_batched_np-conv_ims_fixed_np).max())
+print(np.abs(conv_ims_fixed_batched_np-conv_ims_fixed_np).max())
+
+import time
+print('Start Timer: ')
+start = time.time();
+for i in range(10000):
+    conv_ims_fixed_np = sess.run(conv_ims_fixed)
+end = time.time()
+print('Time: {:.3f}\n'.format((end - start)))
+
+import time
+print('Start Timer: ')
+start = time.time();
+for i in range(10000):
+    conv_ims_fixed_np = sess.run(conv_ims_fixed_batched)
+end = time.time()
+print('Time: {:.3f}\n'.format((end - start)))
+pdb.set_trace()
+
+
+print((projected_out_height_low, projected_out_height_high), (projected_out_width_low, projected_out_width_high))
+print(projected_out_height, projected_out_width) 
+print('\n\n\n')
+# # first three are the same, last two must be different in height and width
+print(tf.nn.conv2d(tf.random_uniform(shape=(1, projected_out_height, projected_out_width, 3), dtype=tf.float32), filters, strides=[1, strides[0], strides[1], 1], padding=padding))
+print(tf.nn.conv2d(tf.random_uniform(shape=(1, projected_out_height_low, projected_out_width_low, 3), dtype=tf.float32), filters, strides=[1, strides[0], strides[1], 1], padding=padding))
+print(tf.nn.conv2d(tf.random_uniform(shape=(1, projected_out_height_high, projected_out_width_high, 3), dtype=tf.float32), filters, strides=[1, strides[0], strides[1], 1], padding=padding))
+print(tf.nn.conv2d(tf.random_uniform(shape=(1, projected_out_height_low-1, projected_out_width_low-1, 3), dtype=tf.float32), filters, strides=[1, strides[0], strides[1], 1], padding=padding))
+print(tf.nn.conv2d(tf.random_uniform(shape=(1, projected_out_height_high+1, projected_out_width_high+1, 3), dtype=tf.float32), filters, strides=[1, strides[0], strides[1], 1], padding=padding))
+print('\n\n\n')
+
+
+
+# batch_size = 10
+# im_size = 12
+# n_channels = 3
+
+# squeeze_func = squeeze_realnpv_depthspace
+# # squeeze_func = squeeze_realnpv
+# # unsqueeze_func = unsqueeze_realnpv_depthspace
+# unsqueeze_func = unsqueeze_realnpv
+
+# input_ims =  tf.random_uniform(shape=(batch_size, im_size, im_size, n_channels), dtype=tf.float32) # required for some transforms#
+# squeezed_ims = squeeze_func(input_ims, squeeze_order=[1,4,2,3], verbose=True)
+# unsqueezed_ims = unsqueeze_func(squeezed_ims, squeeze_order=[1,4,2,3], verbose=True)
+
+# init = tf.initialize_all_variables()
+# sess = tf.InteractiveSession()  
+# sess.run(init)
+
+# import time
+# print('Start Timer: ')
+# start = time.time();
+# for i in range(50000):
+#     input_ims_np, squeezed_ims_np, unsqueezed_ims_np = sess.run([input_ims, squeezed_ims, unsqueezed_ims])
+# end = time.time()
+# print('Time: {:.3f}\n'.format((end - start)))
+# # np.abs(input_ims_np-unsqueezed_ims_np).max()
+# pdb.set_trace()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # input_tf = tf.placeholder(tf.float32, [5])
 # z = binaryStochastic_ST(input_tf)

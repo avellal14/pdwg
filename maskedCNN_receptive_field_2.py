@@ -77,6 +77,7 @@ def get_sparse_grid_samples(resolution=100, subsample_rate=10, range_min=-1, ran
 
 filter_size = 5
 im_size = 50
+im_channels = 3
 n_layers = 10
 
 regular_mask_l1_np = np.ones([filter_size, filter_size], np.float32)
@@ -100,13 +101,14 @@ vertical_mask_np = np.ones([filter_size, filter_size], np.float32)
 vertical_mask_np[math.floor(filter_size/2)+1:, :] = 0
 vertical_mask = tf.constant(vertical_mask_np, tf.float32)
 
-input_im_np = np.zeros([im_size*im_size, im_size, im_size, 1], np.float32)
+input_im_np = np.zeros([im_size*im_size, im_size, im_size, im_channels], np.float32)
 for i in range(input_im_np.shape[1]):
     for j in range(input_im_np.shape[2]):
-        input_im_np[i*input_im_np.shape[2]+j, i, j, :] = 1
+        for k in range(input_im_np.shape[2]):
+            input_im_np[i*input_im_np.shape[2]*input_im_np.shape[3]+j*input_im_np.shape[3]+k, i, j, k] = 1
 input_im = tf.constant(input_im_np, tf.float32)
 
-filter_weights = tf.ones([5, 5, 1, 1], dtype = tf.float32)
+filter_weights = tf.ones([5, 5, 3, 1], dtype = tf.float32)
 
 filter_regular_mask_l1 = regular_mask_l1[:, :, np.newaxis, np.newaxis]*filter_weights
 filter_regular_mask = regular_mask[:, :, np.newaxis, np.newaxis]*filter_weights
@@ -117,6 +119,7 @@ filter_horizontal_mask = horizontal_mask[:, :, np.newaxis, np.newaxis]*filter_we
 filter_vertical_mask_l1 = vertical_mask_l1[:, :, np.newaxis, np.newaxis]*filter_weights
 filter_vertical_mask = vertical_mask[:, :, np.newaxis, np.newaxis]*filter_weights
 
+n_layers_needed = (filter_size-1.)/2.
 n_layers = n_layers_needed
 for curr_n_layers in range(1,n_layers+1):
     print('Current n layers: ', curr_n_layers)
