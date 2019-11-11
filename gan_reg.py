@@ -627,7 +627,7 @@ with tf.Graph().as_default():
         batch_tf, input_dict_func = helper.tf_batch_and_input_dict(batch, additional_inputs_tf)
         model.inference(batch_tf, additional_inputs_tf)
         model.generative_model(batch_tf, additional_inputs_tf)
-        pdb.set_trace()
+        #pdb.set_trace()
 
         div_vars = [v for v in tf.trainable_variables() if 'Diverger' in v.name or 'Decomposer' in v.name]
         enc_vars = [v for v in tf.trainable_variables() if 'Encoder' in v.name] 
