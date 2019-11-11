@@ -402,6 +402,8 @@ class Encoder():
 					latent_flat = latent_flat_det+latent_variance*noise
 				if self.config['encoder_mode'] == 'UnivApprox' or 'UnivApproxNoSpatial' in self.config['encoder_mode']:
 					# worked for MNIST
+					pdb.set_trace()
+					
 					if self.config['encoder_mode'] == 'UnivApproxNoSpatial_dense_comb':
 						latent_flat_det = tf.layers.dense(inputs = latent_image_flat, units = self.config['n_latent'], use_bias = True, activation = None)
 						lay1_concat = tf.layers.dense(inputs = tf.concat([latent_flat_det, noise],axis=-1), units = 2*self.config['n_latent'], use_bias = True, activation = self.activation_function)

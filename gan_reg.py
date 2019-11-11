@@ -45,7 +45,7 @@ Algorithm = 'AE'
 if Algorithm == 'AE':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 256, 'n_flat': 400, 
-                             'encoder_mode': 'Deterministic', 'divergence_mode': 'None', 'dual_dist_mode': '',  'infomax_mode': 'None', 'sample_distance_mode': 'Euclidean',
+                             'encoder_mode': 'Gaussian', 'divergence_mode': 'None', 'dual_dist_mode': '',  'infomax_mode': 'None', 'sample_distance_mode': 'Euclidean',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 0, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 0, 'enc_inv_MMD_n_trans': 0, 'enc_inv_MMD_strength': 0,
                              'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {}, 'rnf_prop': {}}
@@ -1231,23 +1231,23 @@ with tf.Graph().as_default():
                 print('Visualized latents - UMAP: Time: {:.3f}\n'.format((end - start)))
 
     print('Starting training.')
-    memory_node = tf.contrib.memory_stats.MaxBytesInUse()
+    # memory_node = tf.contrib.memory_stats.MaxBytesInUse()
     while global_args.curr_epoch < global_args.epochs + 1:
-        print('=== Memory at start of epoch: ' + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) +' MB  '+ str(helper.convert_size(sess.run(memory_node))))
+        # print('=== Memory at start of epoch: ' + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) +' MB  '+ str(helper.convert_size(sess.run(memory_node))))
         train()
         gc.collect(); gc.collect()
-        print('=== Memory After train(): ' + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) +' MB  '+ str(helper.convert_size(sess.run(memory_node))))
+        # print('=== Memory After train(): ' + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) +' MB  '+ str(helper.convert_size(sess.run(memory_node))))
         if global_args.test_epoch_rate[0]>0 and global_args.curr_epoch % global_args.test_epoch_rate[0] == global_args.test_epoch_rate[1]: 
             test()
             gc.collect(); gc.collect()
-            print('=== Memory After test(): ' + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) +' MB  '+ str(helper.convert_size(sess.run(memory_node))))
+            # print('=== Memory After test(): ' + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) +' MB  '+ str(helper.convert_size(sess.run(memory_node))))
 
         visualize(mode='train')
         gc.collect(); gc.collect()
-        print('=== Memory After visualize(mode=train): ' + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) +' MB  '+ str(helper.convert_size(sess.run(memory_node))))
+        # print('=== Memory After visualize(mode=train): ' + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) +' MB  '+ str(helper.convert_size(sess.run(memory_node))))
         visualize(mode='test')
         gc.collect(); gc.collect()
-        print('=== Memory After visualize(mode=test): ' + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) +' MB  '+ str(helper.convert_size(sess.run(memory_node)))) 
+        # print('=== Memory After visualize(mode=test): ' + str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024) +' MB  '+ str(helper.convert_size(sess.run(memory_node)))) 
 
         total_n_nodes = len([n.name for n in tf.get_default_graph().as_graph_def().node])
         print("No. of nodes on the graph: ", total_n_nodes, "\n")
