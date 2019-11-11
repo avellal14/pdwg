@@ -2335,94 +2335,94 @@ def tf_manual_conv2d_layer(input_ims, filters, biases, strides = [1, 1], padding
     if nonlinearity is not None: return nonlinearity(conv_ims_biased)
     else: return conv_ims_biased
 
-batch_size = 10
-im_height = 16
-im_width = 15
-n_in_channels = 3
+# batch_size = 10
+# im_height = 16
+# im_width = 15
+# n_in_channels = 3
 
-filter_height = 5
-filter_width = 4
-n_out_channels = 11
+# filter_height = 5
+# filter_width = 4
+# n_out_channels = 11
 
-strides = [2, 2]
-padding='SAME'
-nonlinearity = tf.nn.relu
-use_bias = True
-transpose = True
-verbose = True
-random_param = False
+# strides = [2, 2]
+# padding='SAME'
+# nonlinearity = tf.nn.relu
+# use_bias = True
+# transpose = True
+# verbose = True
+# random_param = False
 
-input_ims =  tf.random_uniform(shape=(batch_size, im_height, im_width, n_in_channels), dtype=tf.float32) 
+# input_ims =  tf.random_uniform(shape=(batch_size, im_height, im_width, n_in_channels), dtype=tf.float32) 
 
-if random_param:
-    input_filters_fixed =  tf.random_uniform(shape=(filter_height, filter_width, n_in_channels, n_out_channels), dtype=tf.float32)
-    input_filters_fixed_batched = tf.tile(input_filters_fixed[np.newaxis, :, :, : ,:], [batch_size, 1, 1, 1, 1])
-    input_filters_batched = tf.random_uniform(shape=(batch_size, filter_height, filter_width, n_in_channels, n_out_channels), dtype=tf.float32)
-    input_biases_fixed = tf.random_uniform(shape=(n_out_channels,), dtype=tf.float32)
-    input_biases_fixed_batched = tf.tile(input_biases_fixed[np.newaxis,:], [batch_size, 1])
-    input_biases_batched = tf.random_uniform(shape=(batch_size, n_out_channels), dtype=tf.float32)
-else:
-    n_parameter = tf_manual_conv2d_n_parameters(filter_height, filter_width, n_in_channels, n_out_channels)
-    fixed_parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
-    batched_parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(batch_size, 1)), units = n_parameter, use_bias = False, activation = None)
+# if random_param:
+#     input_filters_fixed =  tf.random_uniform(shape=(filter_height, filter_width, n_in_channels, n_out_channels), dtype=tf.float32)
+#     input_filters_fixed_batched = tf.tile(input_filters_fixed[np.newaxis, :, :, : ,:], [batch_size, 1, 1, 1, 1])
+#     input_filters_batched = tf.random_uniform(shape=(batch_size, filter_height, filter_width, n_in_channels, n_out_channels), dtype=tf.float32)
+#     input_biases_fixed = tf.random_uniform(shape=(n_out_channels,), dtype=tf.float32)
+#     input_biases_fixed_batched = tf.tile(input_biases_fixed[np.newaxis,:], [batch_size, 1])
+#     input_biases_batched = tf.random_uniform(shape=(batch_size, n_out_channels), dtype=tf.float32)
+# else:
+#     n_parameter = tf_manual_conv2d_n_parameters(filter_height, filter_width, n_in_channels, n_out_channels)
+#     fixed_parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(1, 1)), units = n_parameter, use_bias = False, activation = None)
+#     batched_parameters = 1*tf.layers.dense(inputs = tf.ones(shape=(batch_size, 1)), units = n_parameter, use_bias = False, activation = None)
 
-    param_index = 0
-    input_filters_fixed_vec, param_index = slice_parameters(fixed_parameters, param_index, filter_height*filter_width*n_in_channels*n_out_channels) 
-    input_biases_fixed_vec, param_index = slice_parameters(fixed_parameters, param_index, n_out_channels) 
+#     param_index = 0
+#     input_filters_fixed_vec, param_index = slice_parameters(fixed_parameters, param_index, filter_height*filter_width*n_in_channels*n_out_channels) 
+#     input_biases_fixed_vec, param_index = slice_parameters(fixed_parameters, param_index, n_out_channels) 
 
-    param_index = 0
-    input_filters_batched_vec, param_index = slice_parameters(batched_parameters, param_index, filter_height*filter_width*n_in_channels*n_out_channels) 
-    input_biases_batched_vec, param_index = slice_parameters(batched_parameters, param_index, n_out_channels) 
+#     param_index = 0
+#     input_filters_batched_vec, param_index = slice_parameters(batched_parameters, param_index, filter_height*filter_width*n_in_channels*n_out_channels) 
+#     input_biases_batched_vec, param_index = slice_parameters(batched_parameters, param_index, n_out_channels) 
 
-    input_filters_fixed = tf.reshape(input_filters_fixed_vec[0, ...], [filter_height, filter_width, n_in_channels, n_out_channels])
-    input_filters_fixed_batched = tf.tile(input_filters_fixed[np.newaxis, :, :, : ,:], [batch_size, 1, 1, 1, 1])
-    input_filters_batched = tf.reshape(input_filters_batched_vec, [-1, filter_height, filter_width, n_in_channels, n_out_channels])
+#     input_filters_fixed = tf.reshape(input_filters_fixed_vec[0, ...], [filter_height, filter_width, n_in_channels, n_out_channels])
+#     input_filters_fixed_batched = tf.tile(input_filters_fixed[np.newaxis, :, :, : ,:], [batch_size, 1, 1, 1, 1])
+#     input_filters_batched = tf.reshape(input_filters_batched_vec, [-1, filter_height, filter_width, n_in_channels, n_out_channels])
 
-    input_biases_fixed = input_biases_fixed_vec[0, :]
-    input_biases_fixed_batched = tf.tile(input_biases_fixed[np.newaxis,:], [batch_size, 1])
-    input_biases_batched = input_biases_batched_vec
+#     input_biases_fixed = input_biases_fixed_vec[0, :]
+#     input_biases_fixed_batched = tf.tile(input_biases_fixed[np.newaxis,:], [batch_size, 1])
+#     input_biases_batched = input_biases_batched_vec
 
-conv_ims_fixed = tf_manual_conv2d_layer(input_ims, input_filters_fixed, input_biases_fixed, strides=strides, padding=padding, use_bias=use_bias, nonlinearity=nonlinearity, transpose=transpose, verbose=verbose)
-conv_ims_fixed_batched = tf_manual_batched_conv2d_layer(input_ims, input_filters_fixed_batched, input_biases_fixed_batched, strides=strides, padding=padding, use_bias=use_bias, nonlinearity=nonlinearity, transpose=transpose, verbose=verbose)
-conv_ims_batched = tf_manual_batched_conv2d_layer(input_ims, input_filters_batched, input_biases_batched, strides=strides, padding=padding, use_bias=use_bias, nonlinearity=nonlinearity, transpose=transpose, verbose=verbose)
+# conv_ims_fixed = tf_manual_conv2d_layer(input_ims, input_filters_fixed, input_biases_fixed, strides=strides, padding=padding, use_bias=use_bias, nonlinearity=nonlinearity, transpose=transpose, verbose=verbose)
+# conv_ims_fixed_batched = tf_manual_batched_conv2d_layer(input_ims, input_filters_fixed_batched, input_biases_fixed_batched, strides=strides, padding=padding, use_bias=use_bias, nonlinearity=nonlinearity, transpose=transpose, verbose=verbose)
+# conv_ims_batched = tf_manual_batched_conv2d_layer(input_ims, input_filters_batched, input_biases_batched, strides=strides, padding=padding, use_bias=use_bias, nonlinearity=nonlinearity, transpose=transpose, verbose=verbose)
 
-pdb.set_trace()
+# pdb.set_trace()
 
-init = tf.initialize_all_variables()
-sess = tf.InteractiveSession()  
-sess.run(init)
-input_ims_np, conv_ims_fixed_np, conv_ims_fixed_batched_np, conv_ims_batched_np = sess.run([input_ims, conv_ims_fixed, conv_ims_fixed_batched, conv_ims_batched])
-print(np.abs(conv_ims_batched_np-conv_ims_fixed_np).max())
-print(np.abs(conv_ims_fixed_batched_np-conv_ims_fixed_np).max())
+# init = tf.initialize_all_variables()
+# sess = tf.InteractiveSession()  
+# sess.run(init)
+# input_ims_np, conv_ims_fixed_np, conv_ims_fixed_batched_np, conv_ims_batched_np = sess.run([input_ims, conv_ims_fixed, conv_ims_fixed_batched, conv_ims_batched])
+# print(np.abs(conv_ims_batched_np-conv_ims_fixed_np).max())
+# print(np.abs(conv_ims_fixed_batched_np-conv_ims_fixed_np).max())
 
-import time
-print('Start Timer: ')
-start = time.time();
-for i in range(10000):
-    conv_ims_fixed_np = sess.run(conv_ims_fixed)
-end = time.time()
-print('Time: {:.3f}\n'.format((end - start)))
+# import time
+# print('Start Timer: ')
+# start = time.time();
+# for i in range(10000):
+#     conv_ims_fixed_np = sess.run(conv_ims_fixed)
+# end = time.time()
+# print('Time: {:.3f}\n'.format((end - start)))
 
-import time
-print('Start Timer: ')
-start = time.time();
-for i in range(10000):
-    conv_ims_fixed_np = sess.run(conv_ims_fixed_batched)
-end = time.time()
-print('Time: {:.3f}\n'.format((end - start)))
-pdb.set_trace()
+# import time
+# print('Start Timer: ')
+# start = time.time();
+# for i in range(10000):
+#     conv_ims_fixed_np = sess.run(conv_ims_fixed_batched)
+# end = time.time()
+# print('Time: {:.3f}\n'.format((end - start)))
+# pdb.set_trace()
 
 
-print((projected_out_height_low, projected_out_height_high), (projected_out_width_low, projected_out_width_high))
-print(projected_out_height, projected_out_width) 
-print('\n\n\n')
-# # first three are the same, last two must be different in height and width
-print(tf.nn.conv2d(tf.random_uniform(shape=(1, projected_out_height, projected_out_width, 3), dtype=tf.float32), filters, strides=[1, strides[0], strides[1], 1], padding=padding))
-print(tf.nn.conv2d(tf.random_uniform(shape=(1, projected_out_height_low, projected_out_width_low, 3), dtype=tf.float32), filters, strides=[1, strides[0], strides[1], 1], padding=padding))
-print(tf.nn.conv2d(tf.random_uniform(shape=(1, projected_out_height_high, projected_out_width_high, 3), dtype=tf.float32), filters, strides=[1, strides[0], strides[1], 1], padding=padding))
-print(tf.nn.conv2d(tf.random_uniform(shape=(1, projected_out_height_low-1, projected_out_width_low-1, 3), dtype=tf.float32), filters, strides=[1, strides[0], strides[1], 1], padding=padding))
-print(tf.nn.conv2d(tf.random_uniform(shape=(1, projected_out_height_high+1, projected_out_width_high+1, 3), dtype=tf.float32), filters, strides=[1, strides[0], strides[1], 1], padding=padding))
-print('\n\n\n')
+# print((projected_out_height_low, projected_out_height_high), (projected_out_width_low, projected_out_width_high))
+# print(projected_out_height, projected_out_width) 
+# print('\n\n\n')
+# # # first three are the same, last two must be different in height and width
+# print(tf.nn.conv2d(tf.random_uniform(shape=(1, projected_out_height, projected_out_width, 3), dtype=tf.float32), filters, strides=[1, strides[0], strides[1], 1], padding=padding))
+# print(tf.nn.conv2d(tf.random_uniform(shape=(1, projected_out_height_low, projected_out_width_low, 3), dtype=tf.float32), filters, strides=[1, strides[0], strides[1], 1], padding=padding))
+# print(tf.nn.conv2d(tf.random_uniform(shape=(1, projected_out_height_high, projected_out_width_high, 3), dtype=tf.float32), filters, strides=[1, strides[0], strides[1], 1], padding=padding))
+# print(tf.nn.conv2d(tf.random_uniform(shape=(1, projected_out_height_low-1, projected_out_width_low-1, 3), dtype=tf.float32), filters, strides=[1, strides[0], strides[1], 1], padding=padding))
+# print(tf.nn.conv2d(tf.random_uniform(shape=(1, projected_out_height_high+1, projected_out_width_high+1, 3), dtype=tf.float32), filters, strides=[1, strides[0], strides[1], 1], padding=padding))
+# print('\n\n\n')
 
 
 

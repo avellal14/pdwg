@@ -33,19 +33,19 @@ else:
 # dataset_to_use = 'IMAGENET'
 # dataset_to_use = 'BEDROOM'
 # dataset_to_use = 'CELEB'
-dataset_to_use = 'CIFAR10'
-# dataset_to_use = 'MNIST'
+# dataset_to_use = 'CIFAR10'
+dataset_to_use = 'MNIST'
 # dataset_to_use = 'CAT'
 # dataset_to_use = 'FLOWERS'
 # dataset_to_use = 'CUB'
 # dataset_to_use = 'TOY'
 # dataset_to_use = 'INTENSITY'
 
-Algorithm = 'RNF'
+Algorithm = 'AE'
 if Algorithm == 'AE':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 256, 'n_flat': 400, 
-                             'encoder_mode': 'UnivApproxNoSpatial', 'divergence_mode': 'None', 'dual_dist_mode': '',  'infomax_mode': 'None', 'sample_distance_mode': 'Euclidean',
+                             'encoder_mode': 'Deterministic', 'divergence_mode': 'None', 'dual_dist_mode': '',  'infomax_mode': 'None', 'sample_distance_mode': 'Euclidean',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 0, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 0, 'enc_inv_MMD_n_trans': 0, 'enc_inv_MMD_strength': 0,
                              'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {}, 'rnf_prop': {}}
@@ -604,6 +604,7 @@ global_args.exp_dir = helper.get_exp_dir(global_args)
 helper.list_hyperparameters(global_args.exp_dir)
 global_args.log_interval = int(np.floor(data_loader.train_max_iter/5))
 
+
 print("TENSORBOARD: Linux:\npython -m tensorflow.tensorboard --logdir=model1:"+\
     os.path.realpath(global_args.exp_dir)+" --port="+str(20000+int(global_args.exp_dir[-4:-1], 16))+" &")
 print("TENSORBOARD: Mac:\nhttp://0.0.0.0:"+str(20000+int(global_args.exp_dir[-4:-1], 16)))
@@ -626,6 +627,7 @@ with tf.Graph().as_default():
         batch_tf, input_dict_func = helper.tf_batch_and_input_dict(batch, additional_inputs_tf)
         model.inference(batch_tf, additional_inputs_tf)
         model.generative_model(batch_tf, additional_inputs_tf)
+        pdb.set_trace()
 
         div_vars = [v for v in tf.trainable_variables() if 'Diverger' in v.name or 'Decomposer' in v.name]
         enc_vars = [v for v in tf.trainable_variables() if 'Encoder' in v.name] 

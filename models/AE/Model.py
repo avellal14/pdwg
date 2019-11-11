@@ -10,12 +10,13 @@ import argparse
 import copy
 from pathlib import Path
 
-import models.WAECompactFlow.ModelMaps as ModelMaps
+import models.AE.ModelMaps as ModelMaps
 
 import helper
 import distributions 
 import transforms
 import tensorflow as tf
+
 
 class Model():
     def __init__(self, global_args, name = 'Model'):
