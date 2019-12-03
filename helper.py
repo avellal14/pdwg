@@ -1025,7 +1025,7 @@ def FCResnetLayer_v2(x, units, reduce_units=None, activation=None, reduce_activa
 			shortcut = batch_norm()(shortcut)
 
 	if reduce_units is None: reduce_units = units
-	reduce_layer = tf.layers.dense(inputs = x, units = reduce_units, activation = reduce_activation, use_bias=True)
+	reduce_layer = tf.layers.dense(inputs = x, units = reduce_units, activation = None, use_bias=True)
 	if normalization_mode == 'Layer Norm': 
 		reduce_layer = conv_layer_norm_layer(reduce_layer[:,np.newaxis,np.newaxis,:], channel_index=3)[:,0,0,:]
 	elif normalization_mode == 'Batch Norm': 
@@ -1321,7 +1321,7 @@ def tf_build_checker_board_for_images(image, one_left_upper=True):
     mask = tf.constant(mask_np, tf.float32)
     return mask
 
-def compute_MMD(sample_batch_1, sample_batch_2, mode='His', positive_only=False):
+def compute_MMD_OLD(sample_batch_1, sample_batch_2, mode='His', positive_only=False):
     if mode == 'Mine':
         k_sample_1_2 = tf.reduce_mean(self.kernel_function(sample_batch_1, sample_batch_2))
         k_sample_1_1 = tf.reduce_mean(self.kernel_function(sample_batch_1))
@@ -1362,6 +1362,78 @@ def compute_MMD(sample_batch_1, sample_batch_2, mode='His', positive_only=False)
     if positive_only:
         MMD = tf.nn.relu(MMD)+1e-7
     return MMD
+
+def compute_MMD(sample_1, sample_2, weight_1=None, weight_2=None, kernel_type='InvMultiquadratics', kernel_mode='Sum', rectify=False, scales = [0.01, 0.1, 1, 10, 100]):
+    assert (kernel_mode == 'Mid' or kernel_mode == 'Sum' or kernel_mode == 'Mean' or kernel_mode == 'Min' or kernel_mode == 'Max')
+    assert (len(sample_1.get_shape().as_list()) == 2 and len(sample_2.get_shape().as_list()) == 2)
+    assert (sample_1.get_shape()[1].value == sample_2.get_shape()[1].value)
+    if weight_1 is not None: 
+        assert (len(weight_1.get_shape().as_list()) == 2) 
+        assert (weight_1.get_shape()[1].value == 1)
+    if weight_2 is not None: 
+        assert (len(weight_2.get_shape().as_list()) == 2)
+        assert (weight_2.get_shape()[1].value == 1)
+
+    batch_size_tf = tf.shape(sample_1)[0]
+    batch_size_tf_float = tf.cast(batch_size_tf, tf.float32) # batch size float
+    n_dim_tf = tf.shape(sample_1)[1]
+    n_dim_tf_float = tf.cast(n_dim_tf, tf.float32) # batch size float
+
+    sigma_sq_p = 1.0**2
+    c_base = 2*n_dim_tf_float*sigma_sq_p
+    
+    off_diag_ones = 1.0-tf.eye(batch_size_tf)
+
+    norm_sq_1 = tf.reduce_sum(tf.square(sample_1), axis=1, keepdims=True)
+    dotprods_mat_1 = tf.matmul(sample_1, sample_1, transpose_b=True)
+    distance_sq_mat_1 = norm_sq_1+tf.transpose(norm_sq_1)-2*dotprods_mat_1
+
+    norm_sq_2 = tf.reduce_sum(tf.square(sample_2), axis=1, keepdims=True)
+    dotprods_mat_2 = tf.matmul(sample_2, sample_2, transpose_b=True) 
+    distance_sq_mat_2 = norm_sq_2+tf.transpose(norm_sq_2)-2*dotprods_mat_2
+
+    dotprods_mat_1row_2col = tf.matmul(sample_1, sample_2, transpose_b=True)
+    distance_sq_mat_1row_2col = norm_sq_1+tf.transpose(norm_sq_2)-2*dotprods_mat_1row_2col
+
+    all_mmds = []
+    for scale in scales:
+        c_smooth = scale*c_base 
+
+        if kernel_type == 'InvMultiquadratics':
+            ker_mat_1 = inv_multiquadratics_from_l2_dist_sq(c_smooth, distance_sq_mat_1)
+            ker_mat_2 = inv_multiquadratics_from_l2_dist_sq(c_smooth, distance_sq_mat_2)
+            ker_mat_1row_2col = inv_multiquadratics_from_l2_dist_sq(c_smooth, distance_sq_mat_1row_2col)
+        else:
+            pdb.set_trace()
+
+        if weight_1 is not None:
+            ker_mat_1 = ker_mat_1*weight_1*tf.transpose(weight_1)
+            ker_mat_1row_2col = ker_mat_1row_2col*weight_1
+        if weight_2 is not None:
+            ker_mat_2 = ker_mat_2*weight_2*tf.transpose(weight_2)
+            ker_mat_1row_2col = ker_mat_1row_2col*tf.transpose(weight_2)
+
+        ker_mat_1_plus_2_diag_suppressed =  off_diag_ones*(ker_mat_1+ker_mat_2)
+
+        mmd_pos = tf.reduce_sum(ker_mat_1_plus_2_diag_suppressed)/(batch_size_tf_float*batch_size_tf_float-batch_size_tf_float)
+        mmd_neg = 2*tf.reduce_sum(ker_mat_1row_2col)/(batch_size_tf_float*batch_size_tf_float)
+
+        mmd = mmd_pos-mmd_neg
+        all_mmds.append(mmd)
+
+    if kernel_mode == 'Mid':
+        overall_mmd = all_mmds[int(np.ceil(float(len(all_mmds))/2.0))]
+    elif kernel_mode == 'Sum':
+        overall_mmd = tf.add_n(all_mmds)
+    elif kernel_mode == 'Mean':
+        overall_mmd = tf.add_n(all_mmds)/float(len(all_mmds))
+    elif kernel_mode == 'Min':
+        overall_mmd = tf.reduce_min(tf.concat([e[np.newaxis] for e in all_mmds], axis=0))
+    elif kernel_mode == 'Max':
+        overall_mmd = tf.reduce_max(tf.concat([e[np.newaxis] for e in all_mmds], axis=0))
+
+    if rectify: overall_mmd = tf.nn.relu(overall_mmd)+1e-7
+    return overall_mmd
 
 def sum_div(div_func, batch_input):
     # batch_input_transformed = (self.circular_shift(batch_input)+batch_input)/np.sqrt(2)
