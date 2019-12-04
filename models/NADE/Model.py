@@ -116,7 +116,6 @@ class Model():
         #############################################################################
         # ENCODER 
 
-
         if self.config['encoder_mode'] == 'Gaussian': 
             self.epsilon_param = self.EpsilonMap.forward((tf.zeros(shape=(self.batch_size_tf, 1)),))
             self.epsilon_dist = distributions.DiagonalGaussianDistribution(params = self.epsilon_param)        
