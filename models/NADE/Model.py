@@ -64,10 +64,10 @@ class Model():
         self.epoch = additional_inputs_tf[0]
         self.b_identity = additional_inputs_tf[1]
         
-        if len(batch['observed']['properties']['flat'])>0:
-            for e in batch['observed']['properties']['flat']: e['dist']='dirac'
-        else:
-            for e in batch['observed']['properties']['image']: e['dist']='dirac'
+        # if len(batch['observed']['properties']['flat'])>0:
+        #     for e in batch['observed']['properties']['flat']: e['dist']='dirac'
+        # else:
+        #     for e in batch['observed']['properties']['image']: e['dist']='dirac'
 
         self.input_sample = batch['observed']['data']
         self.input_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.input_sample)
@@ -88,7 +88,9 @@ class Model():
         self.obs_sample_param = self.Generator.forward(self.prior_latent_code[:, np.newaxis, :])
         self.obs_sample_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.obs_sample_param)
         self.obs_sample = self.obs_sample_dist.sample()
-        
+
+        self.obs_log_pdf = self.obs_sample_dist.log_pdf(self.input_sample)
+
         if not os.path.exists(str(Path.home())+'/ExperimentalResults/FixedSamples/'): os.makedirs(str(Path.home())+'/ExperimentalResults/FixedSamples/')
         if os.path.exists(str(Path.home())+'/ExperimentalResults/FixedSamples/np_constant_prior_sample_'+str(self.prior_latent_code.get_shape().as_list()[-1])+'.npz'): 
             np_constant_prior_sample = np.load(str(Path.home())+'/ExperimentalResults/FixedSamples/np_constant_prior_sample_'+str(self.prior_latent_code.get_shape().as_list()[-1])+'.npz')
@@ -123,8 +125,7 @@ class Model():
         else:
             self.epsilon = None
 
-        self.posterior_latent_code_expanded = self.Encoder.forward(self.input_sample, noise=self.epsilon)
-        self.posterior_latent_code = self.posterior_latent_code_expanded[:,0,:]
+        self.posterior_latent_code = self.Encoder.forward(self.input_sample, noise=self.epsilon)[:,0,:]
 
         self.interpolated_posterior_latent_code = helper.interpolate_latent_codes(self.posterior_latent_code, size=self.batch_size_tf//2)
         self.interpolated_obs = self.Generator.forward(self.interpolated_posterior_latent_code) 

@@ -29,10 +29,10 @@ class PriorMapGaussian():
  
 	def forward(self, x, name = ''):
 		with tf.variable_scope("PriorMapGaussian", reuse=self.constructed):
-			input_flat = x[0]
-			mu_log_sig = tf.zeros(shape=(tf.shape(input_flat)[0], 2*self.config['n_latent']))
+			input_flat = x[0]			
+			mu_pre_sig = tf.zeros(shape=(tf.shape(input_flat)[0], 2*self.config['n_latent']))
 			self.constructed = True
-			return mu_log_sig
+			return mu_pre_sig
 
 class Encoder():
 	def __init__(self, config, name = '/Encoder'):
@@ -176,6 +176,7 @@ class Generator():
 				out_dict['flat'] = tf.reshape(flat_param, [-1, x.get_shape().as_list()[1], n_output_size])
 
 			if len(self.config['data_properties']['image']) > 0:
+
 				image_shape = (self.config['data_properties']['image'][0]['size'][-3:-1])
 				n_image_size = np.prod(image_shape)
 				n_output_channels = helper.list_sum([distributions.DistributionsAKA[e['dist']].num_params(e['size'][-1]) for e in self.config['data_properties']['image']])
@@ -266,6 +267,7 @@ class Generator():
 					layer_5 = self.activation_function(layer_5)
 					output = tf.layers.conv2d_transpose(inputs=layer_5, filters=n_output_channels, kernel_size=[4, 4], strides=[1,1], padding="valid", use_bias=True, activation=tf.nn.sigmoid)
 					image_param = output
+				
 
 				out_dict['image'] = tf.reshape(image_param, [-1, x.get_shape().as_list()[1], *image_shape, n_output_channels])
 
