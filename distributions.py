@@ -596,7 +596,6 @@ DistributionsAKA = {}
 DistributionsAKA['cat'] = BoltzmanDistribution
 DistributionsAKA['bern'] = BernoulliDistribution
 DistributionsAKA['cont'] = DiagonalGaussianDistribution
-# DistributionsAKA['cont'] = DiagonalBetaDistribution
 DistributionsAKA['dirac'] = DiracDistribution
 
 def visualizeProductDistribution(sess, input_dict, batch, obs_dist, sample_obs_dist, save_dir = '.', postfix = ''):

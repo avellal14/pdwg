@@ -53,7 +53,7 @@ if Algorithm == 'AE':
 if Algorithm == 'NADE':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 10, 'n_flat': 20, 
-                             'encoder_mode': 'Gaussian', 'divergence_mode': 'None', 'dual_dist_mode': '',  'infomax_mode': 'None', 'sample_distance_mode': 'Euclidean',
+                             'encoder_mode': 'Deterministic', 'divergence_mode': 'None', 'dual_dist_mode': '',  'infomax_mode': 'None', 'sample_distance_mode': 'Euclidean',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 0, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 0, 'enc_inv_MMD_n_trans': 0, 'enc_inv_MMD_strength': 0,
                              'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {}, 'rnf_prop': {}}
@@ -653,6 +653,7 @@ try:
     fixed_batch_data = batch['observed']['data']['image'].copy()
     random_batch_data = batch['observed']['data']['image'].copy()
 except: pass
+
 with tf.Graph().as_default():
     tf.set_random_seed(global_args.seed)
     model = Model(vars(global_args))
@@ -885,7 +886,6 @@ with tf.Graph().as_default():
                 distributions.visualizeProductDistribution4(sess, model, curr_feed_dict, batch, model.input_dist, model.reg_dist, 
                 model.reg_target_dist, model.reconst_dist, model.obs_sample_dist, model.gen_obs_sample_dist, real_data = real_data_large_batch,
                 save_dir=global_args.exp_dir+'Visualization/train_'+mode, postfix='train_'+mode+'_'+str(global_args.curr_epoch)+'_e', postfix2='train_'+mode+'_m', b_zero_one_range=b_zero_one_range)
-
         
     def test():
         b_zero_one_range = True

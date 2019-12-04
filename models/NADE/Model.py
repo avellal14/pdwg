@@ -39,10 +39,10 @@ class Model():
         self.gen_epoch = additional_inputs_tf[0]
         self.gen_b_identity = additional_inputs_tf[1]
 
-        if len(batch['observed']['properties']['flat'])>0:
-            for e in batch['observed']['properties']['flat']: e['dist']='dirac'
-        else:
-            for e in batch['observed']['properties']['image']: e['dist']='dirac'
+        # if len(batch['observed']['properties']['flat'])>0:
+        #     for e in batch['observed']['properties']['flat']: e['dist']='dirac'
+        # else:
+        #     for e in batch['observed']['properties']['image']: e['dist']='dirac'
 
         self.gen_input_sample = batch['observed']['data']
         self.gen_input_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.gen_input_sample)
@@ -125,14 +125,16 @@ class Model():
         else:
             self.epsilon = None
 
-        self.posterior_latent_code = self.Encoder.forward(self.input_sample, noise=self.epsilon)[:,0,:]
-
-        self.interpolated_posterior_latent_code = helper.interpolate_latent_codes(self.posterior_latent_code, size=self.batch_size_tf//2)
-        self.interpolated_obs = self.Generator.forward(self.interpolated_posterior_latent_code) 
+        self.posterior_latent_code_expanded = self.Encoder.forward(self.input_sample, noise=self.epsilon)
+        self.posterior_latent_code = self.posterior_latent_code_expanded[:,0,:]
 
         self.reconst_param = self.Generator.forward(self.posterior_latent_code[:, np.newaxis, :]) 
         self.reconst_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.reconst_param)
         self.reconst_sample = self.reconst_dist.sample()
+        self.reconst_log_pdf = self.reconst_dist.log_pdf(self.input_sample)
+
+        self.interpolated_posterior_latent_code = helper.interpolate_latent_codes(self.posterior_latent_code, size=self.batch_size_tf//2)
+        self.interpolated_obs = self.Generator.forward(self.interpolated_posterior_latent_code) 
 
         #############################################################################
         # REGULARIZER
@@ -145,18 +147,16 @@ class Model():
         #############################################################################
         # OBJECTIVES
 
-
         ### Encoder
-        self.OT_primal = self.sample_distance_function(self.input_sample, self.reconst_sample)
-        self.mean_OT_primal = tf.reduce_mean(self.OT_primal)
+        self.mean_OT_primal = tf.reduce_mean(-self.reconst_log_pdf[:, 0, :])
+
+        # self.OT_primal = self.sample_distance_function(self.input_sample, self.reconst_sample)
+        # self.mean_OT_primal = tf.reduce_mean(self.OT_primal)
 
         self.enc_cost = self.mean_OT_primal 
 
         ### Generator
         self.gen_cost = self.mean_OT_primal
-
-
-
 
 
 
