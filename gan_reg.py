@@ -34,7 +34,8 @@ else:
 # dataset_to_use = 'BEDROOM'
 # dataset_to_use = 'CELEB'
 # dataset_to_use = 'CIFAR10'
-dataset_to_use = 'MNIST'
+# dataset_to_use = 'MNIST'
+dataset_to_use = 'BINARYMNIST'
 # dataset_to_use = 'CAT'
 # dataset_to_use = 'FLOWERS'
 # dataset_to_use = 'CUB'
@@ -49,10 +50,9 @@ if Algorithm == 'AE':
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 0, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 0, 'enc_inv_MMD_n_trans': 0, 'enc_inv_MMD_strength': 0,
                              'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {}, 'rnf_prop': {}}
-
 if Algorithm == 'NADE':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
-                             'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 256, 'n_flat': 400, 
+                             'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 10, 'n_flat': 20, 
                              'encoder_mode': 'Gaussian', 'divergence_mode': 'None', 'dual_dist_mode': '',  'infomax_mode': 'None', 'sample_distance_mode': 'Euclidean',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 0, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 0, 'enc_inv_MMD_n_trans': 0, 'enc_inv_MMD_strength': 0,
@@ -493,6 +493,34 @@ elif dataset_to_use == 'MNIST':
     global_args.curr_epoch = 1
     from datasetLoaders.ColorMnistLoader import DataLoader
     #############################################################################################################################
+
+elif dataset_to_use == 'BINARYMNIST':
+    parser.add_argument('--global_exp_dir', type=str, default=global_experiment_name+'BINARYMNIST', help='Directory to put the experiments.')
+
+    parser.add_argument('--log_interval', type=int, default=200, help='how many batches to wait before logging training status')
+    parser.add_argument('--vis_interval', type=int, default=1, help='how many batches to wait before visualizing training status')
+    parser.add_argument('--in_between_vis', type=int, default=0, help='how many reports to wait before visualizing training status')
+    parser.add_argument('--test_epoch_rate', type=list, default=[300,1], help='test epoch repeat')
+    parser.add_argument('--latent_vis_TSNE_epoch_rate', type=list, default=[300,0], help='latent epoch repeat')
+    parser.add_argument('--latent_vis_UMAP_epoch_rate', type=list, default=[25,5], help='latent epoch repeat')
+    parser.add_argument('--reconst_vis_epoch_rate', type=list, default=[3,1], help='reconst epoch repeat')
+    parser.add_argument('--interpolate_vis_epoch_rate', type=list, default=[3,1], help='interpolation epoch repeat')
+    parser.add_argument('--fixed_samples_vis_epoch_rate', type=list, default=[3,1], help='fixed samples epoch repeat')
+    parser.add_argument('--fid_inception_score_epoch_rate', type=list, default=[0,1], help='compute fid and inception score')
+    parser.add_argument('--pigeonhole_score_epoch_rate', type=list, default=[0,1], help='compute pigeonhole score')
+    parser.add_argument('--reconstruction_score_epoch_rate', type=list, default=[10,0], help='compute reconstruction score')
+    parser.add_argument('--sharpness_score_epoch_rate', type=list, default=[10,0], help='compute sharpness score')
+
+    parser.add_argument('--n_context', type=int, default=1, help='n_context.')
+    parser.add_argument('--n_state', type=int, default=1, help='n_state.')
+    parser.add_argument('--n_latent', type=int, default=256, help='n_latent.')
+    parser.add_argument('--n_filter', type=int, default=alg_specific_settings['n_filter'], help='n_filter.')
+    parser.add_argument('--n_flat', type=int, default=alg_specific_settings['n_flat'], help='n_flat.')
+
+    global_args = parser.parse_args()
+    global_args.curr_epoch = 1
+    from datasetLoaders.BinaryMnistLoader import DataLoader
+#############################################################################################################################
 
 elif dataset_to_use == 'INTENSITY':
     parser.add_argument('--global_exp_dir', type=str, default=global_experiment_name+'INTENSITY', help='Directory to put the experiments.')
