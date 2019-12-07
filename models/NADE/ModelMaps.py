@@ -209,7 +209,7 @@ class Generator():
 					elif self.normalization_mode == 'Batch Norm': 
 						layer_5 = lib.ops.batchnorm.Batchnorm('Generator.BN5', [0,1,2], layer_5)
 					layer_5 = self.activation_function(layer_5)
-					output = tf.layers.conv2d_transpose(inputs=layer_5, filters=n_output_channels, kernel_size=[4, 4], strides=[1,1], padding="valid", use_bias=True, activation=tf.nn.sigmoid)
+					output = tf.layers.conv2d_transpose(inputs=layer_5, filters=n_output_channels, kernel_size=[4, 4], strides=[1,1], padding="valid", use_bias=True, activation=None)
 					image_param = helper.tf_center_crop_image(output, resize_ratios=[28,28])
 
 				# # # 32x32xn_channels 'n_filter': 512, 28 sec, 3.4 in 20 epochs
@@ -234,7 +234,7 @@ class Generator():
 					elif self.normalization_mode == 'Batch Norm': 
 						layer_4 = lib.ops.batchnorm.Batchnorm('Generator.BN4', [0,1,2], layer_4)
 					layer_4 = self.activation_function(layer_4)
-					output = tf.layers.conv2d_transpose(inputs=layer_4, filters=n_output_channels, kernel_size=[5, 5], strides=[2,2], padding="valid", use_bias=True, activation=tf.nn.sigmoid)
+					output = tf.layers.conv2d_transpose(inputs=layer_4, filters=n_output_channels, kernel_size=[5, 5], strides=[2,2], padding="valid", use_bias=True, activation=None)
 					image_param = helper.tf_center_crop_image(output, resize_ratios=[32,32])
 
 				# # # 64x64xn_channels
@@ -265,7 +265,7 @@ class Generator():
 					elif self.normalization_mode == 'Batch Norm': 
 						layer_5 = lib.ops.batchnorm.Batchnorm('Generator.BN5', [0,1,2], layer_5)
 					layer_5 = self.activation_function(layer_5)
-					output = tf.layers.conv2d_transpose(inputs=layer_5, filters=n_output_channels, kernel_size=[4, 4], strides=[1,1], padding="valid", use_bias=True, activation=tf.nn.sigmoid)
+					output = tf.layers.conv2d_transpose(inputs=layer_5, filters=n_output_channels, kernel_size=[4, 4], strides=[1,1], padding="valid", use_bias=True, activation=None)
 					image_param = output
 				
 
