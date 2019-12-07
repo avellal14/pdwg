@@ -776,7 +776,7 @@ with tf.Graph().as_default():
     # tf_check = tf.add_check_numerics_ops()
 
     def train():
-        b_zero_one_range = True
+        b_zero_one_range = False
         global optimize_bool, all_step_tf, all_cost_tf, all_opt_keys, random_batch_data, fixed_batch_data
         step_counts = {'div': 0, 'enc': 0, 'cri': 0, 'gen': 0}
         np_costs = {'div': 0, 'enc': 0, 'cri': 0, 'gen': 0}
@@ -888,7 +888,7 @@ with tf.Graph().as_default():
                 save_dir=global_args.exp_dir+'Visualization/train_'+mode, postfix='train_'+mode+'_'+str(global_args.curr_epoch)+'_e', postfix2='train_'+mode+'_m', b_zero_one_range=b_zero_one_range)
         
     def test():
-        b_zero_one_range = True
+        b_zero_one_range = False
         global random_batch_data, fixed_batch_data
         test_np_costs = {'div': 0, 'enc': 0, 'cri': 0, 'gen': 0}
 
@@ -966,7 +966,7 @@ with tf.Graph().as_default():
 
 
     def visualize(mode='train'):
-        b_zero_one_range = True
+        b_zero_one_range = False
 
         if mode=='train': data_loader.train(randomize=False)
         else: data_loader.eval()

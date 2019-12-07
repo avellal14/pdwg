@@ -572,7 +572,12 @@ def visualize_flat(visualized_list, batch_size = 10, save_dir = './', postfix = 
 
 def sharpness_eval_np(input_images): ## B x W x H x 3
 	filter_mat = np.array([[0, 1, 0], [1, -4 ,1], [0, 1, 0]])[np.newaxis, :, :, np.newaxis]	
-	grey_input_images = color.rgb2grey(input_images[:,0,:,:,:])[:,:,:,np.newaxis]
+	if input_images.shape[-1] == 3: 
+        grey_input_images = color.rgb2grey(input_images[:,0,:,:,:])[:,:,:,np.newaxis]
+    elif input_images.shape[-1] == 1:
+        grey_input_images = input_images[:,0,:,:,:]
+    else:
+        pdb.set_trace()
 	all_vars = np.zeros((grey_input_images.shape[0]))
 	for i in range(grey_input_images.shape[0]):
 		curr_edges = signal.convolve2d(grey_input_images[i,:,:,0], filter_mat[0,:,:,0], mode='valid')
