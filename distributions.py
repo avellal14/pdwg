@@ -392,6 +392,7 @@ class DiagonalGaussianDistribution():
 		log_prob = unnormalized_log_prob+log_partition
 		return log_prob
 
+
 ####  DIAGONAL BETA DISTRIBUTION
 
 class DiagonalBetaDistribution():
@@ -658,8 +659,8 @@ DistributionsAKA['cat'] = BoltzmanDistribution
 DistributionsAKA['bern'] = BernoulliDistribution
 DistributionsAKA['cont'] = DiagonalGaussianDistribution
 DistributionsAKA['dirac'] = DiracDistribution
-# DistributionsAKA['intr'] = DiagonalLogitNormalDistribution
-DistributionsAKA['intr'] = DiagonalGaussianDistribution
+DistributionsAKA['intr'] = DiagonalLogitNormalDistribution
+# DistributionsAKA['intr'] = DiagonalGaussianDistribution
 
 def visualizeProductDistribution(sess, input_dict, batch, obs_dist, sample_obs_dist, save_dir = '.', postfix = ''):
 	
@@ -823,6 +824,37 @@ def visualizeProductDistribution4(sess, model, input_dict, batch, real_dist, tra
 				# samples_params_np_interleaved = helper.interleave_data(samples_params_np)
 				# helper.visualize_images2(samples_params_np_interleaved, block_size=[sample_split[0].shape[0], len(samples_params_np)], save_dir=save_dir+'2/', postfix=postfix+'_'+obs_type+'_2')
 
+
+
+
+# d = 20
+# batch = 10 
+# # params = tf.zeros(shape=(batch, 2*d), dtype=tf.float32)
+# params = tf.random_normal((batch, 2*d), 0, 1, dtype=tf.float32)
+# mean = params[:, :d]
+# log_std = params[:, d:]
+
+# gaussian_dist = DiagonalGaussianDistribution(params = params)
+# samples = gaussian_dist.sample()
+# sample_log_pdfs = gaussian_dist.log_pdf(samples)
+
+# init = tf.initialize_all_variables()
+# sess = tf.InteractiveSession()  
+# sess.run(init)
+# samples_np, sample_log_pdfs_np, mean_np, log_std_np = sess.run([samples, sample_log_pdfs, mean, log_std])
+
+# from scipy.stats import multivariate_normal
+# x = np.linspace(0, 5, 10, endpoint=False)
+# y = multivariate_normal.pdf(x, mean=np.zeros(10), cov=np.ones(10)); 
+
+# pdb.set_trace()
+
+# print('sample_log_pdfs_np: \n', sample_log_pdfs_np)
+# for i in range(len(samples_np)):
+# 	y = multivariate_normal.pdf(list(samples_np[i]), mean=mean_np[i], cov=np.exp(log_std_np[i])**2); 
+# 	print(np.log(y))
+
+# pdb.set_trace()
 
 
 # print('sample_split: ', sample_split[0].min(), sample_split[0].max())
