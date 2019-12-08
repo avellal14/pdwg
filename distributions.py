@@ -363,11 +363,19 @@ class BoltzmanDistribution():
 ####  DIAGONAL GAUSSIAN DISTRIBUTION
 
 class DiagonalGaussianDistribution():
-	def __init__(self, params=None, shape = None, name = 'DiagonalGaussianDistribution'):
+	def __init__(self, params=None, shape = None, exponential=True, name = 'DiagonalGaussianDistribution'):
 		if len(params.get_shape().as_list()) == 2: 
 			self.mean = params[:, :int(params.get_shape().as_list()[1]/2.)]
-			# self.log_std = params[:, int(params.get_shape().as_list()[1]/2.):]
 			self.pre_std = params[:, int(params.get_shape().as_list()[1]/2.):]
+
+			if exponential:
+				self.log_std = self.pre_std
+				self.std = tf.exp(self.log_std)
+				self.var = tf.exp(2*self.log_std)
+			else:
+				self.std = tf.nn.softplus(self.pre_std)
+				self.var = self.std**2
+				self.log_std = tf.log(self.std)
 
 		else: print('Invalid Option. DiagonalGaussianDistribution.'); quit()
 		self.name = name
@@ -377,30 +385,21 @@ class DiagonalGaussianDistribution():
 		return 2*num_dim
 		
 	def get_interpretable_params(self):
-		# return [self.mean, tf.exp(self.log_std)]
-		return [self.mean, tf.nn.softplus(self.pre_std)]
+		return [self.mean, self.std]
 
 	def sample(self, b_mode=False):
-		if b_mode: sample = self.mean
+		if b_mode: 
+			sample = self.mean
 		else:
-			# eps = tf.random_normal(shape=tf.shape(self.log_std))
-			# sample = (tf.exp(self.log_std)*eps)+self.mean
-			eps = tf.random_normal(shape=tf.shape(self.pre_std))
-			sample = (tf.nn.softplus(self.pre_std)*eps)+self.mean
+			eps = tf.random_normal(shape=tf.shape(self.log_std))
+			sample = (self.std*eps)+self.mean
 		return sample
 
 	def log_pdf(self, sample):
 		assert (len(sample.get_shape())==2)
-		# log_var = self.log_std*2
-		# unnormalized_log_prob = -0.5*tf.reduce_sum(((self.mean-sample)**2)/(1e-7+tf.exp(log_var)), axis=1, keep_dims=True)
-		# log_partition = -0.5*tf.reduce_sum(log_var, axis=1, keep_dims=True)+math.log(2*math.pi)*(-self.mean.get_shape().as_list()[1]/2.0)
-		# log_prob = unnormalized_log_prob+log_partition
-
-		var = tf.nn.softplus(self.pre_std)**2
-		unnormalized_log_prob = -0.5*tf.reduce_sum(((self.mean-sample)**2)/(1e-7+var), axis=1, keep_dims=True)
-		log_partition = -0.5*tf.reduce_sum(tf.log(var+1e-7), axis=1, keep_dims=True)+math.log(2*math.pi)*(-self.mean.get_shape().as_list()[1]/2.0)
+		unnormalized_log_prob = -0.5*tf.reduce_sum(((self.mean-sample)**2)/(1e-7+self.var), axis=1, keep_dims=True)
+		log_partition = -0.5*tf.reduce_sum(2*self.log_std, axis=1, keep_dims=True)+math.log(2*math.pi)*(-self.mean.get_shape().as_list()[1]/2.0)
 		log_prob = unnormalized_log_prob+log_partition
-
 		return log_prob
 
 ####  DIAGONAL BETA DISTRIBUTION
@@ -844,7 +843,7 @@ def visualizeProductDistribution4(sess, model, input_dict, batch, real_dist, tra
 # mean = params[:, :d]
 # log_std = params[:, d:]
 
-# gaussian_dist = DiagonalGaussianDistribution(params = params)
+# gaussian_dist = DiagonalGaussianDistribution(params = params, exponential=True)
 # samples = gaussian_dist.sample()
 # sample_log_pdfs = gaussian_dist.log_pdf(samples)
 
@@ -868,9 +867,9 @@ def visualizeProductDistribution4(sess, model, input_dict, batch, real_dist, tra
 
 
 # print('sample_split: ', sample_split[0].min(), sample_split[0].max())
-# 				print('transport_split: ', transport_split[0].min(), transport_split[0].max())
-# 				print('param_split: ', param_split[0].min(), param_split[0].max())
-# 				print('rand_param_split: ', rand_param_split[0].min(), rand_param_split[0].max())
+# print('transport_split: ', transport_split[0].min(), transport_split[0].max())
+# print('param_split: ', param_split[0].min(), param_split[0].max())
+# print('rand_param_split: ', rand_param_split[0].min(), rand_param_split[0].max())
 
 
 
