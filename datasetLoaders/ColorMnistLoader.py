@@ -72,6 +72,8 @@ class DataLoader:
 			self.test_data = self.colorify(self.test_data, b_fixed_amplitute=self.b_fixed_amplitute)
 			self.test_data = self.noisify(self.test_data)
 
+			pdb.set_trace()
+			
 			np.save(self.dataset_path+'color_'+data_type+'_fixed_amp_'+str(self.b_fixed_amplitute)+'_train_data.npy', self.train_data)
 			np.save(self.dataset_path+'color_'+data_type+'_fixed_amp_'+str(self.b_fixed_amplitute)+'_train_label.npy', self.train_label)
 			np.save(self.dataset_path+'color_'+data_type+'_fixed_amp_'+str(self.b_fixed_amplitute)+'_test_data.npy', self.test_data)
