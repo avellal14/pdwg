@@ -366,7 +366,9 @@ class DiagonalGaussianDistribution():
 	def __init__(self, params=None, shape = None, name = 'DiagonalGaussianDistribution'):
 		if len(params.get_shape().as_list()) == 2: 
 			self.mean = params[:, :int(params.get_shape().as_list()[1]/2.)]
-			self.log_std = params[:, int(params.get_shape().as_list()[1]/2.):]
+			# self.log_std = params[:, int(params.get_shape().as_list()[1]/2.):]
+			self.pre_std = params[:, int(params.get_shape().as_list()[1]/2.):]
+
 		else: print('Invalid Option. DiagonalGaussianDistribution.'); quit()
 		self.name = name
 
@@ -375,23 +377,31 @@ class DiagonalGaussianDistribution():
 		return 2*num_dim
 		
 	def get_interpretable_params(self):
-		return [self.mean, tf.exp(self.log_std)]
+		# return [self.mean, tf.exp(self.log_std)]
+		return [self.mean, tf.nn.softplus(self.pre_std)]
 
 	def sample(self, b_mode=False):
 		if b_mode: sample = self.mean
 		else:
-			eps = tf.random_normal(shape=tf.shape(self.log_std))
-			sample = (tf.exp(self.log_std)*eps)+self.mean
+			# eps = tf.random_normal(shape=tf.shape(self.log_std))
+			# sample = (tf.exp(self.log_std)*eps)+self.mean
+			eps = tf.random_normal(shape=tf.shape(self.pre_std))
+			sample = (tf.nn.softplus(self.pre_std)*eps)+self.mean
 		return sample
 
 	def log_pdf(self, sample):
 		assert (len(sample.get_shape())==2)
-		log_var = self.log_std*2
-		unnormalized_log_prob = -0.5*tf.reduce_sum(((self.mean-sample)**2)/(1e-7+tf.exp(log_var)), axis=1, keep_dims=True)
-		log_partition = -0.5*tf.reduce_sum(log_var, axis=1, keep_dims=True)+math.log(2*math.pi)*(-self.mean.get_shape().as_list()[1]/2.0)
-		log_prob = unnormalized_log_prob+0*log_partition
-		return log_prob
+		# log_var = self.log_std*2
+		# unnormalized_log_prob = -0.5*tf.reduce_sum(((self.mean-sample)**2)/(1e-7+tf.exp(log_var)), axis=1, keep_dims=True)
+		# log_partition = -0.5*tf.reduce_sum(log_var, axis=1, keep_dims=True)+math.log(2*math.pi)*(-self.mean.get_shape().as_list()[1]/2.0)
+		# log_prob = unnormalized_log_prob+log_partition
 
+		var = tf.nn.softplus(self.pre_std)**2
+		unnormalized_log_prob = -0.5*tf.reduce_sum(((self.mean-sample)**2)/(1e-7+var), axis=1, keep_dims=True)
+		log_partition = -0.5*tf.reduce_sum(tf.log(var+1e-7), axis=1, keep_dims=True)+math.log(2*math.pi)*(-self.mean.get_shape().as_list()[1]/2.0)
+		log_prob = unnormalized_log_prob+log_partition
+
+		return log_prob
 
 ####  DIAGONAL BETA DISTRIBUTION
 
