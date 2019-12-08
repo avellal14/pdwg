@@ -370,10 +370,10 @@ class DiagonalGaussianDistribution():
 
 			if exponential:
 				self.log_std = self.pre_std
-				self.std = 1e-7+tf.exp(self.log_std)
-				self.var = 1e-7+tf.exp(2*self.log_std)
+				self.std = 1e-5+tf.exp(self.log_std)
+				self.var = 1e-5+tf.exp(2*self.log_std)
 			else:
-				self.std = 1e-7+tf.nn.softplus(self.pre_std)
+				self.std = 1e-5+tf.nn.softplus(self.pre_std)
 				self.var = self.std**2
 				self.log_std = tf.log(self.std)
 
