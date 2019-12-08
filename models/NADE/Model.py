@@ -126,7 +126,7 @@ class Model():
         self.posterior_latent_code_expanded = self.Encoder.forward(self.input_sample, noise=self.epsilon)
         self.posterior_latent_code = self.posterior_latent_code_expanded[:,0,:]
 
-        self.reconst_param = self.Generator.forward(self.posterior_latent_code[:, np.newaxis, :]) 
+        self.reconst_param = self.Generator.forward(self.posterior_latent_code_expanded) 
         self.reconst_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.reconst_param)
         self.reconst_sample = self.reconst_dist.sample(b_mode=True)
         self.reconst_log_pdf = self.reconst_dist.log_pdf(self.input_sample)
