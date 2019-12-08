@@ -493,7 +493,8 @@ class DiagonalLogitNormalDistribution():
 		assert (len(sample.get_shape())==2)		
 		log_sample = tf.log(sample+1e-7)
 		log_one_min_sample = tf.log(1-sample+1e-7)
-		logit_sample = log_sample #- log_one_min_sample
+		logit_sample = - log_one_min_sample
+		# logit_sample = log_sample #- log_one_min_sample
 		# gaussian_log_pdf = self.gaussian_dist.log_pdf(logit_sample)
 		gaussian_log_pdf = self.gaussian_dist.log_pdf(log_sample)
 		log_prob = gaussian_log_pdf #- tf.reduce_sum(log_sample+log_one_min_sample, axis=1)[:,np.newaxis]
