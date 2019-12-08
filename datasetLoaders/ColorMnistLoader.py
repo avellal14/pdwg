@@ -20,6 +20,7 @@ class DataLoader:
 		self.iter = 0
 		self.image_size = 28
 		self.b_fixed_amplitute = b_fixed_amplitute
+		self.min_interval_val = 0.0001
 
 		if data_type == 'regular':
 			self.dataset_path = str(Path.home())+'/datasets/mnist_data/dataset/'
@@ -77,11 +78,8 @@ class DataLoader:
 			np.save(self.dataset_path+'color_'+data_type+'_fixed_amp_'+str(self.b_fixed_amplitute)+'_test_data.npy', self.test_data)
 			np.save(self.dataset_path+'color_'+data_type+'_fixed_amp_'+str(self.b_fixed_amplitute)+'_test_label.npy', self.test_label)
 
-		self.train_data = 0.9999*self.train_data+(1-0.9999)/2.
-		self.test_data = 0.9999*self.test_data+(1-0.9999)/2.		
-
-		# self.train_data = 0.999*self.train_data+(1-0.999)/2.
-		# self.test_data = 0.999*self.test_data+(1-0.999)/2.		
+		self.train_data = (1-2*self.min_interval_val)*self.train_data+self.min_interval_val
+		self.test_data = (1-2*self.min_interval_val)*self.test_data+self.min_interval_val
 
 		end = time.time()
 		print('Loaded color mnist data. Time: ', (end-start))
