@@ -487,10 +487,7 @@ class DiagonalLogitNormalDistribution():
 		logit_sample = log_sample-log_one_min_sample
 		gaussian_log_pdf = self.gaussian_dist.log_pdf(logit_sample)
 		log_prob = gaussian_log_pdf - tf.reduce_sum(log_sample+log_one_min_sample, axis=1)[:,np.newaxis]
-
-		pdb.set_trace()
 		return log_prob
-
 
 ####  MIXTURE DISTRIBUTION
 
@@ -546,13 +543,11 @@ class DiracDistribution():
 		return sample
 
 	def log_pdf(self, sample):
-		print('Requested pdf of delta sample.')
+		print('Requested pdf of dirac delta sample.')
 		return None
 
 
-
 ####  PRODUCT DISTRIBUTION
-
 class ProductDistribution():
 	def __init__(self, sample_properties = None, params = None, name = 'ProductDistribution'):
 		self.name = name

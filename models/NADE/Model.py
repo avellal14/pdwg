@@ -38,14 +38,13 @@ class Model():
     def generative_model(self, batch, additional_inputs_tf):
         self.gen_epoch = additional_inputs_tf[0]
         self.gen_b_identity = additional_inputs_tf[1]
-
-        # if len(batch['observed']['properties']['flat'])>0:
-        #     for e in batch['observed']['properties']['flat']: e['dist']='dirac'
-        # else:
-        #     for e in batch['observed']['properties']['image']: e['dist']='dirac'
+        
+        empirical_observed_properties = copy.deepcopy(batch['observed']['properties'])
+        for e in empirical_observed_properties['flat']: e['dist']='dirac'
+        for e in empirical_observed_properties['image']: e['dist']='dirac'
 
         self.gen_input_sample = batch['observed']['data']
-        self.gen_input_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.gen_input_sample)
+        self.gen_input_dist = distributions.ProductDistribution(sample_properties = empirical_observed_properties, params = self.gen_input_sample)
 
         try: self.n_time = batch['observed']['properties']['flat'][0]['size'][1]
         except: self.n_time = batch['observed']['properties']['image'][0]['size'][1]
@@ -64,13 +63,12 @@ class Model():
         self.epoch = additional_inputs_tf[0]
         self.b_identity = additional_inputs_tf[1]
         
-        # if len(batch['observed']['properties']['flat'])>0:
-        #     for e in batch['observed']['properties']['flat']: e['dist']='dirac'
-        # else:
-        #     for e in batch['observed']['properties']['image']: e['dist']='dirac'
+        empirical_observed_properties = copy.deepcopy(batch['observed']['properties'])
+        for e in empirical_observed_properties['flat']: e['dist']='dirac'
+        for e in empirical_observed_properties['image']: e['dist']='dirac'
 
-        self.input_sample = batch['observed']['data']
-        self.input_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.input_sample)
+        self.input_sample = batch['observed']['data']        
+        self.input_dist = distributions.ProductDistribution(sample_properties = empirical_observed_properties, params = self.input_sample)
 
         if not self.bModules: self.generate_modules(batch)
         try: self.n_time = batch['observed']['properties']['flat'][0]['size'][1]
