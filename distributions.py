@@ -669,7 +669,6 @@ DistributionsAKA['bern'] = BernoulliDistribution
 DistributionsAKA['cont'] = DiagonalGaussianDistribution
 DistributionsAKA['dirac'] = DiracDistribution
 DistributionsAKA['intr'] = DiagonalLogitNormalDistribution
-# DistributionsAKA['intr'] = DiagonalGaussianDistribution
 
 def visualizeProductDistribution(sess, input_dict, batch, obs_dist, sample_obs_dist, save_dir = '.', postfix = ''):
 	
