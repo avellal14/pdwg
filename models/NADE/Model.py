@@ -146,10 +146,10 @@ class Model():
         # OBJECTIVES
 
         ## Encoder
-        # self.mean_OT_primal = -tf.reduce_mean(self.reconst_log_pdf)
+        self.mean_OT_primal = -tf.reduce_mean(self.reconst_log_pdf)
 
-        self.OT_primal = self.sample_distance_function(self.input_sample, self.reconst_sample)
-        self.mean_OT_primal = tf.reduce_mean(self.OT_primal)
+        # self.OT_primal = self.sample_distance_function(self.input_sample, self.reconst_sample)
+        # self.mean_OT_primal = tf.reduce_mean(self.OT_primal)
 
         self.enc_cost = self.mean_OT_primal 
 
