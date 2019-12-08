@@ -372,9 +372,6 @@ class DiagonalGaussianDistribution():
 				self.log_std = self.pre_std
 				self.std = tf.exp(self.log_std)
 				self.var = tf.exp(2*self.log_std)
-				# self.std = 0.1+tf.nn.sigmoid(self.pre_std)
-				# self.var = self.std**2
-				# self.log_std = tf.log(self.std)
 			else:
 				self.std = tf.nn.softplus(self.pre_std)
 				self.var = self.std**2
@@ -671,8 +668,7 @@ DistributionsAKA['cat'] = BoltzmanDistribution
 DistributionsAKA['bern'] = BernoulliDistribution
 DistributionsAKA['cont'] = DiagonalGaussianDistribution
 DistributionsAKA['dirac'] = DiracDistribution
-# DistributionsAKA['intr'] = DiagonalLogitNormalDistribution
-DistributionsAKA['intr'] = DiagonalGaussianDistribution
+DistributionsAKA['intr'] = DiagonalLogitNormalDistribution
 
 def visualizeProductDistribution(sess, input_dict, batch, obs_dist, sample_obs_dist, save_dir = '.', postfix = ''):
 	

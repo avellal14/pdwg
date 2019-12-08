@@ -151,7 +151,7 @@ class Model():
         self.OT_primal = self.sample_distance_function(self.input_sample, self.reconst_sample)
         self.mean_OT_primal = tf.reduce_mean(self.OT_primal)
 
-        timescale, start_time = 5, 10
+        timescale, start_time = 5, 5
         tradeoff = helper.hardstep((self.epoch-float(start_time))/float(timescale)+0.0001)
         overall_cost = tradeoff*self.mean_neg_log_pdf+(1-tradeoff)*self.mean_OT_primal
 
