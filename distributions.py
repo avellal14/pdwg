@@ -373,7 +373,7 @@ class DiagonalGaussianDistribution():
 				# self.std = tf.exp(self.log_std)
 				# self.var = tf.exp(2*self.log_std)
 
-				self.std = 0.01+tf.nn.sigmoid(self.pre_std)
+				self.std = 0.1+tf.nn.sigmoid(self.pre_std)
 				self.var = self.std**2
 				self.log_std = tf.log(self.std)
 
