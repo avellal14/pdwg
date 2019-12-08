@@ -370,10 +370,10 @@ class DiagonalGaussianDistribution():
 
 			if exponential:
 				self.log_std = self.pre_std
-				self.std = tf.exp(self.log_std)
-				self.var = tf.exp(2*self.log_std)
+				self.std = 1e-7+tf.exp(self.log_std)
+				self.var = 1e-7+tf.exp(2*self.log_std)
 			else:
-				self.std = tf.nn.softplus(self.pre_std)
+				self.std = 1e-7+tf.nn.softplus(self.pre_std)
 				self.var = self.std**2
 				self.log_std = tf.log(self.std)
 
@@ -491,21 +491,13 @@ class DiagonalLogitNormalDistribution():
 
 	def log_pdf(self, sample):
 		assert (len(sample.get_shape())==2)		
-		# clipped_sample = tf.clip_by_value(sample, 1e-7, 1-1e-3)
-		# clipped_one_minus_sample = tf.clip_by_value(1-sample, 1e-3, 1-1e-3)
-		
-		# log_sample = tf.log(clipped_sample)
-		# log_one_min_sample = tf.log(clipped_one_minus_sample)
-		# logit_sample = log_sample - log_one_min_sample
-
 		log_sample = tf.log(sample+1e-7)
 		log_one_min_sample = tf.log(1-sample+1e-7)
-		logit_sample = log_sample - log_one_min_sample
+		logit_sample= log_sample - log_one_min_sample
 
 		gaussian_log_pdf = self.gaussian_dist.log_pdf(logit_sample)
 		log_prob = gaussian_log_pdf - tf.reduce_sum(log_sample+log_one_min_sample, axis=1)[:,np.newaxis]
-
-		log_prob = helper.tf_print(log_prob, [log_sample, gaussian_log_pdf, log_prob]) 
+		# log_prob = helper.tf_print(log_prob, [logit_sample, gaussian_log_pdf, log_prob]) 
 		return log_prob
 
 
