@@ -491,14 +491,23 @@ class DiagonalLogitNormalDistribution():
 
 	def log_pdf(self, sample):
 		assert (len(sample.get_shape())==2)		
-		clipped_sample = tf.clip_by_value(sample, 1e-5, 1-1e-5)
-		clipped_one_minus_sample = tf.clip_by_value(1-sample, 1e-5, 1-1e-5)
-		log_sample = tf.log(clipped_sample)
-		log_one_min_sample = tf.log(clipped_one_minus_sample)
+		# clipped_sample = tf.clip_by_value(sample, 1e-7, 1-1e-3)
+		# clipped_one_minus_sample = tf.clip_by_value(1-sample, 1e-3, 1-1e-3)
+		
+		# log_sample = tf.log(clipped_sample)
+		# log_one_min_sample = tf.log(clipped_one_minus_sample)
+		# logit_sample = log_sample - log_one_min_sample
+
+		log_sample = tf.log(sample+1e-7)
+		log_one_min_sample = tf.log(1-sample+1e-7)
 		logit_sample = log_sample - log_one_min_sample
+
 		gaussian_log_pdf = self.gaussian_dist.log_pdf(logit_sample)
 		log_prob = gaussian_log_pdf - tf.reduce_sum(log_sample+log_one_min_sample, axis=1)[:,np.newaxis]
+
+		log_prob = helper.tf_print(log_prob, [log_sample, gaussian_log_pdf, log_prob]) 
 		return log_prob
+
 
 ####  MIXTURE DISTRIBUTION
 

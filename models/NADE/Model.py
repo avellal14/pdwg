@@ -153,7 +153,8 @@ class Model():
 
         timescale, start_time = 5, 5
         tradeoff = helper.hardstep((self.epoch-float(start_time))/float(timescale)+0.0001)
-        overall_cost = tradeoff*self.mean_neg_log_pdf+(1-tradeoff)*self.mean_OT_primal
+        # overall_cost = tradeoff*self.mean_neg_log_pdf+(1-tradeoff)*self.mean_OT_primal
+        overall_cost = self.mean_OT_primal
         # overall_cost = self.mean_neg_log_pdf
 
         self.enc_cost = overall_cost
