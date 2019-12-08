@@ -130,7 +130,8 @@ class Model():
         self.reconst_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.reconst_param)
         self.reconst_sample = self.reconst_dist.sample(b_mode=True)
         self.reconst_log_pdf = self.reconst_dist.log_pdf(self.input_sample)
-
+        pdb.set_trace()
+        
         self.interpolated_posterior_latent_code = helper.interpolate_latent_codes(self.posterior_latent_code, size=self.batch_size_tf//2)
         self.interpolated_obs = self.Generator.forward(self.interpolated_posterior_latent_code) 
 
@@ -145,11 +146,11 @@ class Model():
         #############################################################################
         # OBJECTIVES
 
-        ### Encoder
-        # self.mean_OT_primal = tf.reduce_mean(-self.reconst_log_pdf[:, 0, :])
+        ## Encoder
+        self.mean_OT_primal = tf.reduce_mean(-self.reconst_log_pdf[:, 0, :])
 
-        self.OT_primal = self.sample_distance_function(self.input_sample, self.reconst_sample)
-        self.mean_OT_primal = tf.reduce_mean(self.OT_primal)
+        # self.OT_primal = self.sample_distance_function(self.input_sample, self.reconst_sample)
+        # self.mean_OT_primal = tf.reduce_mean(self.OT_primal)
 
         self.enc_cost = self.mean_OT_primal 
 
