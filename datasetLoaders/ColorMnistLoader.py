@@ -72,12 +72,13 @@ class DataLoader:
 			self.test_data = self.colorify(self.test_data, b_fixed_amplitute=self.b_fixed_amplitute)
 			self.test_data = self.noisify(self.test_data)
 
-			pdb.set_trace()
-			
 			np.save(self.dataset_path+'color_'+data_type+'_fixed_amp_'+str(self.b_fixed_amplitute)+'_train_data.npy', self.train_data)
 			np.save(self.dataset_path+'color_'+data_type+'_fixed_amp_'+str(self.b_fixed_amplitute)+'_train_label.npy', self.train_label)
 			np.save(self.dataset_path+'color_'+data_type+'_fixed_amp_'+str(self.b_fixed_amplitute)+'_test_data.npy', self.test_data)
 			np.save(self.dataset_path+'color_'+data_type+'_fixed_amp_'+str(self.b_fixed_amplitute)+'_test_label.npy', self.test_label)
+
+		self.train_data = 0.9999*self.train_data+0.9999/2
+		self.test_data = 0.9999*self.train_data+0.9999/2
 
 		end = time.time()
 		print('Loaded color mnist data. Time: ', (end-start))
