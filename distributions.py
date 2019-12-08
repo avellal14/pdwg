@@ -369,7 +369,6 @@ class DiagonalGaussianDistribution():
 			self.pre_std = params[:, int(params.get_shape().as_list()[1]/2.):]
 
 			if exponential:
-				# self.log_std = 4+self.pre_std
 				self.log_std = self.pre_std
 				self.std = tf.exp(self.log_std)
 				self.var = tf.exp(2*self.log_std)
@@ -498,7 +497,6 @@ class DiagonalLogitNormalDistribution():
 
 		gaussian_log_pdf = self.gaussian_dist.log_pdf(logit_sample)
 		log_prob = gaussian_log_pdf - tf.reduce_sum(log_sample+log_one_min_sample, axis=1)[:,np.newaxis]
-		# log_prob = helper.tf_print(log_prob, [logit_sample, gaussian_log_pdf, log_prob]) 
 		return log_prob
 
 
