@@ -495,7 +495,7 @@ class DiagonalLogitNormalDistribution():
 		log_one_min_sample = tf.log(1-sample+1e-7)
 		logit_sample = log_sample - log_one_min_sample
 		gaussian_log_pdf = self.gaussian_dist.log_pdf(logit_sample)
-		log_prob = gaussian_log_pdf #- tf.reduce_sum(log_sample+log_one_min_sample, axis=1)[:,np.newaxis]
+		log_prob = gaussian_log_pdf - tf.reduce_sum(log_sample+log_one_min_sample, axis=1)[:,np.newaxis]
 		return log_prob
 
 ####  MIXTURE DISTRIBUTION
