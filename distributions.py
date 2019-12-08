@@ -492,7 +492,7 @@ class DiagonalLogitNormalDistribution():
 	def log_pdf(self, sample):
 		assert (len(sample.get_shape())==2)		
 		log_sample = tf.log(sample+1e-7)
-		log_one_min_sample = tf.log(1-sample+1e-7)
+		log_one_min_sample = tf.log(1-sample+1e-6)
 		# logit_sample = log_sample - log_one_min_sample
 		logit_sample = - log_one_min_sample
 		# logit_sample = log_sample 
