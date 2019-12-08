@@ -146,15 +146,19 @@ class Model():
         # OBJECTIVES
 
         ## Encoder
-        self.mean_OT_primal = -tf.reduce_mean(self.reconst_log_pdf)
+        self.mean_neg_log_pdf = -tf.reduce_mean(self.reconst_log_pdf)
 
-        # self.OT_primal = self.sample_distance_function(self.input_sample, self.reconst_sample)
-        # self.mean_OT_primal = tf.reduce_mean(self.OT_primal)
+        self.OT_primal = self.sample_distance_function(self.input_sample, self.reconst_sample)
+        self.mean_OT_primal = tf.reduce_mean(self.OT_primal)
 
-        self.enc_cost = self.mean_OT_primal 
+        timescale, start_time = 5, 10
+        tradeoff = helper.hardstep((self.epoch-float(start_time))/float(timescale)+0.0001)
+        overall_cost = tradeoff*self.mean_neg_log_pdf+(1-tradeoff)*self.mean_OT_primal
+
+        self.enc_cost = overall_cost
 
         ### Generator
-        self.gen_cost = self.mean_OT_primal
+        self.gen_cost = overall_cost
 
 
 
@@ -164,6 +168,14 @@ class Model():
 
 
 
+
+
+
+
+
+
+
+        # tradeoff = g(self.epoch, max_epoch) #0 --  > 1 at self.epoch=10
 
 
 
