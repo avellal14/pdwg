@@ -152,9 +152,10 @@ class Model():
         self.mean_OT_primal = tf.reduce_mean(self.OT_primal)
 
         timescale, start_time = 5, 10
-        tradeoff = helper.hardstep((self.epoch-float(start_time))/float(timescale)+0.000001)+0.000001
-        # tradeoff = helper.hardstep((self.epoch-float(start_time))/float(timescale)+0.000001)
+        tradeoff = helper.hardstep((self.epoch-float(start_time))/float(timescale))+0.000001
         overall_cost = tradeoff*self.mean_neg_log_pdf+(1-tradeoff)*self.mean_OT_primal
+
+        # tradeoff = tradeoff = 0.99999*helper.hardstep((self.epoch-float(start_time))/float(timescale)+0.000001)+(1-0.99999)/2
 
         self.enc_cost = overall_cost
 
