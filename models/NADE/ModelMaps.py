@@ -182,9 +182,9 @@ class Generator():
 				n_output_channels = helper.list_sum([distributions.DistributionsAKA[e['dist']].num_params(e['size'][-1]) for e in self.config['data_properties']['image']])
 				x_batched_inp_flat = tf.reshape(x, [-1,  x.get_shape().as_list()[-1]])
 
-				lay1_flat = tf.layers.dense(inputs = x_batched_inp_flat, units = self.config['n_flat'], activation = activation_function)
-				lay2_flat = tf.layers.dense(inputs = lay1_flat, units = self.config['n_flat'], activation = activation_function)
-				lay4_flat = tf.layers.dense(inputs = lay2_flat, units = self.config['n_flat'], activation = activation_function)
+				lay1_flat = tf.layers.dense(inputs = x_batched_inp_flat, units = self.config['n_flat'], activation = self.activation_function)
+				lay2_flat = tf.layers.dense(inputs = lay1_flat, units = self.config['n_flat'], activation = self.activation_function)
+				lay4_flat = tf.layers.dense(inputs = lay2_flat, units = self.config['n_flat'], activation = self.activation_function)
 				image_param_flat = tf.layers.dense(inputs = lay4_flat, units = n_output_channels*n_image_size, activation = None)
 				# image_param_flat_mean = tf.layers.dense(inputs = lay4_flat, units = int(n_output_channels*n_image_size/2), activation = None)
 				# image_param_flat_log_std = tf.layers.dense(inputs = lay4_flat, units = int(n_output_channels*n_image_size/2), activation = None)
