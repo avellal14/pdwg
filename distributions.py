@@ -389,7 +389,7 @@ class DiagonalGaussianDistribution():
 		log_var = self.log_std*2
 		unnormalized_log_prob = -0.5*tf.reduce_sum(((self.mean-sample)**2)/(1e-7+tf.exp(log_var)), axis=1, keep_dims=True)
 		log_partition = -0.5*tf.reduce_sum(log_var, axis=1, keep_dims=True)+math.log(2*math.pi)*(-self.mean.get_shape().as_list()[1]/2.0)
-		log_prob = unnormalized_log_prob+log_partition
+		log_prob = unnormalized_log_prob+0*log_partition
 		return log_prob
 
 
