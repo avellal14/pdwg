@@ -100,8 +100,7 @@ class DataLoader:
 									 'data':       {'flat': None, 'image': None}}
 
 		self.batch['observed'] = {'properties': {'flat': [], 
-												 # 'image': [{'dist': 'cont', 'name': 'Digit Image', 'size': tuple([self.batch_size, self.time_steps, self.image_size, self.image_size, 3])}]},
-												 'image': [{'dist': 'bern', 'name': 'Digit Image', 'size': tuple([self.batch_size, self.time_steps, self.image_size, self.image_size, 3])}]},
+												 'image': [{'dist': 'intr', 'name': 'Digit Image', 'size': tuple([self.batch_size, self.time_steps, self.image_size, self.image_size, 3])}]},
 								  'data':       {'flat': None,
 								 		  	     'image': None}}
 	
