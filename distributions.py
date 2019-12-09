@@ -473,9 +473,10 @@ class DiagonalKumaraswamyDistribution():
 class DiagonalLogitNormalDistribution():
 	def __init__(self, params=None, shape = None, name = 'DiagonalLogitNormalDistribution'):
 		if len(params.get_shape().as_list()) == 2: 
-			self.mean = params[:, :int(params.get_shape().as_list()[1]/2.)]
-			self.pre_std = 2*params[:, int(params.get_shape().as_list()[1]/2.):]
-			self.params = tf.concat([self.mean, self.pre_std], axis=1)
+			# self.mean = params[:, :int(params.get_shape().as_list()[1]/2.)]
+			# self.pre_std = params[:, int(params.get_shape().as_list()[1]/2.):]
+			# self.params = tf.concat([self.mean, self.pre_std], axis=1)
+			self.params = params
 			self.gaussian_dist = DiagonalGaussianDistribution(params = self.params)
 		else: print('Invalid Option. DiagonalLogitNormalDistribution.'); quit()
 		self.name = name
