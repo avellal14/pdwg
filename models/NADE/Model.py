@@ -127,6 +127,13 @@ class Model():
         self.posterior_latent_code = self.posterior_latent_code_expanded[:,0,:]
 
         self.reconst_param = self.Generator.forward(self.posterior_latent_code_expanded) 
+        
+        timescale, start_time = 5, 10
+        update_pre_std = helper.hardstep((self.epoch-float(start_time))/float(timescale))
+        temp_mean = self.reconst_param['image'][..., :int(self.reconst_param['image'].get_shape().as_list()[-1]/2.)]
+        temp_pre_std = update_pre_std*self.reconst_param['image'][..., int(self.reconst_param['image'].get_shape().as_list()[-1]/2.):]
+        self.reconst_param['image'] = tf.concat([temp_mean, temp_pre_std], axis=-1)
+
         self.reconst_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.reconst_param)
         self.reconst_sample = self.reconst_dist.sample(b_mode=True)
         self.reconst_log_pdf = self.reconst_dist.log_pdf(self.input_sample)
@@ -156,7 +163,6 @@ class Model():
         # timescale, start_time, min_tradeoff = 5, 10, 0.000001
         # tradeoff = (1-2*min_tradeoff)*helper.hardstep((self.epoch-float(start_time))/float(timescale))+min_tradeoff
         # overall_cost = tradeoff*self.mean_neg_log_pdf+(1-tradeoff)*self.mean_OT_primal
-
 
         self.enc_cost = overall_cost
 
