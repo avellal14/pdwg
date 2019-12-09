@@ -131,7 +131,8 @@ class Model():
         timescale, start_time = 5, 10
         update_pre_std = helper.hardstep((self.epoch-float(start_time))/float(timescale))
         temp_mean = self.reconst_param['image'][..., :int(self.reconst_param['image'].get_shape().as_list()[-1]/2.)]
-        temp_pre_std = update_pre_std*self.reconst_param['image'][..., int(self.reconst_param['image'].get_shape().as_list()[-1]/2.):]
+        temp_pre_std = self.reconst_param['image'][..., int(self.reconst_param['image'].get_shape().as_list()[-1]/2.):]
+        temp_pre_std = (1-update_pre_std)*(-1)*tf.ones(tf.shape(temp_pre_std), tf.float32)+update_pre_std*temp_pre_std
         self.reconst_param['image'] = tf.concat([temp_mean, temp_pre_std], axis=-1)
 
         self.reconst_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.reconst_param)
