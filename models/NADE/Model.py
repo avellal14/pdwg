@@ -127,14 +127,6 @@ class Model():
         self.posterior_latent_code = self.posterior_latent_code_expanded[:,0,:]
 
         self.reconst_param = self.Generator.forward(self.posterior_latent_code_expanded) 
-        
-        timescale, start_time = 5, 10
-        update_pre_std = helper.hardstep((self.epoch-float(start_time))/float(timescale))
-        temp_mean = self.reconst_param['image'][..., :int(self.reconst_param['image'].get_shape().as_list()[-1]/2.)]
-        temp_pre_std = self.reconst_param['image'][..., int(self.reconst_param['image'].get_shape().as_list()[-1]/2.):]
-        temp_pre_std = (1-update_pre_std)*(4)*tf.ones(tf.shape(temp_pre_std), tf.float32)+update_pre_std*temp_pre_std
-        self.reconst_param['image'] = tf.concat([temp_mean, temp_pre_std], axis=-1)
-
         self.reconst_dist = distributions.ProductDistribution(sample_properties = batch['observed']['properties'], params = self.reconst_param)
         self.reconst_sample = self.reconst_dist.sample(b_mode=True)
         self.reconst_log_pdf = self.reconst_dist.log_pdf(self.input_sample)
@@ -178,7 +170,6 @@ class Model():
 
 
 
-        # tradeoff = helper.hardstep((self.epoch-float(start_time))/float(timescale))+0.000001
 
 
 
@@ -189,7 +180,28 @@ class Model():
 
 
 
-        # tradeoff = g(self.epoch, max_epoch) #0 --  > 1 at self.epoch=10
+
+
+
+
+
+
+
+
+
+
+
+
+
+        # timescale, start_time = 5, 10
+        # update_pre_std = helper.hardstep((self.epoch-float(start_time))/float(timescale))
+        # temp_mean = self.reconst_param['image'][..., :int(self.reconst_param['image'].get_shape().as_list()[-1]/2.)]
+        # temp_pre_std = self.reconst_param['image'][..., int(self.reconst_param['image'].get_shape().as_list()[-1]/2.):]
+        # temp_pre_std = (1-update_pre_std)*(4)*tf.ones(tf.shape(temp_pre_std), tf.float32)+update_pre_std*temp_pre_std
+        # self.reconst_param['image'] = tf.concat([temp_mean, temp_pre_std], axis=-1)
+
+
+
 
 
 

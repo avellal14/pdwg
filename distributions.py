@@ -363,16 +363,25 @@ class BoltzmanDistribution():
 ####  DIAGONAL GAUSSIAN DISTRIBUTION
 
 class DiagonalGaussianDistribution():
-	def __init__(self, params=None, shape = None, exponential=True, name = 'DiagonalGaussianDistribution'):
+	def __init__(self, params=None, shape = None, mode='exponential', bound_range=[1e-7, 2.], name = 'DiagonalGaussianDistribution'):
+		self.mode = mode
+		self.bound_range = bound_range
+		assert (self.mode == 'exponential' or self.mode == 'softplus' or self.mode == 'bounded')
+		assert (self.bound_range[0] > 0 and self.bound_range[1] > 0)
+
 		if len(params.get_shape().as_list()) == 2: 
 			self.mean = params[:, :int(params.get_shape().as_list()[1]/2.)]
 			self.pre_std = params[:, int(params.get_shape().as_list()[1]/2.):]
 
-			if exponential:
+			if self.mode == 'bounded':
+				self.std = self.bound_range[0]+tf.nn.sigmoid(self.pre_std)*(self.bound_range[1]-self.bound_range[0])
+				self.var = self.std**2
+				self.log_std = tf.log(self.std)
+			elif self.mode == 'exponential':
 				self.log_std = self.pre_std
 				self.std = tf.exp(self.log_std)
 				self.var = tf.exp(2*self.log_std)
-			else:
+			elif self.mode == 'softplus':
 				self.std = 1e-5+tf.nn.softplus(self.pre_std)
 				self.var = self.std**2
 				self.log_std = tf.log(self.std)
@@ -468,16 +477,14 @@ class DiagonalKumaraswamyDistribution():
 		log_prob =  tf.log(self.alpha)+tf.log(self.beta)+(self.alpha-1)*tf.log(sample)+(self.beta-1)*tf.log(1-tf.math.pow(sample, self.alpha))
 		return log_prob
 
-
 ####  DIAGONAL LOGIT-NORMAL DISTRIBUTION
 class DiagonalLogitNormalDistribution():
-	def __init__(self, params=None, shape = None, name = 'DiagonalLogitNormalDistribution'):
+	def __init__(self, params=None, shape = None, unimodal=True, name = 'DiagonalLogitNormalDistribution'):
 		if len(params.get_shape().as_list()) == 2: 
-			# self.mean = params[:, :int(params.get_shape().as_list()[1]/2.)]
-			# self.pre_std = params[:, int(params.get_shape().as_list()[1]/2.):]
-			# self.params = tf.concat([self.mean, self.pre_std], axis=1)
-			self.params = params
-			self.gaussian_dist = DiagonalGaussianDistribution(params = self.params)
+			if unimodal:
+				self.gaussian_dist = DiagonalGaussianDistribution(params = params, mode = 'bounded', bound_range=[1e-7, np.sqrt(2)])
+			else:
+				self.gaussian_dist = DiagonalGaussianDistribution(params = params)
 		else: print('Invalid Option. DiagonalLogitNormalDistribution.'); quit()
 		self.name = name
 
