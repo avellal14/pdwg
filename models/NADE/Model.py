@@ -151,9 +151,11 @@ class Model():
         self.OT_primal = self.sample_distance_function(self.input_sample, self.reconst_sample)
         self.mean_OT_primal = tf.reduce_mean(self.OT_primal)
 
-        timescale, start_time, min_tradeoff = 5, 10, 0.000001
-        tradeoff = (1-2*min_tradeoff)*helper.hardstep((self.epoch-float(start_time))/float(timescale))+min_tradeoff
-        overall_cost = tradeoff*self.mean_neg_log_pdf+(1-tradeoff)*self.mean_OT_primal
+        overall_cost = self.mean_neg_log_pdf
+
+        # timescale, start_time, min_tradeoff = 5, 10, 0.000001
+        # tradeoff = (1-2*min_tradeoff)*helper.hardstep((self.epoch-float(start_time))/float(timescale))+min_tradeoff
+        # overall_cost = tradeoff*self.mean_neg_log_pdf+(1-tradeoff)*self.mean_OT_primal
 
 
         self.enc_cost = overall_cost

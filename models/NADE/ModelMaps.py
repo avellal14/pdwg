@@ -181,6 +181,15 @@ class Generator():
 				n_output_channels = helper.list_sum([distributions.DistributionsAKA[e['dist']].num_params(e['size'][-1]) for e in self.config['data_properties']['image']])
 				x_batched_inp_flat = tf.reshape(x, [-1,  x.get_shape().as_list()[-1]])
 
+				# list_of_results = []
+				# for i 
+				# 	batch x 2 = tf.reduce_sum(self.weight_matrix[:i,:]*h)
+				# 	list_of_results.append(batch x 2)
+				# tf.concat(list_of_results, axis=-1) batch x D
+
+				# out_dict['image'] = tf.reshape(batch x D, batch x 1 x 28 x 28 x 2*3)
+				
+
 				if image_shape == (28, 28):
 					layer_1_flat = tf.layers.dense(inputs = x_batched_inp_flat, units = 8*8*self.config['n_filter'], activation = self.activation_function, use_bias = True)
 					layer_1 = tf.reshape(layer_1_flat, [-1, 8, 8, self.config['n_filter']])
