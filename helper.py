@@ -216,7 +216,7 @@ def hardstep(x):
 	return (1-2*tf.nn.relu(0.5*(1-x))+tf.nn.relu(-x))
 
 def tf_suppress_max_non_max(x):
-	x_max = tf.reduce_max(x, axis=1, keep_dims=True)
+	x_max = tf.reduce_max(x, axis=1, keepdims=True)
 	non_max_indeces = tf.sign(x_max-x)
 	max_indeces = 1-non_max
 	non_max_suppressed = max_indeces*x_max
@@ -296,7 +296,7 @@ def dense_layer_norm_layer(input_layer): # NOT SURE ABOUT THE CORRECTNESS OF THI
 def layer_norm(x, norm_axes, channel_index, channel_offset, channel_scale):
     # norm_axes = [-1,-2,-3]
     # norm_axes = [-1]
-    mean, var = tf.nn.moments(x, norm_axes, keep_dims=True)
+    mean, var = tf.nn.moments(x, norm_axes, keepdims=True)
     frame = [1, 1, 1]
     frame[channel_index-1] = -1
     offset = tf.reshape(channel_offset, frame)
@@ -1143,12 +1143,12 @@ def random_rot_mat(dim, mode='SO(n)'):
 	print('It took (sec): ', (end - start))
 	return curr_rot
 
-def euclidean_distance_squared(x, y, axis=[-1], keep_dims=True):
-    return tf.reduce_sum((x-y)**2, axis=axis, keep_dims=keep_dims)
+def euclidean_distance_squared(x, y, axis=[-1], keepdims=True):
+    return tf.reduce_sum((x-y)**2, axis=axis, keepdims=keepdims)
 
 def metric_distance_sq(x, y):
-    try: metric_distance = euclidean_distance_squared(x['image'], y['image'], axis=[-1,-2,-3], keep_dims=False)[:,:,np.newaxis]
-    except: metric_distance = euclidean_distance_squared(x['flat'], y['flat'], axis=[-1], keep_dims=True)
+    try: metric_distance = euclidean_distance_squared(x['image'], y['image'], axis=[-1,-2,-3], keepdims=False)[:,:,np.newaxis]
+    except: metric_distance = euclidean_distance_squared(x['flat'], y['flat'], axis=[-1], keepdims=True)
     return metric_distance
 
 def euclidean_distance(a, b):
@@ -1164,7 +1164,7 @@ def rbf_kernel(z_1, z_2=None, sigma_z_sq=1):
     else:
         squared_dists = (z_2[:,np.newaxis,:]-z_1[np.newaxis,:,:])**2
 
-    z_diff_norm_sq = tf.reduce_sum(squared_dists, axis=[-1], keep_dims=True)
+    z_diff_norm_sq = tf.reduce_sum(squared_dists, axis=[-1], keepdims=True)
     n_dim = z_1.get_shape().as_list()[-1]
     sigma_k_sq = 2*n_dim*sigma_z_sq
     return tf.exp(-z_diff_norm_sq/sigma_k_sq)
@@ -1176,7 +1176,7 @@ def inv_multiquadratics_kernel(z_1, z_2=None, sigma_z_sq=1):
     else:
         squared_dists = (z_2[:,np.newaxis,:]-z_1[np.newaxis,:,:])**2
 
-    z_diff_norm_sq = tf.reduce_sum(squared_dists, axis=[-1], keep_dims=True)
+    z_diff_norm_sq = tf.reduce_sum(squared_dists, axis=[-1], keepdims=True)
     n_dim = z_1.get_shape().as_list()[-1]
     C = 2*n_dim*sigma_z_sq
     return C/(C+z_diff_norm_sq)
@@ -1188,7 +1188,7 @@ def rational_quadratic_kernel(z_1, z_2=None, alpha=1):
     else:
         squared_dists = (z_2[:,np.newaxis,:]-z_1[np.newaxis,:,:])**2
 
-    z_diff_norm_sq = tf.reduce_sum(squared_dists, axis=[-1], keep_dims=True)
+    z_diff_norm_sq = tf.reduce_sum(squared_dists, axis=[-1], keepdims=True)
     C = 1+z_diff_norm_sq/(2*alpha)
     if alpha == 1: return C
     else: return tf.pow(C, -alpha)
@@ -1339,11 +1339,11 @@ def compute_MMD_OLD(sample_batch_1, sample_batch_2, mode='His', positive_only=Fa
         nf = tf.cast(tf.shape(sample_qz)[0], tf.float32) # batch size float
         n_dim = sample_qz.get_shape().as_list()[-1]
 
-        norms_pz = tf.reduce_sum(tf.square(sample_pz), axis=1, keep_dims=True) # norm sq of pz
+        norms_pz = tf.reduce_sum(tf.square(sample_pz), axis=1, keepdims=True) # norm sq of pz
         dotprods_pz = tf.matmul(sample_pz, sample_pz, transpose_b=True) 
         distances_pz = norms_pz + tf.transpose(norms_pz) - 2. * dotprods_pz
 
-        norms_qz = tf.reduce_sum(tf.square(sample_qz), axis=1, keep_dims=True)
+        norms_qz = tf.reduce_sum(tf.square(sample_qz), axis=1, keepdims=True)
         dotprods_qz = tf.matmul(sample_qz, sample_qz, transpose_b=True)
         distances_qz = norms_qz + tf.transpose(norms_qz) - 2. * dotprods_qz
 
@@ -1523,35 +1523,35 @@ def stable_div_expanded(div_func, batch_input, batch_rand_dirs_expanded, mode='m
 
 def apply_single_householder_reflection(batch_input, v_householder):
 	v_householder_expanded = v_householder[np.newaxis, :]
-	householder_inner = tf.reduce_sum(v_householder_expanded*batch_input, axis=1, keep_dims=True)  
+	householder_inner = tf.reduce_sum(v_householder_expanded*batch_input, axis=1, keepdims=True)  
 	batch_out = batch_input-2*householder_inner*v_householder_expanded
 	return batch_out
 
 def apply_rotations_reflections(batch_input, batch_rand_dirs_expanded):
 	v_householder = batch_rand_dirs[np.newaxis, :,:]
 	batch_input_expand = batch_input[:,np.newaxis, :]
-	householder_inner_expand = tf.reduce_sum(v_householder*batch_input_expand, axis=2, keep_dims=True)  
+	householder_inner_expand = tf.reduce_sum(v_householder*batch_input_expand, axis=2, keepdims=True)  
 	return batch_input_expand-2*householder_inner_expand*v_householder
 
 def apply_householder_reflections(batch_input, batch_rand_dirs):
 	v_householder = batch_rand_dirs[np.newaxis, :,:]
 	batch_input_expand = batch_input[:,np.newaxis, :]
-	householder_inner_expand = tf.reduce_sum(v_householder*batch_input_expand, axis=2, keep_dims=True)  
+	householder_inner_expand = tf.reduce_sum(v_householder*batch_input_expand, axis=2, keepdims=True)  
 	return batch_input_expand-2*householder_inner_expand*v_householder
 
 def apply_householder_reflections2(batch_input, batch_rand_dirs):
 	v_householder = batch_rand_dirs[:, np.newaxis,:]
-	householder_inner_expand = tf.reduce_sum(v_householder*batch_input, axis=2, keep_dims=True)  
+	householder_inner_expand = tf.reduce_sum(v_householder*batch_input, axis=2, keepdims=True)  
 	return batch_input-2*householder_inner_expand*v_householder
 
 def variable_summaries(var, name):
 	mean = tf.reduce_mean(var)
-	tf.summary.scalar('mean/' + name, mean)
+	tf.compat.v1.summary.scalar('mean/' + name, mean)
 	stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
-	tf.summary.scalar('stddev/' + name, stddev)
-	tf.summary.scalar('max/' + name, tf.reduce_max(var))
-	tf.summary.scalar('min/' + name, tf.reduce_min(var))
-	tf.summary.histogram(name, var)
+	tf.compat.v1.summary.scalar('stddev/' + name, stddev)
+	tf.compat.v1.summary.scalar('max/' + name, tf.reduce_max(var))
+	tf.compat.v1.summary.scalar('min/' + name, tf.reduce_min(var))
+	tf.compat.v1.summary.histogram(name, var)
 
 def visualize_vectors(visualized_list, batch_size = 10, save_dir = './', postfix = ''):
 	time_step = -1
@@ -1740,8 +1740,8 @@ def tf_batch_and_input_dict(batch_template, additional_inputs_template=None):
                 elif a == 'data': 
                     if batch_template[d][a][t] is None: batch_tf[d][a][t] = None
                     else: 
-                    	batch_tf[d][a][t] = tf.placeholder(tf.float32, [None, *batch_template[d][a][t].shape[1:]]) 
-                    	# batch_tf[d][a][t] = tf.placeholder(tf.float32, [*batch_template[d][a][t].shape]) 
+                    	batch_tf[d][a][t] = tf.compat.v1.placeholder(tf.float32, [None, *batch_template[d][a][t].shape[1:]]) 
+                    	# batch_tf[d][a][t] = tf.compat.v1.placeholder(tf.float32, [*batch_template[d][a][t].shape]) 
 
     def input_dict_func(batch, additional_inputs=None):
         input_dict = {}
@@ -1909,7 +1909,7 @@ def householder_rotations_tf(n, k_start=1, init_reflection=1, params=None, mode=
 			H_k = householder_matrix_tf(batch, n, k, float(init_reflection), u_var)
 		elif mode == 'uniform':
 			e1_tf = tf_standard_basis_vector(u_var.get_shape().as_list()[1], 0)[np.newaxis, :]
-			e1_minus_v = e1_tf-(u_var/safe_tf_sqrt(tf.reduce_sum(u_var**2, axis=1, keep_dims=True)))
+			e1_minus_v = e1_tf-(u_var/safe_tf_sqrt(tf.reduce_sum(u_var**2, axis=1, keepdims=True)))
 			H_k = householder_matrix_tf(batch, n, k, float(init_reflection), e1_minus_v)
 		
 		M_k_start_list.append(H_k)
@@ -1940,10 +1940,10 @@ def householder_rotation_vectors_tf(n, k_start=1, init_reflection=1, params=None
 			
 			if mode == 'uniform':
 				e1_tf = tf_standard_basis_vector(u_var.get_shape().as_list()[1], 0)[np.newaxis, :]
-				e1_minus_v = e1_tf-(u_var/safe_tf_sqrt(tf.reduce_sum(u_var**2, axis=1, keep_dims=True)))
-				u_dir = e1_minus_v/safe_tf_sqrt(tf.reduce_sum(e1_minus_v**2, axis=1, keep_dims=True))
+				e1_minus_v = e1_tf-(u_var/safe_tf_sqrt(tf.reduce_sum(u_var**2, axis=1, keepdims=True)))
+				u_dir = e1_minus_v/safe_tf_sqrt(tf.reduce_sum(e1_minus_v**2, axis=1, keepdims=True))
 			elif mode == 'simple':
-				u_dir = u_var/safe_tf_sqrt(tf.reduce_sum(u_var**2, axis=1, keep_dims=True))
+				u_dir = u_var/safe_tf_sqrt(tf.reduce_sum(u_var**2, axis=1, keepdims=True))
 
 			list_householder_dir_vecs.append(u_dir)
 	return list_householder_dir_vecs
@@ -2027,7 +2027,7 @@ def tf_jacobian_3(y, x):
 	return tf.reshape(jacobian, [*y.get_shape().as_list(), -1, *x.get_shape().as_list()[1:]])
 
 def tf_batch_reduced_jacobian(y, x):
-	batch_jacobian = tf_jacobian(tf.reduce_sum(y, axis=[0], keep_dims=False), x)
+	batch_jacobian = tf_jacobian(tf.reduce_sum(y, axis=[0], keepdims=False), x)
 	return tf.transpose(batch_jacobian, perm=[1, 0, 2])
 
 def triangular_matrix_mask(output_struct, input_struct):
@@ -2546,7 +2546,7 @@ def tf_manual_conv2d_layer(input_ims, filters, biases, strides = [1, 1], padding
 
 
 
-# input_tf = tf.placeholder(tf.float32, [5])
+# input_tf = tf.compat.v1.variable_scope(tf.float32, [5])
 # z = binaryStochastic_ST(input_tf)
 # f_d = {input_tf: np.asarray([-10, -1e-8, 0, 9e-8, 10])}
 
@@ -2646,7 +2646,7 @@ def tf_manual_conv2d_layer(input_ims, filters, biases, strides = [1, 1], padding
 # sys.stdout = PrintSnooper(sys.stdout) # put it to the beginning of script
 
 # print('postload')
-# for var in tf.trainable_variables():
+# for var in tf.compat.v1.trainable_variables():
 #     print('var', var.name, var.get_shape(), sess.run(tf.reduce_sum(var ** 2)))
 
 
@@ -2696,9 +2696,9 @@ def tf_manual_conv2d_layer(input_ims, filters, biases, strides = [1, 1], padding
 # N = 1
 # batch_size = 30
 # with tf.Graph().as_default():
-# 	x = tf.placeholder(tf.float32, shape=[None, N])
-# 	spur_1 = tf.placeholder(tf.float32, shape=[None, 784])
-# 	spur_2 = tf.placeholder(tf.float32, shape=[None, 784])
+# 	x = tf.compat.v1.variable_scope(tf.float32, shape=[None, N])
+# 	spur_1 = tf.compat.v1.variable_scope(tf.float32, shape=[None, 784])
+# 	spur_2 = tf.compat.v1.variable_scope(tf.float32, shape=[None, 784])
 # 	input_x = tf.concat([x, spur], axis=-1)
 # 	h = tf.layers.dense(inputs = input_x, units = 784, activation = tf.nn.sigmoid)
 # 	y = tf.layers.dense(inputs = h, units = 784, activation = tf.nn.sigmoid)
@@ -2729,8 +2729,8 @@ def tf_manual_conv2d_layer(input_ims, filters, biases, strides = [1, 1], padding
 # N = 1
 # batch_size = 30
 # with tf.Graph().as_default():
-# 	x = tf.placeholder(tf.float32, shape=[None, N])
-# 	spur = tf.placeholder(tf.float32, shape=[None, 400])
+# 	x = tf.compat.v1.variable_scope(tf.float32, shape=[None, N])
+# 	spur = tf.compat.v1.variable_scope(tf.float32, shape=[None, 400])
 # 	input_x = tf.concat([x, spur], axis=-1)
 # 	h = tf.layers.dense(inputs = input_x, units = 784, activation = tf.nn.sigmoid)
 # 	y = tf.layers.dense(inputs = h, units = 784, activation = tf.nn.sigmoid)
@@ -2756,8 +2756,8 @@ def tf_manual_conv2d_layer(input_ims, filters, biases, strides = [1, 1], padding
 
 
 
-# jacobian1 = tf_jacobian(tf.reduce_sum(y, axis=[0], keep_dims=True), x)
-# jacobian2 = tf_jacobian(tf.reduce_sum(y, axis=[0], keep_dims=False), x)
+# jacobian1 = tf_jacobian(tf.reduce_sum(y, axis=[0], keepdims=True), x)
+# jacobian2 = tf_jacobian(tf.reduce_sum(y, axis=[0], keepdims=False), x)
 # jacobian3 = tf_jacobian(y, x)
 
 # start = time.time(); jacobian_val1 = sess.run(jacobian1, feed_dict={x:x_val}); end = time.time(); timing1= end-start

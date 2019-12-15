@@ -28,7 +28,7 @@ class PriorMapGaussian():
 		self.constructed = False
  
 	def forward(self, x, name = ''):
-		with tf.variable_scope("PriorMapGaussian", reuse=self.constructed):
+		with tf.compat.v1.variable_scope("PriorMapGaussian", reuse=self.constructed):
 			input_flat = x[0]			
 			mu_pre_sig = tf.zeros(shape=(tf.shape(input_flat)[0], 2*self.config['n_latent']))
 			self.constructed = True
@@ -43,7 +43,7 @@ class Encoder():
 		self.constructed = False
 
 	def forward(self, x, noise=None, name = ''):
-		with tf.variable_scope("Encoder", reuse=self.constructed):
+		with tf.compat.v1.variable_scope("Encoder", reuse=self.constructed):
 			if len(self.config['data_properties']['flat']) > 0:
 				n_output_size = helper.list_sum([distributions.DistributionsAKA[e['dist']].num_params(e['size'][-1]) for e in self.config['data_properties']['flat']])				
 				x_batched_inp_flat = tf.reshape(x['flat'], [-1,  *x['flat'].get_shape().as_list()[2:]])
@@ -163,7 +163,7 @@ class Generator():
 		self.constructed = False
 
 	def forward(self, x, name = ''):
-		with tf.variable_scope("Generator", reuse=self.constructed):
+		with tf.compat.v1.variable_scope("Generator", reuse=self.constructed):
 			out_dict = {'flat': None, 'image': None}
 			if len(self.config['data_properties']['flat']) > 0:
 				n_output_size = helper.list_sum([distributions.DistributionsAKA[e['dist']].num_params(e['size'][-1]) for e in self.config['data_properties']['flat']])

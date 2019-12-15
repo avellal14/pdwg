@@ -24,7 +24,7 @@ class FDivKL():
 		self.name = name
 
 	def generator_function(self, u):
-		return u*tf.log(u)
+		return u*tf.math.log(u)
 
 	def conjugate_function(self, t):
 		return tf.exp(t-1)
@@ -37,10 +37,10 @@ class FDivReverseKL():
 		self.name = name
 
 	def generator_function(self, u):
-		return -tf.log(u)
+		return -tf.math.log(u)
 
 	def conjugate_function(self, t):
-		return -1-tf.log(-t)
+		return -1-tf.math.log(-t)
 
 	def codomain_function(self, v):
 		return -tf.exp(-v)
@@ -89,26 +89,26 @@ class FDivJS():
 		self.name = name
 	
 	def generator_function(self, u):
-		return -(u+1)*tf.log((u+1)/2)+u*tf.log(u)
+		return -(u+1)*tf.math.log((u+1)/2)+u*tf.math.log(u)
 
 	def conjugate_function(self, t):
-		return -tf.log(2-tf.exp(t))
+		return -tf.math.log(2-tf.exp(t))
 
 	def codomain_function(self, v):
-		return np.log(2)-tf.log(1+tf.exp(-v))
+		return np.log(2)-tf.math.log(1+tf.exp(-v))
 
 class FDivAdHocGANJS():
 	def __init__(self, name = '/FDivAdHocGANJS'):
 		self.name = name
 	
 	def generator_function(self, u):
-		return -(u+1)*tf.log((u+1))+u*tf.log(u)
+		return -(u+1)*tf.math.log((u+1))+u*tf.math.log(u)
 
 	def conjugate_function(self, t):
-		return -tf.log(1-tf.exp(t))
+		return -tf.math.log(1-tf.exp(t))
 
 	def codomain_function(self, v):
-		return -tf.log(1+tf.exp(-v))
+		return -tf.math.log(1+tf.exp(-v))
 
 class KLDivDiagGaussianVsDiagGaussian():
 	def __init__(self, name = 'KLDivDiagGaussianVsDiagGaussian'):
@@ -121,9 +121,9 @@ class KLDivDiagGaussianVsDiagGaussian():
 		log_var1 = 2*dist1.log_std
 		log_var2 = 2*dist2.log_std
 		scale_factor = tf.exp(-log_var2)
-		first = 2*tf.reduce_sum(dist2.log_std-dist1.log_std, axis=1, keep_dims=True)
-		sec_third = tf.reduce_sum(tf.exp(log_var1-log_var2), axis=1, keep_dims=True)-log_var1.get_shape().as_list()[1]
-		fourth = tf.reduce_sum((mean_diff_sq*scale_factor), axis=1, keep_dims=True)
+		first = 2*tf.reduce_sum(dist2.log_std-dist1.log_std, axis=1, keepdims=True)
+		sec_third = tf.reduce_sum(tf.exp(log_var1-log_var2), axis=1, keepdims=True)-log_var1.get_shape().as_list()[1]
+		fourth = tf.reduce_sum((mean_diff_sq*scale_factor), axis=1, keepdims=True)
 		KLD_sample = 0.5*(first+sec_third+fourth)
 		return KLD_sample
 
@@ -135,7 +135,7 @@ class KLDivDiagGaussianVsNormal():
 		assert (type(dist) == DiagonalGaussianDistribution)
 		log_var = dist.log_std*2
 		KLD_element = -0.5*((log_var+1)-((dist.mean**2)+(tf.exp(log_var))))
-		KLD_sample = tf.reduce_sum(KLD_element, axis=1, keep_dims=True)
+		KLD_sample = tf.reduce_sum(KLD_element, axis=1, keepdims=True)
 		return KLD_sample 
 
 ####  UNIFORM DISTRIBUTION
@@ -168,7 +168,7 @@ class UniformDiscreteDistribution():
 
 	def log_pdf(self, sample):
 		assert (len(sample.get_shape())==2)
-		log_volume = tf.reduce_sum(tf.log(self.high-self.low), axis=1, keep_dims=True)
+		log_volume = tf.reduce_sum(tf.math.log(self.high-self.low), axis=1, keepdims=True)
 		return 0-log_volume
 
 class UniformDistribution():
@@ -191,7 +191,7 @@ class UniformDistribution():
 
 	def log_pdf(self, sample):
 		assert (len(sample.get_shape())==2)
-		log_volume = tf.reduce_sum(tf.log(self.high-self.low), axis=1, keep_dims=True)
+		log_volume = tf.reduce_sum(tf.math.log(self.high-self.low), axis=1, keepdims=True)
 		return 0-log_volume
 
 
@@ -212,8 +212,8 @@ class UniformSphereDistribution():
 		return [self.centers, self.radius]
 
 	def sample(self):
-		dir_normal = tf.random_normal(shape=tf.shape(self.centers))
-		dir_normal_norm = helper.safe_tf_sqrt(tf.reduce_sum(dir_normal**2, axis=1, keep_dims=True))
+		dir_normal = tf.random.normal(shape=tf.shape(self.centers))
+		dir_normal_norm = helper.safe_tf_sqrt(tf.reduce_sum(dir_normal**2, axis=1, keepdims=True))
 		sample_dir = dir_normal/dir_normal_norm
 		sample = self.radius*sample_dir+self.centers
 		return sample
@@ -221,7 +221,7 @@ class UniformSphereDistribution():
 	def log_pdf(self, sample):
 		pdb.set_trace()
 		assert (len(sample.get_shape())==2)
-		log_volume = (self.dim/2)*np.log(np.pi)-(scipy.special.gammaln(1+self.dim/2))+self.dim*tf.log(self.radius)
+		log_volume = (self.dim/2)*np.log(np.pi)-(scipy.special.gammaln(1+self.dim/2))+self.dim*tf.math.log(self.radius)
 		return 0-log_volume
 
 ####  UNIFORM n-BALL DISTRIBUTION
@@ -241,8 +241,8 @@ class UniformBallDistribution():
 		return [self.centers, self.radius]
 
 	def sample(self):
-		dir_normal = tf.random_normal(shape=tf.shape(self.centers))
-		dir_normal_norm = helper.safe_tf_sqrt(tf.reduce_sum(dir_normal**2, axis=1, keep_dims=True))
+		dir_normal = tf.random.normal(shape=tf.shape(self.centers))
+		dir_normal_norm = helper.safe_tf_sqrt(tf.reduce_sum(dir_normal**2, axis=1, keepdims=True))
 		sample_dir = dir_normal/dir_normal_norm
 		sample_norm = tf.random_uniform(tf.shape(self.radius), 0, 1, dtype=tf.float32)*self.radius
 		sample = sample_norm*sample_dir+self.centers
@@ -250,7 +250,7 @@ class UniformBallDistribution():
 
 	def log_pdf(self, sample):
 		assert (len(sample.get_shape())==2)
-		log_volume = (self.dim/2)*np.log(np.pi)-(scipy.special.gammaln(1+self.dim/2))+self.dim*tf.log(self.radius)
+		log_volume = (self.dim/2)*np.log(np.pi)-(scipy.special.gammaln(1+self.dim/2))+self.dim*tf.math.log(self.radius)
 		return 0-log_volume
 
 ####  UNIFORM Hallow n-BALL DISTRIBUTION
@@ -271,8 +271,8 @@ class UniformHollowBallDistribution():
 		return [self.centers, self.inner_radius, self.outer_radius]
 
 	def sample(self):
-		dir_normal = tf.random_normal(shape=tf.shape(self.centers))
-		dir_normal_norm = helper.safe_tf_sqrt(tf.reduce_sum(dir_normal**2, axis=1, keep_dims=True))
+		dir_normal = tf.random.normal(shape=tf.shape(self.centers))
+		dir_normal_norm = helper.safe_tf_sqrt(tf.reduce_sum(dir_normal**2, axis=1, keepdims=True))
 		sample_dir = dir_normal/dir_normal_norm
 		sample_norm = tf.random_uniform(tf.shape(self.inner_radius), 0, 1, dtype=tf.float32)*(self.outer_radius-self.inner_radius)+self.inner_radius
 		sample = sample_norm*sample_dir+self.centers
@@ -280,10 +280,10 @@ class UniformHollowBallDistribution():
 
 	def log_pdf(self, sample):
 		assert (len(sample.get_shape())==2)
-		log_inner_volume = (self.dim/2)*np.log(np.pi)-(scipy.special.gammaln(1+self.dim/2))+self.dim*tf.log(self.inner_radius)
-		log_outer_volume = (self.dim/2)*np.log(np.pi)-(scipy.special.gammaln(1+self.dim/2))+self.dim*tf.log(self.outer_radius)
-		# log_hollow_volume = log_inner_volume+tf.log(tf.exp(log_outer_volume-log_inner_volume)-1)
-		log_hollow_volume = log_outer_volume+tf.log(1-tf.exp(log_inner_volume-log_outer_volume))
+		log_inner_volume = (self.dim/2)*np.log(np.pi)-(scipy.special.gammaln(1+self.dim/2))+self.dim*tf.math.log(self.inner_radius)
+		log_outer_volume = (self.dim/2)*np.log(np.pi)-(scipy.special.gammaln(1+self.dim/2))+self.dim*tf.math.log(self.outer_radius)
+		# log_hollow_volume = log_inner_volume+tf.math.log(tf.exp(log_outer_volume-log_inner_volume)-1)
+		log_hollow_volume = log_outer_volume+tf.math.log(1-tf.exp(log_inner_volume-log_outer_volume))
 		return 0-log_hollow_volume
 
 ####  BERNOULLI DISTRIBUTION
@@ -313,10 +313,10 @@ class BernoulliDistribution():
 	def log_pdf(self, sample):
 		assert (len(sample.get_shape())==2)
 		# sample = tf.reshape(sample, [tf.shape(sample)[0], -1])
-		binary_cross_entropy_dims = sample*tf.log(1e-7+self.mean)+ (1.0-sample)*tf.log(1e-7+1.0-self.mean)
-		log_prob = tf.reduce_sum(binary_cross_entropy_dims, axis=1, keep_dims=True)
+		binary_cross_entropy_dims = sample*tf.math.log(1e-7+self.mean)+ (1.0-sample)*tf.math.log(1e-7+1.0-self.mean)
+		log_prob = tf.reduce_sum(binary_cross_entropy_dims, axis=1, keepdims=True)
 		
-		# log_prob = tf.reduce_sum(self._dist._log_prob(sample), axis=1, keep_dims=True)
+		# log_prob = tf.reduce_sum(self._dist._log_prob(sample), axis=1, keepdims=True)
 		return log_prob
 
 
@@ -350,13 +350,13 @@ class BoltzmanDistribution():
 	def entropy(self):
 		log_prob_all = tf.nn.log_softmax(self.logits/self.temperature)
 		prob_all = tf.exp(log_prob_all)
-		entropy = tf.reduce_sum(-log_prob_all*prob_all, axis=1, keep_dims=True)
+		entropy = tf.reduce_sum(-log_prob_all*prob_all, axis=1, keepdims=True)
 		return entropy
 
 	def log_pdf(self, sample_one_hot):
 		assert (len(sample_one_hot.get_shape())==2)
 		log_prob_all = tf.nn.log_softmax(self.logits/self.temperature)
-		log_prob = tf.reduce_sum(log_prob_all*sample_one_hot, axis=1, keep_dims=True)
+		log_prob = tf.reduce_sum(log_prob_all*sample_one_hot, axis=1, keepdims=True)
 		return log_prob
 	
 	
@@ -376,7 +376,7 @@ class DiagonalGaussianDistribution():
 			if self.mode == 'bounded':
 				self.std = self.bound_range[0]+tf.nn.sigmoid(self.pre_std)*(self.bound_range[1]-self.bound_range[0])
 				self.var = self.std**2
-				self.log_std = tf.log(self.std)
+				self.log_std = tf.math.log(self.std)
 			elif self.mode == 'exponential':
 				self.log_std = self.pre_std
 				self.std = tf.exp(self.log_std)
@@ -384,7 +384,7 @@ class DiagonalGaussianDistribution():
 			elif self.mode == 'softplus':
 				self.std = 1e-5+tf.nn.softplus(self.pre_std)
 				self.var = self.std**2
-				self.log_std = tf.log(self.std)
+				self.log_std = tf.math.log(self.std)
 
 		else: print('Invalid Option. DiagonalGaussianDistribution.'); quit()
 		self.name = name
@@ -400,14 +400,14 @@ class DiagonalGaussianDistribution():
 		if b_mode: 
 			sample = self.mean
 		else:
-			eps = tf.random_normal(shape=tf.shape(self.log_std))
+			eps = tf.random.normal(shape=tf.shape(self.log_std))
 			sample = (self.std*eps)+self.mean
 		return sample
 
 	def log_pdf(self, sample):
 		assert (len(sample.get_shape())==2)
-		unnormalized_log_prob = -0.5*tf.reduce_sum(((self.mean-sample)**2)/(1e-7+self.var), axis=1, keep_dims=True)
-		log_partition = -0.5*tf.reduce_sum(2*self.log_std, axis=1, keep_dims=True)+math.log(2*math.pi)*(-self.mean.get_shape().as_list()[1]/2.0)
+		unnormalized_log_prob = -0.5*tf.reduce_sum(((self.mean-sample)**2)/(1e-7+self.var), axis=1, keepdims=True)
+		log_partition = -0.5*tf.reduce_sum(2*self.log_std, axis=1, keepdims=True)+math.log(2*math.pi)*(-self.mean.get_shape().as_list()[1]/2.0)
 		log_prob = unnormalized_log_prob+log_partition
 		return log_prob
 
@@ -437,8 +437,8 @@ class DiagonalBetaDistribution():
 
 	def log_pdf(self, sample):
 		assert (len(sample.get_shape())==2)
-		unnormalized_log_prob = tf.reduce_sum((self.alpha-1)*tf.log(1e-7+tf.nn.relu(sample))+(self.beta-1)*tf.log(1e-7+tf.nn.relu(1-sample)), axis=1, keep_dims=True)
-		log_partition = tf.reduce_sum(-helper.log_gamma(self.alpha)-helper.log_gamma(self.beta)+helper.log_gamma(self.alpha+self.beta), axis=1, keep_dims=True)
+		unnormalized_log_prob = tf.reduce_sum((self.alpha-1)*tf.math.log(1e-7+tf.nn.relu(sample))+(self.beta-1)*tf.math.log(1e-7+tf.nn.relu(1-sample)), axis=1, keepdims=True)
+		log_partition = tf.reduce_sum(-helper.log_gamma(self.alpha)-helper.log_gamma(self.beta)+helper.log_gamma(self.alpha+self.beta), axis=1, keepdims=True)
 		log_prob = unnormalized_log_prob+log_partition
 		return log_prob
 
@@ -474,7 +474,7 @@ class DiagonalKumaraswamyDistribution():
 
 	def log_pdf(self, sample):
 		assert (len(sample.get_shape())==2)
-		log_prob =  tf.log(self.alpha)+tf.log(self.beta)+(self.alpha-1)*tf.log(sample)+(self.beta-1)*tf.log(1-tf.math.pow(sample, self.alpha))
+		log_prob =  tf.math.log(self.alpha)+tf.math.log(self.beta)+(self.alpha-1)*tf.math.log(sample)+(self.beta-1)*tf.math.log(1-tf.math.pow(sample, self.alpha))
 		return log_prob
 
 ####  DIAGONAL LOGIT-NORMAL DISTRIBUTION
@@ -501,8 +501,8 @@ class DiagonalLogitNormalDistribution():
 
 	def log_pdf(self, sample):
 		assert (len(sample.get_shape())==2)		
-		log_sample = tf.log(sample+1e-7)
-		log_one_min_sample = tf.log(1-sample+1e-7)
+		log_sample = tf.math.log(sample+1e-7)
+		log_one_min_sample = tf.math.log(1-sample+1e-7)
 		logit_sample= log_sample - log_one_min_sample
 
 		gaussian_log_pdf = self.gaussian_dist.log_pdf(logit_sample)
@@ -522,7 +522,7 @@ class MixtureDistribution():
 	def sample(self, b_mode=False):
 		cdf = np.cumsum(self.weights)
 		uniform_sample = tf.random_uniform((tf.shape(self.dists[0].mean)[0], 1), 0, 1, dtype=tf.float32)
-		mixture_indeces = len(self.weights)-tf.reduce_sum(tf.cast(uniform_sample <= cdf[np.newaxis, :], tf.float32), axis=1, keep_dims=True)
+		mixture_indeces = len(self.weights)-tf.reduce_sum(tf.cast(uniform_sample <= cdf[np.newaxis, :], tf.float32), axis=1, keepdims=True)
 
 		sample = None
 		for i in range(len(self.weights)):
@@ -539,8 +539,8 @@ class MixtureDistribution():
 			mix_log_prob = self.dists[i].log_pdf(sample)
 			log_weighted_log_probs.append(np.log(self.weights[i])+mix_log_prob)
 		log_weighted_log_probs_tf = tf.concat(log_weighted_log_probs, axis=1)
-		maxes = tf.reduce_max(log_weighted_log_probs_tf, axis=1, keep_dims=True)
-		log_prob = maxes+tf.log(tf.reduce_sum(tf.exp(log_weighted_log_probs_tf-maxes), axis=1, keep_dims=True))
+		maxes = tf.reduce_max(log_weighted_log_probs_tf, axis=1, keepdims=True)
+		log_prob = maxes+tf.math.log(tf.reduce_sum(tf.exp(log_weighted_log_probs_tf-maxes), axis=1, keepdims=True))
 		return log_prob
 
 
@@ -851,7 +851,7 @@ def visualizeProductDistribution4(sess, model, input_dict, batch, real_dist, tra
 # d = 20
 # batch = 10 
 # # params = tf.zeros(shape=(batch, 2*d), dtype=tf.float32)
-# params = tf.random_normal((batch, 2*d), 0, 1, dtype=tf.float32)
+# params = tf.random.normal((batch, 2*d), 0, 1, dtype=tf.float32)
 # mean = params[:, :d]
 # log_std = params[:, d:]
 

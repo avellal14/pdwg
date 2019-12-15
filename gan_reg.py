@@ -661,18 +661,18 @@ with tf.Graph().as_default():
     model = Model(vars(global_args))
 
     global_step = tf.Variable(0.0, name='global_step', trainable=False)
-    with tf.variable_scope("training"):
+    with tf.compat.v1.variable_scope("training"):
         tf.set_random_seed(global_args.seed)
 
-        additional_inputs_tf = tf.placeholder(tf.float32, [2])
+        additional_inputs_tf = tf.compat.v1.placeholder(tf.float32, [2])
         batch_tf, input_dict_func = helper.tf_batch_and_input_dict(batch, additional_inputs_tf)
         model.inference(batch_tf, additional_inputs_tf)
         model.generative_model(batch_tf, additional_inputs_tf)
 
-        div_vars = [v for v in tf.trainable_variables() if 'Diverger' in v.name or 'Decomposer' in v.name]
-        enc_vars = [v for v in tf.trainable_variables() if 'Encoder' in v.name] 
-        cri_vars = [v for v in tf.trainable_variables() if 'Critic' in v.name or 'WolfMap' in v.name or 'PriorTransform' in v.name or 'PriorExpandMap' in v.name or 'Separator' in v.name or 'PreEnc' in v.name or 'PostGen' in v.name or 'InfoMap' in v.name]
-        gen_vars = [v for v in tf.trainable_variables() if 'Generator' in v.name or 'FlowMap' in v.name] 
+        div_vars = [v for v in tf.compat.v1.trainable_variables() if 'Diverger' in v.name or 'Decomposer' in v.name]
+        enc_vars = [v for v in tf.compat.v1.trainable_variables() if 'Encoder' in v.name] 
+        cri_vars = [v for v in tf.compat.v1.trainable_variables() if 'Critic' in v.name or 'WolfMap' in v.name or 'PriorTransform' in v.name or 'PriorExpandMap' in v.name or 'Separator' in v.name or 'PreEnc' in v.name or 'PostGen' in v.name or 'InfoMap' in v.name]
+        gen_vars = [v for v in tf.compat.v1.trainable_variables() if 'Generator' in v.name or 'FlowMap' in v.name] 
 
         # Weight clipping
         if len(cri_vars)>0:
@@ -684,19 +684,19 @@ with tf.Graph().as_default():
     div_step_tf, enc_step_tf, cri_step_tf, gen_step_tf = None, None, None, None
     if global_args.optimizer_class == 'Adam':
         if hasattr(model, 'div_cost'):
-            div_step_tf = helper.clipped_optimizer_minimize(optimizer=tf.train.AdamOptimizer(
+            div_step_tf = helper.clipped_optimizer_minimize(optimizer=tf.compat.v1.train.AdamOptimizer(
                           learning_rate=global_args.learning_rate, beta1=global_args.beta1, beta2=global_args.beta2, epsilon=1e-08), 
                           loss=model.div_cost, var_list=div_vars, global_step=global_step, clip_param=global_args.gradient_clipping)
         if hasattr(model, 'enc_cost'):
-            enc_step_tf = helper.clipped_optimizer_minimize(optimizer=tf.train.AdamOptimizer(
+            enc_step_tf = helper.clipped_optimizer_minimize(optimizer=tf.compat.v1.train.AdamOptimizer(
                           learning_rate=global_args.learning_rate, beta1=global_args.beta1, beta2=global_args.beta2, epsilon=1e-08), 
                           loss=model.enc_cost, var_list=enc_vars, global_step=global_step, clip_param=global_args.gradient_clipping)
         if hasattr(model, 'cri_cost'):
-            cri_step_tf = helper.clipped_optimizer_minimize(optimizer=tf.train.AdamOptimizer(
+            cri_step_tf = helper.clipped_optimizer_minimize(optimizer=tf.compat.v1.train.AdamOptimizer(
                            learning_rate=global_args.learning_rate, beta1=global_args.beta1, beta2=global_args.beta2, epsilon=1e-08), 
                            loss=model.cri_cost, var_list=cri_vars, global_step=global_step, clip_param=global_args.gradient_clipping)
         if hasattr(model, 'gen_cost'):
-            gen_step_tf = helper.clipped_optimizer_minimize(optimizer=tf.train.AdamOptimizer(
+            gen_step_tf = helper.clipped_optimizer_minimize(optimizer=tf.compat.v1.train.AdamOptimizer(
                           learning_rate=global_args.learning_rate, beta1=global_args.beta1, beta2=global_args.beta2, epsilon=1e-08), 
                           loss=model.gen_cost, var_list=gen_vars, global_step=global_step, clip_param=global_args.gradient_clipping)
 
@@ -710,13 +710,13 @@ with tf.Graph().as_default():
     helper.variable_summaries(model.cri_cost, '/cri_cost')
     helper.variable_summaries(model.gen_cost, '/gen_cost')
 
-    init = tf.global_variables_initializer()
-    saver = tf.train.Saver()
+    init = tf.compat.v1.global_variables_initializer()
+    saver = tf.compat.v1.train.Saver()
     if tpu_address is not None: sess = tf.Session(tpu_address)
-    else: sess = tf.InteractiveSession()
+    else: sess = tf.compat.v1.InteractiveSession()
 
-    merged_summaries = tf.summary.merge_all()
-    summary_writer = tf.summary.FileWriter(global_args.exp_dir+'/summaries', sess.graph)
+    merged_summaries = tf.compat.v1.summary.merge_all()
+    summary_writer = tf.compat.v1.summary.FileWriter(global_args.exp_dir+'/summaries', sess.graph)
     sess.run(init)
 
     try:
