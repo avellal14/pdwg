@@ -42,6 +42,8 @@ dataset_to_use = 'MNIST'
 # dataset_to_use = 'TOY'
 # dataset_to_use = 'INTENSITY'
 
+
+
 Algorithm = 'NADE'
 if Algorithm == 'AE':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
