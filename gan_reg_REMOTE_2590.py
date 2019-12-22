@@ -668,10 +668,6 @@ with tf.Graph().as_default():
         batch_tf, input_dict_func = helper.tf_batch_and_input_dict(batch, additional_inputs_tf)
         model.inference(batch_tf, additional_inputs_tf)
         model.generative_model(batch_tf, additional_inputs_tf)
-<<<<<<< HEAD
-        #pdb.set_trace()
-=======
->>>>>>> upstream/master
 
         div_vars = [v for v in tf.compat.v1.trainable_variables() if 'Diverger' in v.name or 'Decomposer' in v.name]
         enc_vars = [v for v in tf.compat.v1.trainable_variables() if 'Encoder' in v.name] 
@@ -1207,7 +1203,7 @@ with tf.Graph().as_default():
                     rand_indices_TSNE = np.arange(all_np_posterior_latent_code.shape[0]).astype(np.int)
                     np.random.permutation(rand_indices_TSNE)
                     rand_indices_TSNE = rand_indices_TSNE[:global_args.batch_size].astype(np.int)
-                    #pdb.set_trace()
+                    pdb.set_trace()
                     helper.dataset_plotter([all_np_posterior_latent_code[rand_indices_TSNE, ...],], colors=['g',], point_thickness = 10, save_dir = global_args.exp_dir+'Visualization/'+mode+'_TSNE_posterior_batch/', postfix = '_'+mode+'_TSNE_posterior_batch_'+str(global_args.curr_epoch)+'_e', postfix2 = '_'+mode+'_TSNE_posterior_batch'+'_m')
                     helper.dataset_plotter([all_np_prior_latent_code[rand_indices_TSNE, ...],], colors=['r',], point_thickness = 10, save_dir = global_args.exp_dir+'Visualization/'+mode+'_TSNE_prior_batch/', postfix = '_'+mode+'_TSNE_prior_batch_'+str(global_args.curr_epoch)+'_e', postfix2 = '_'+mode+'_TSNE_prior_batch'+'_m')
                     helper.dataset_plotter([all_np_prior_latent_code[rand_indices_TSNE, ...], all_np_posterior_latent_code[rand_indices_TSNE, ...]], point_thickness = 10, save_dir = global_args.exp_dir+'Visualization/'+mode+'_TSNE_prior_posterior_batch/', postfix = '_'+mode+'_TSNE_prior_posterior_batch_'+str(global_args.curr_epoch)+'_e', postfix2 = '_'+mode+'_TSNE_prior_posterior_batch'+'_m')

@@ -35,28 +35,18 @@ else:
 # dataset_to_use = 'CELEB'
 # dataset_to_use = 'CIFAR10'
 dataset_to_use = 'MNIST'
-# dataset_to_use = 'BINARYMNIST'
 # dataset_to_use = 'CAT'
 # dataset_to_use = 'FLOWERS'
 # dataset_to_use = 'CUB'
 # dataset_to_use = 'TOY'
 # dataset_to_use = 'INTENSITY'
 
-
-
-Algorithm = 'NADE'
+Algorithm = 'AE'
 if Algorithm == 'AE':
     alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
                              'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 256, 'n_flat': 400, 
                              'encoder_mode': 'Gaussian', 'divergence_mode': 'None', 'dual_dist_mode': '',  'infomax_mode': 'None', 'sample_distance_mode': 'Euclidean',
                              'enc_normalization_mode': 'Layer Norm', 'gen_normalization_mode': 'Layer Norm', 'cri_normalization_mode': 'None', 
-                             'enc_reg_strength': 0, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 0, 'enc_inv_MMD_n_trans': 0, 'enc_inv_MMD_strength': 0,
-                             'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {}, 'rnf_prop': {}}
-if Algorithm == 'NADE':
-    alg_specific_settings = {'optimizer_class': 'Adam', 'learning_rate': 1e-4, 'beta1': 0.9, 'beta2': 0.999,  
-                             'rel_enc_skip_rate': 1, 'rel_cri_skip_rate': 1, 'rel_gen_skip_rate': 1, 'n_filter': 128, 'n_flat': 400, 
-                             'encoder_mode': 'Deterministic', 'divergence_mode': 'None', 'dual_dist_mode': '',  'infomax_mode': 'None', 'sample_distance_mode': 'Euclidean',
-                             'enc_normalization_mode': 'None', 'gen_normalization_mode': 'None', 'cri_normalization_mode': 'None', 
                              'enc_reg_strength': 0, 'enc_n_slice_dir': 1, 'enc_inv_MMD_n_reflect': 0, 'enc_inv_MMD_n_trans': 0, 'enc_inv_MMD_strength': 0,
                              'critic_reg_mode': [], 'cri_reg_strength': 0, 'lambda_mix': 0, 'timers': {}, 'rnf_prop': {}}
 if Algorithm == 'RNF':
@@ -496,34 +486,6 @@ elif dataset_to_use == 'MNIST':
     from datasetLoaders.ColorMnistLoader import DataLoader
     #############################################################################################################################
 
-elif dataset_to_use == 'BINARYMNIST':
-    parser.add_argument('--global_exp_dir', type=str, default=global_experiment_name+'BINARYMNIST', help='Directory to put the experiments.')
-
-    parser.add_argument('--log_interval', type=int, default=200, help='how many batches to wait before logging training status')
-    parser.add_argument('--vis_interval', type=int, default=1, help='how many batches to wait before visualizing training status')
-    parser.add_argument('--in_between_vis', type=int, default=0, help='how many reports to wait before visualizing training status')
-    parser.add_argument('--test_epoch_rate', type=list, default=[300,1], help='test epoch repeat')
-    parser.add_argument('--latent_vis_TSNE_epoch_rate', type=list, default=[300,0], help='latent epoch repeat')
-    parser.add_argument('--latent_vis_UMAP_epoch_rate', type=list, default=[25,5], help='latent epoch repeat')
-    parser.add_argument('--reconst_vis_epoch_rate', type=list, default=[3,1], help='reconst epoch repeat')
-    parser.add_argument('--interpolate_vis_epoch_rate', type=list, default=[3,1], help='interpolation epoch repeat')
-    parser.add_argument('--fixed_samples_vis_epoch_rate', type=list, default=[3,1], help='fixed samples epoch repeat')
-    parser.add_argument('--fid_inception_score_epoch_rate', type=list, default=[0,1], help='compute fid and inception score')
-    parser.add_argument('--pigeonhole_score_epoch_rate', type=list, default=[0,1], help='compute pigeonhole score')
-    parser.add_argument('--reconstruction_score_epoch_rate', type=list, default=[10,0], help='compute reconstruction score')
-    parser.add_argument('--sharpness_score_epoch_rate', type=list, default=[10,0], help='compute sharpness score')
-
-    parser.add_argument('--n_context', type=int, default=1, help='n_context.')
-    parser.add_argument('--n_state', type=int, default=1, help='n_state.')
-    parser.add_argument('--n_latent', type=int, default=256, help='n_latent.')
-    parser.add_argument('--n_filter', type=int, default=alg_specific_settings['n_filter'], help='n_filter.')
-    parser.add_argument('--n_flat', type=int, default=alg_specific_settings['n_flat'], help='n_flat.')
-
-    global_args = parser.parse_args()
-    global_args.curr_epoch = 1
-    from datasetLoaders.BinaryMnistLoader import DataLoader
-#############################################################################################################################
-
 elif dataset_to_use == 'INTENSITY':
     parser.add_argument('--global_exp_dir', type=str, default=global_experiment_name+'INTENSITY', help='Directory to put the experiments.')
 
@@ -587,8 +549,6 @@ print("os.environ['CUDA_VISIBLE_DEVICES'], ", os.environ['CUDA_VISIBLE_DEVICES']
 
 if Algorithm == 'AE': 
     from models.AE.Model import Model
-if Algorithm == 'NADE': 
-    from models.NADE.Model import Model
 elif Algorithm == 'RNF': 
     from models.RNF.Model import Model
 elif Algorithm == 'RNFWasserstein': 
@@ -655,28 +615,24 @@ try:
     fixed_batch_data = batch['observed']['data']['image'].copy()
     random_batch_data = batch['observed']['data']['image'].copy()
 except: pass
-
 with tf.Graph().as_default():
     tf.set_random_seed(global_args.seed)
     model = Model(vars(global_args))
 
     global_step = tf.Variable(0.0, name='global_step', trainable=False)
-    with tf.compat.v1.variable_scope("training"):
+    with tf.variable_scope("training"):
         tf.set_random_seed(global_args.seed)
 
-        additional_inputs_tf = tf.compat.v1.placeholder(tf.float32, [2])
+        additional_inputs_tf = tf.placeholder(tf.float32, [2])
         batch_tf, input_dict_func = helper.tf_batch_and_input_dict(batch, additional_inputs_tf)
         model.inference(batch_tf, additional_inputs_tf)
         model.generative_model(batch_tf, additional_inputs_tf)
-<<<<<<< HEAD
-        #pdb.set_trace()
-=======
->>>>>>> upstream/master
+        pdb.set_trace()
 
-        div_vars = [v for v in tf.compat.v1.trainable_variables() if 'Diverger' in v.name or 'Decomposer' in v.name]
-        enc_vars = [v for v in tf.compat.v1.trainable_variables() if 'Encoder' in v.name] 
-        cri_vars = [v for v in tf.compat.v1.trainable_variables() if 'Critic' in v.name or 'WolfMap' in v.name or 'PriorTransform' in v.name or 'PriorExpandMap' in v.name or 'Separator' in v.name or 'PreEnc' in v.name or 'PostGen' in v.name or 'InfoMap' in v.name]
-        gen_vars = [v for v in tf.compat.v1.trainable_variables() if 'Generator' in v.name or 'FlowMap' in v.name] 
+        div_vars = [v for v in tf.trainable_variables() if 'Diverger' in v.name or 'Decomposer' in v.name]
+        enc_vars = [v for v in tf.trainable_variables() if 'Encoder' in v.name] 
+        cri_vars = [v for v in tf.trainable_variables() if 'Critic' in v.name or 'WolfMap' in v.name or 'PriorTransform' in v.name or 'PriorExpandMap' in v.name or 'Separator' in v.name or 'PreEnc' in v.name or 'PostGen' in v.name or 'InfoMap' in v.name]
+        gen_vars = [v for v in tf.trainable_variables() if 'Generator' in v.name or 'FlowMap' in v.name] 
 
         # Weight clipping
         if len(cri_vars)>0:
@@ -688,19 +644,19 @@ with tf.Graph().as_default():
     div_step_tf, enc_step_tf, cri_step_tf, gen_step_tf = None, None, None, None
     if global_args.optimizer_class == 'Adam':
         if hasattr(model, 'div_cost'):
-            div_step_tf = helper.clipped_optimizer_minimize(optimizer=tf.compat.v1.train.AdamOptimizer(
+            div_step_tf = helper.clipped_optimizer_minimize(optimizer=tf.train.AdamOptimizer(
                           learning_rate=global_args.learning_rate, beta1=global_args.beta1, beta2=global_args.beta2, epsilon=1e-08), 
                           loss=model.div_cost, var_list=div_vars, global_step=global_step, clip_param=global_args.gradient_clipping)
         if hasattr(model, 'enc_cost'):
-            enc_step_tf = helper.clipped_optimizer_minimize(optimizer=tf.compat.v1.train.AdamOptimizer(
+            enc_step_tf = helper.clipped_optimizer_minimize(optimizer=tf.train.AdamOptimizer(
                           learning_rate=global_args.learning_rate, beta1=global_args.beta1, beta2=global_args.beta2, epsilon=1e-08), 
                           loss=model.enc_cost, var_list=enc_vars, global_step=global_step, clip_param=global_args.gradient_clipping)
         if hasattr(model, 'cri_cost'):
-            cri_step_tf = helper.clipped_optimizer_minimize(optimizer=tf.compat.v1.train.AdamOptimizer(
+            cri_step_tf = helper.clipped_optimizer_minimize(optimizer=tf.train.AdamOptimizer(
                            learning_rate=global_args.learning_rate, beta1=global_args.beta1, beta2=global_args.beta2, epsilon=1e-08), 
                            loss=model.cri_cost, var_list=cri_vars, global_step=global_step, clip_param=global_args.gradient_clipping)
         if hasattr(model, 'gen_cost'):
-            gen_step_tf = helper.clipped_optimizer_minimize(optimizer=tf.compat.v1.train.AdamOptimizer(
+            gen_step_tf = helper.clipped_optimizer_minimize(optimizer=tf.train.AdamOptimizer(
                           learning_rate=global_args.learning_rate, beta1=global_args.beta1, beta2=global_args.beta2, epsilon=1e-08), 
                           loss=model.gen_cost, var_list=gen_vars, global_step=global_step, clip_param=global_args.gradient_clipping)
 
@@ -714,13 +670,13 @@ with tf.Graph().as_default():
     helper.variable_summaries(model.cri_cost, '/cri_cost')
     helper.variable_summaries(model.gen_cost, '/gen_cost')
 
-    init = tf.compat.v1.global_variables_initializer()
-    saver = tf.compat.v1.train.Saver()
+    init = tf.global_variables_initializer()
+    saver = tf.train.Saver()
     if tpu_address is not None: sess = tf.Session(tpu_address)
-    else: sess = tf.compat.v1.InteractiveSession()
+    else: sess = tf.InteractiveSession()
 
-    merged_summaries = tf.compat.v1.summary.merge_all()
-    summary_writer = tf.compat.v1.summary.FileWriter(global_args.exp_dir+'/summaries', sess.graph)
+    merged_summaries = tf.summary.merge_all()
+    summary_writer = tf.summary.FileWriter(global_args.exp_dir+'/summaries', sess.graph)
     sess.run(init)
 
     try:
@@ -782,7 +738,7 @@ with tf.Graph().as_default():
     # tf_check = tf.add_check_numerics_ops()
 
     def train():
-        b_zero_one_range = False
+        b_zero_one_range = True
         global optimize_bool, all_step_tf, all_cost_tf, all_opt_keys, random_batch_data, fixed_batch_data
         step_counts = {'div': 0, 'enc': 0, 'cri': 0, 'gen': 0}
         np_costs = {'div': 0, 'enc': 0, 'cri': 0, 'gen': 0}
@@ -892,9 +848,10 @@ with tf.Graph().as_default():
                 distributions.visualizeProductDistribution4(sess, model, curr_feed_dict, batch, model.input_dist, model.reg_dist, 
                 model.reg_target_dist, model.reconst_dist, model.obs_sample_dist, model.gen_obs_sample_dist, real_data = real_data_large_batch,
                 save_dir=global_args.exp_dir+'Visualization/train_'+mode, postfix='train_'+mode+'_'+str(global_args.curr_epoch)+'_e', postfix2='train_'+mode+'_m', b_zero_one_range=b_zero_one_range)
+
         
     def test():
-        b_zero_one_range = False
+        b_zero_one_range = True
         global random_batch_data, fixed_batch_data
         test_np_costs = {'div': 0, 'enc': 0, 'cri': 0, 'gen': 0}
 
@@ -972,7 +929,7 @@ with tf.Graph().as_default():
 
 
     def visualize(mode='train'):
-        b_zero_one_range = False
+        b_zero_one_range = True
 
         if mode=='train': data_loader.train(randomize=False)
         else: data_loader.eval()
@@ -1207,7 +1164,7 @@ with tf.Graph().as_default():
                     rand_indices_TSNE = np.arange(all_np_posterior_latent_code.shape[0]).astype(np.int)
                     np.random.permutation(rand_indices_TSNE)
                     rand_indices_TSNE = rand_indices_TSNE[:global_args.batch_size].astype(np.int)
-                    #pdb.set_trace()
+                    pdb.set_trace()
                     helper.dataset_plotter([all_np_posterior_latent_code[rand_indices_TSNE, ...],], colors=['g',], point_thickness = 10, save_dir = global_args.exp_dir+'Visualization/'+mode+'_TSNE_posterior_batch/', postfix = '_'+mode+'_TSNE_posterior_batch_'+str(global_args.curr_epoch)+'_e', postfix2 = '_'+mode+'_TSNE_posterior_batch'+'_m')
                     helper.dataset_plotter([all_np_prior_latent_code[rand_indices_TSNE, ...],], colors=['r',], point_thickness = 10, save_dir = global_args.exp_dir+'Visualization/'+mode+'_TSNE_prior_batch/', postfix = '_'+mode+'_TSNE_prior_batch_'+str(global_args.curr_epoch)+'_e', postfix2 = '_'+mode+'_TSNE_prior_batch'+'_m')
                     helper.dataset_plotter([all_np_prior_latent_code[rand_indices_TSNE, ...], all_np_posterior_latent_code[rand_indices_TSNE, ...]], point_thickness = 10, save_dir = global_args.exp_dir+'Visualization/'+mode+'_TSNE_prior_posterior_batch/', postfix = '_'+mode+'_TSNE_prior_posterior_batch_'+str(global_args.curr_epoch)+'_e', postfix2 = '_'+mode+'_TSNE_prior_posterior_batch'+'_m')
